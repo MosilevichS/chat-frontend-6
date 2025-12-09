@@ -1,7 +1,7 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 :root {
-  --font-main: 'Roboto', sans-serif;
+  --font-main: "Roboto", sans-serif;
 
   --color-text: #1c1c1e;
   --color-error: #ff0000;

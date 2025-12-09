@@ -16,14 +16,12 @@
  * @prop disabled - Блокировка кнопки (наследуется от HTMLButtonElement)
  */
 
-
 import type { ButtonHTMLAttributes } from "react";
 import type { ReactNode } from "react";
 
 type ButtonState = "default" | "active";
 
-interface DesktopMenuButtonProps
-  extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface DesktopMenuButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   icon: ReactNode;
   state?: ButtonState;
 }
@@ -44,9 +42,7 @@ const DesktopMenuButton = ({
 
   return (
     <button
-      className={`${baseButton} ${hoverStyle} ${
-        isActive ? activeStyle : ""
-      } ${className}`}
+      className={`${baseButton} ${hoverStyle} ${isActive ? activeStyle : ""} ${className}`}
       {...props}
     >
       <span className="w-8 h-8">{icon}</span>
