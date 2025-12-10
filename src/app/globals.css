@@ -1,10 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  --font-main: "Roboto", sans-serif;
-
   --color-text: #1c1c1e;
   --color-error: #ff0000;
+  --color-button-disabled: #e4e4e4;
   --color-overlay: rgba(149, 135, 245, 0.4);
 
   --color-violet: #7769e1;
@@ -16,8 +15,6 @@
 }
 
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
 }
 
@@ -25,7 +22,7 @@ html,
 body {
   width: 100%;
   height: 100%;
-  font-family: var(--font-main);
+  font-weight: 400;
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
 }
