@@ -1,7 +1,9 @@
+import {Input} from '../components/ui/Input';
+
 export default function Home() {
   return (
     <div>
-      <h1>Home</h1>
+      <Input name="sdsddds" placeholder="sdsddsds" />
     </div>
   );
 }
