@@ -1,4 +1,6 @@
-interface ButtonProps {
+"use client";
+
+interface IButton {
   children: React.ReactNode;
   variant: "primary" | "secondary1" | "secondary2";
   size: "small" | "medium";
@@ -6,12 +8,7 @@ interface ButtonProps {
   onClick?: () => void;
 }
 
-const Button = ({
-  children,
-  variant = "primary",
-  size = "medium",
-  disabled = false,
-}: ButtonProps) => {
+const Button = ({ children, variant = "primary", size = "medium", disabled = false }: IButton) => {
   const buttonBaseStyle =
     "inline-flex items-center justify-center focus:outline-none transition-all duration-200 ease-in-out";
 
