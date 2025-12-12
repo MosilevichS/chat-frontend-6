@@ -22,8 +22,8 @@ export const ДвузначноеЧисло: Story = {
   args: { count: 15 },
 };
 
-export const Превышение99: Story = {
-  args: { count: 150 },
+export const Превышение999: Story = {
+  args: { count: 1500 },
 };
 
 export const СТекстом: Story = {

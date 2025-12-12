@@ -1,7 +1,5 @@
 'use client';
 
-import * as React from 'react';
-
 interface IBadge {
   count?: number;
   showZero?: boolean;
@@ -13,7 +11,7 @@ interface IBadge {
 const Badge = ({
   count,
   showZero = false,
-  maxCount = 99,
+  maxCount = 999,
   className = '',
   children,
 }: IBadge) => {
