@@ -2,13 +2,20 @@
 
 interface IButton {
   children: React.ReactNode;
+  className?: string;
   variant: "primary" | "secondary1" | "secondary2";
   size: "small" | "medium";
   disabled?: boolean;
   onClick?: () => void;
 }
 
-const Button = ({ children, variant = "primary", size = "medium", disabled = false }: IButton) => {
+const Button = ({
+  children,
+  variant = "primary",
+  size = "medium",
+  disabled = false,
+  className = "",
+}: IButton) => {
   const buttonBaseStyle =
     "inline-flex items-center justify-center focus:outline-none transition-all duration-200 ease-in-out";
 
@@ -33,7 +40,7 @@ const Button = ({ children, variant = "primary", size = "medium", disabled = fal
   return (
     <button
       disabled={disabled}
-      className={`${buttonBaseStyle} ${disabled ? buttonDisabledStyle : variants[variant]} ${sizes[size]}`}
+      className={`${buttonBaseStyle} ${disabled ? buttonDisabledStyle : variants[variant]} ${sizes[size]} ${className}`}
     >
       {children}
     </button>

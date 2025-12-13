@@ -17,7 +17,7 @@ const Badge = ({ className = "", children }: IBadge) => {
 
   return (
     <div
-      className={`inline-flex items-center justify-center p-[0.375rem] bg-[var(--color-violet)] text-white font-medium ${size} ${className}`}
+      className={`inline-flex items-center justify-center p-1.5 bg-(--color-violet) text-white font-medium ${size} ${className}`}
     >
       <span className="text-[1rem] leading-none">{children}</span>
     </div>
