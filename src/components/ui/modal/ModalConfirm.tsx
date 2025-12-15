@@ -20,16 +20,16 @@ const ModalConfirm = ({
   cancelText = "Отмена",
 }: IModalConfirm) => {
   return (
-    <div className="w-100 bg-white p-6 rounded-lg">
-      <h3 className="font-medium text-lg mb-2 leading-6">{title}</h3>
+    <div className="w-[329px] md:w-[400px] bg-white p-6 rounded-lg text-center md:text-left">
+      <h3 className="font-medium text-lg mb-2 leading-5">{title}</h3>
       <p className="mb-5 text-(--color-gray) leading-5">{message}</p>
 
-      <div className="flex justify-end gap-2">
-        <Button onClick={onConfirm} variant={"secondary2"} size={"small"}>
-          {confirmText}
-        </Button>
-        <Button onClick={onClose} variant={"secondary1"} size={"small"}>
+      <div className="flex justify-center md:justify-end gap-2">
+        <Button onClick={onConfirm} variant={"adaptive"} size={"small"} adaptive={true}>
           {cancelText}
+        </Button>
+        <Button onClick={onClose} variant={"primary"} size={"small"}>
+          {confirmText}
         </Button>
       </div>
     </div>

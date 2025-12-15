@@ -11,7 +11,7 @@ interface IModalSupport {
 
 const ModalSupport = ({ title, message, onSupport, onClose }: IModalSupport) => {
   return (
-    <div className="w-100 bg-white py-8 px-5 rounded-xl text-center">
+    <div className="w-[329px] md:w-[400px] bg-white py-8 px-5 rounded-xl text-center">
       <h3 className={`font-medium text-2xl ${message ? "mb-4" : "mb-5"} leading-7`}>{title}</h3>
       {message && <p className="text-lg mb-7 leading-6">{message}</p>}
 
