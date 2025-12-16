@@ -1,7 +1,11 @@
-interface ButtonProps {
+"use client";
+
+interface IButton {
   children: React.ReactNode;
-  variant: "primary" | "secondary1" | "secondary2";
+  className?: string;
+  variant: "primary" | "secondary1" | "secondary2" | "adaptive";
   size: "small" | "medium";
+  adaptive?: boolean;
   disabled?: boolean;
   onClick?: () => void;
 }
@@ -10,8 +14,10 @@ const Button = ({
   children,
   variant = "primary",
   size = "medium",
+  adaptive = false,
   disabled = false,
-}: ButtonProps) => {
+  className = "",
+}: IButton) => {
   const buttonBaseStyle =
     "inline-flex items-center justify-center focus:outline-none transition-all duration-200 ease-in-out";
 
@@ -21,12 +27,14 @@ const Button = ({
     secondary1:
       "bg-white text-[var(--color-violet)] border-2 border-[var(--color-violet)] hover:bg-[var(--color-gray-light)] active:scale-95 active:translate-y-0.5 active:shadow-inner",
     secondary2:
-      "bg-white text-[var(--color-violet)] hover:text-[var(--color-violet-dark)] active:scale-95 active:translate-y-0.5 active:shadow-inner",
+      "bg-white text-[var(--color-violet)] hover:bg-[var(--color-gray-light)] active:scale-95 active:translate-y-0.5 active:shadow-inner",
+    adaptive:
+      "bg-white text-[var(--color-violet)] border-2 border-[var(--color-violet)] hover:bg-[var(--color-gray-light)] active:scale-95 active:translate-y-0.5 active:shadow-inner md:border-none",
   };
 
   const sizes = {
-    small: "w-[5.9375rem] h-[2rem] px-2 rounded-[0.25rem] text-base",
-    medium: "w-[22.5rem] h-[3.5rem] px-4 rounded-[0.5rem] text-[1.125rem] font-medium",
+    small: "w-[140px] md:w-[95px] h-[44px] md:h-[32px] px-2 rounded-md md:rounded-sm text-lg",
+    medium: "w-full max-w-[360px] h-[56px] px-4 rounded-lg text-lg font-medium",
   };
 
   const buttonDisabledStyle = disabled
@@ -36,7 +44,7 @@ const Button = ({
   return (
     <button
       disabled={disabled}
-      className={`${buttonBaseStyle} ${disabled ? buttonDisabledStyle : variants[variant]} ${sizes[size]}`}
+      className={`${buttonBaseStyle} ${disabled ? buttonDisabledStyle : variants[variant]} ${sizes[size]} ${className} `}
     >
       {children}
     </button>

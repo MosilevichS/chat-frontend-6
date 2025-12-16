@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+@layer components {
+  @media (max-width: 767px) {
+    .auth-card:has([data-auth-welcome]) {
+      background-image: url("/images/auth-container-background.png");
+      background-size: cover;
+      background-position: center;
+    }
+  }
+}
+
 :root {
   --color-text: #1c1c1e;
   --color-error: #ff0000;

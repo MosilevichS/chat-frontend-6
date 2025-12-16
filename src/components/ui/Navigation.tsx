@@ -1,13 +1,15 @@
+"use client";
+
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 // Компонент надо еще дорабатывать, сделать адпативным, поменять стили
-interface NavigationProps {
+interface INavigation {
   icon: ReactNode;
 }
 
-const Navigation = ({ icon }: NavigationProps) => {
+const Navigation = ({ icon }: INavigation) => {
   const pathname = usePathname();
 
   const navLinks = [
