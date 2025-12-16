@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Logo from "@/src/components/ui/Logo";
 import Button from "@/src/components/ui/Button";
+import Tooltip from "@/src/components/ui/Tooltip";
 
 const Page = () => {
   return (
