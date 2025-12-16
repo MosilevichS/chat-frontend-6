@@ -50,8 +50,8 @@ export const Input = ({
         className={twMerge(
           "w-full",
           "text-lg tracking-[0.01em]",
-          "border-[0.125rem] border-gray-500 rounded-md",
-          "py-[1rem] px-[1.25rem]",
+          "border-2 border-gray-500 rounded-md",
+          "py-4 px-5",
           "focus:outline-none focus:border-[#7769E1] focus:ring-2 focus:ring-[#7769E1]/20",
           "bg-white text-gray-900 placeholder:text-gray-500",
           "transition-all duration-200",
