@@ -98,8 +98,10 @@ export default function Page() {
               "
               >
                 Нажимая на «Зарегистрироваться», вы соглашаетесь с{" "}
-                <a href="#" className="text-blue-500 hover:text-blue-600 underline">
-                  Пользовательским соглашением.
+                <a href="#">
+                  <span className="text-blue-500 hover:text-blue-600">
+                    Пользовательским соглашением.
+                  </span>
                 </a>
               </p>
             </div>
