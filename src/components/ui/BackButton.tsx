@@ -1,18 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
+import backIcon from "../../assets/icons/back-icon.svg";
 
-interface BackButtonProps {
+interface IBackButton {
   href: string;
   ariaLabel?: string;
   className?: string;
 }
 
-export default function BackButton({
-  href,
-  ariaLabel = "Вернуться назад",
-  className = "",
-}: BackButtonProps) {
+const BackButton = ({ href, ariaLabel = "Вернуться назад", className = "" }: IBackButton) => {
   return (
     <Link
       href={href}
@@ -21,28 +19,23 @@ export default function BackButton({
       className={`
         inline-flex items-center justify-center
         rounded-full
-        text-text
         transition-all duration-300
-        sm:w-8 sm:h-8
         w-11 h-11
+        md:w-8 md:h-8
         hover:shadow-lg
         focus:shadow-xl
         ${className}
       `}
     >
-      <svg
-        width="32"
-        height="32"
-        viewBox="0 0 32 32"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="text-current"
-      >
-        <path
-          d="M21.6588 7.51669L20.2398 6.09766L10.3398 16.0014L20.2437 25.9052L21.6621 24.4868L13.1754 16.0001L21.6588 7.51669Z"
-          fill="#1C1C1E"
-        />
-      </svg>
+      <Image
+        src={backIcon}
+        alt="Назад"
+        width={32}
+        height={32}
+        className="w-8 h-8 object-contain"
+      />
     </Link>
   );
-}
+};
+
+export default BackButton;
