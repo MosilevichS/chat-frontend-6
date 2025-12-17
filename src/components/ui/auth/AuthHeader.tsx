@@ -29,15 +29,7 @@ export const AuthHeader = () => {
           "
         />
       </div>
-      <div
-        className="
-        flex items-center justify-center
-        max-w-[56px] max-h-[50px]
-        md:max-w-[78px] md:max-h-[70px]
-        "
-      >
-        <Logo className="w-auto h-full object-contain" />
-      </div>
+      <Logo size="small" className="object-contain" />
     </div>
   );
 };
