@@ -1,5 +1,5 @@
 import { ErrorMessage } from "./ErrorMessage";
-import type { UseFormRegister, FieldValues } from "react-hook-form";
+import type {UseFormRegister, FieldValues, UseFormRegisterReturn} from "react-hook-form";
 import { twMerge } from "tailwind-merge";
 import type { InputHTMLAttributes } from "react";
 
@@ -11,7 +11,7 @@ interface IInput {
   type?: "text" | "email" | "password" | "tel" | "number";
   placeholder: string;
   containerClassName?: string;
-  register?: UseFormRegister<FieldValues>;
+  register?: UseFormRegisterReturn;
   error?: string;
   disabled?: boolean;
   defaultValue?: string;
@@ -59,7 +59,7 @@ export const Input = ({
           error && "border-red-500 focus:border-red-500 focus:ring-red-200",
           inputClassName,
         )}
-        {...(register && { ...register(name) })}
+        {...register}
       />
     </div>
   );

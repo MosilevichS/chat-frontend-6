@@ -8,10 +8,12 @@ interface IButton {
   adaptive?: boolean;
   disabled?: boolean;
   onClick?: () => void;
+  type?: "button" | "submit" | "reset";
 }
 
 const Button = ({
   children,
+  type,
   variant = "primary",
   size = "medium",
   adaptive = false,
