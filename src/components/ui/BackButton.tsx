@@ -1,40 +1,32 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import backIcon from "../../assets/icons/back-icon.svg";
 
-interface IBackButton {
-  href: string;
-  ariaLabel?: string;
-  className?: string;
-}
+const steps = ["/", "phone", "code", "profile", "success"];
 
-const BackButton = ({ href, ariaLabel = "Вернуться назад", className = "" }: IBackButton) => {
+const BackButton = () => {
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const current = pathname.split("/").pop();
+  const index = steps.indexOf(current!);
+
+  if (index <= 0) return null;
+  const handleBack = () => {
+    const previousStep = steps[index - 1];
+    router.push(`/auth/${previousStep}`);
+  };
+
   return (
-    <Link
-      href={href}
-      aria-label={ariaLabel}
-      title={ariaLabel}
-      className={`
-        inline-flex items-center justify-center
-        rounded-full
-        transition-all duration-300
-        w-11 h-11
-        md:w-8 md:h-8
-        hover:shadow-lg
-        focus:shadow-xl
-        ${className}
-      `}
+    <button
+      onClick={handleBack}
+      aria-label="На предыдущую страницу"
+      className="transition-opacity hover:opacity-80"
     >
-      <Image
-        src={backIcon}
-        alt="Назад"
-        width={32}
-        height={32}
-        className="w-8 h-8 object-contain"
-      />
-    </Link>
+      <Image src={backIcon} alt="Иконка назад" className="w-[32px] h-[32px]" />
+    </button>
   );
 };
 

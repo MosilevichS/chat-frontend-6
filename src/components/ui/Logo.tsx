@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import logo from "../../assets/icons/logo-icon.svg";
+import Image from "next/image";
+import logoIcon from "../../assets/icons/logo-icon.svg";
 
 interface ILogo {
   size?: "small" | "large";
@@ -20,7 +21,7 @@ const Logo = ({ size = "small", className }: ILogo) => {
       area-label="Ha главную"
       className={`inline-block transition-opacity hover:opacity-80 ${className}`}
     >
-      <img src={logo.src} alt="Логотип компании" className={logoSizes[size]} />
+      <Image src={logoIcon} alt="Логотип компании" className={logoSizes[size]} />
     </Link>
   );
 };
