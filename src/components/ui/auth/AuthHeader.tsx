@@ -6,7 +6,7 @@ export const AuthHeader = () => {
   return (
     <div
       className="
-      h-[50px] w-full max-w-full px-4
+      h-[50px] w-full max-w-[360px] md:max-w-full
       relative flex items-center justify-between
       md:justify-center
     "

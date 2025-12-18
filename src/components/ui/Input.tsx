@@ -1,5 +1,5 @@
 import { ErrorMessage } from "./ErrorMessage";
-import type {UseFormRegister, FieldValues, UseFormRegisterReturn} from "react-hook-form";
+import type { UseFormRegisterReturn } from "react-hook-form";
 import { twMerge } from "tailwind-merge";
 import type { InputHTMLAttributes } from "react";
 
@@ -35,7 +35,10 @@ export const Input = ({
       {error ? (
         <ErrorMessage error={error} />
       ) : (
-        <label htmlFor={name} className="block text-sm font-medium h-4 mb-[0.5rem] text-gray-700">
+        <label
+          htmlFor={name}
+          className="text-[var(--color-grey)] text-[14px] leading-[120%] tracking-[0.01em] align-middle min-h-[20px] mb-1 block"
+        >
           {label}
         </label>
       )}
@@ -50,13 +53,13 @@ export const Input = ({
         className={twMerge(
           "w-full",
           "text-lg tracking-[0.01em]",
-          "border-2 border-gray-500 rounded-md",
-          "py-4 px-5",
-          "focus:outline-none focus:border-[#7769E1] focus:ring-2 focus:ring-[#7769E1]/20",
-          "bg-white text-gray-900 placeholder:text-gray-500",
+          "border-2 border-[var(--color-gray)] rounded-md",
+          "py-4 px-3 md:py-4 md:px-5",
+          "focus:outline-none focus:border-[var(--color-violet)]",
+          "bg-white text-[var(--color-gray)] placeholder:text-gray-500",
           "transition-all duration-200",
           "disabled:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-70",
-          error && "border-red-500 focus:border-red-500 focus:ring-red-200",
+          error && "border-[var(--color-error)] focus:border-[var(--color-error)]",
           inputClassName,
         )}
         {...register}
