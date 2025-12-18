@@ -1,12 +1,13 @@
 "use client";
 
+import Link from "next/link";
 interface IButton {
   children: React.ReactNode;
   className?: string;
   variant: "primary" | "secondary1" | "secondary2" | "adaptive";
   size: "small" | "medium";
-  adaptive?: boolean;
   disabled?: boolean;
+  href?: string;
   onClick?: () => void;
 }
 
@@ -14,9 +15,9 @@ const Button = ({
   children,
   variant = "primary",
   size = "medium",
-  adaptive = false,
   disabled = false,
   className = "",
+  href,
 }: IButton) => {
   const buttonBaseStyle =
     "inline-flex items-center justify-center focus:outline-none transition-all duration-200 ease-in-out";
@@ -41,10 +42,21 @@ const Button = ({
     ? "bg-[var(--color-button-disabled)] text-[var(--color-gray-dark)] cursor-not-allowed active:none"
     : "";
 
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className={`${buttonBaseStyle} ${disabled ? buttonDisabledStyle : variants[variant]} ${sizes[size]} ${className}`}
+      >
+        {children}
+      </Link>
+    );
+  }
+
   return (
     <button
       disabled={disabled}
-      className={`${buttonBaseStyle} ${disabled ? buttonDisabledStyle : variants[variant]} ${sizes[size]} ${className} `}
+      className={`${buttonBaseStyle} ${disabled ? buttonDisabledStyle : variants[variant]} ${sizes[size]} ${className}`}
     >
       {children}
     </button>
