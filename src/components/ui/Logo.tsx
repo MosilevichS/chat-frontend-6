@@ -19,7 +19,7 @@ const Logo = ({ size = "small", className }: ILogo) => {
     <Link
       href="/"
       area-label="Ha главную"
-      className={`inline-block transition-opacity hover:opacity-80 ${className}`}
+      className={`inline-block transition-opacity delay-200 hover:opacity-80 ${className}`}
     >
       <Image src={logoIcon} alt="Логотип компании" className={logoSizes[size]} />
     </Link>

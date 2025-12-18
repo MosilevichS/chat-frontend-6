@@ -23,7 +23,7 @@ const BackButton = () => {
     <button
       onClick={handleBack}
       aria-label="На предыдущую страницу"
-      className="transition-opacity hover:opacity-80"
+      className="transition-opacity delay-200 hover:opacity-80"
     >
       <Image src={backIcon} alt="Иконка назад" className="w-[32px] h-[32px]" />
     </button>
