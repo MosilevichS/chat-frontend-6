@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import tooltip from "@/src/assets/icons/tooltip.svg";
+import Image from "next/image";
+import tooltipIcon from "@/src/assets/icons/tooltip.svg";
 
 const Tooltip = ({ children }: { children: React.ReactNode }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -26,7 +27,7 @@ const Tooltip = ({ children }: { children: React.ReactNode }) => {
         className="cursor-pointer text-(--color-gray) hover:text-gray-700"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <img src={tooltip.src} alt="Tooltip Icon" className="w-6 h-6" />
+        <Image src={tooltipIcon} alt="Иконка подсказки" className="w-6 h-6" />
       </span>
 
       <div

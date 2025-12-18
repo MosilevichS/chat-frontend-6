@@ -25,7 +25,7 @@ const ModalConfirm = ({
       <p className="mb-5 text-(--color-gray) leading-5">{message}</p>
 
       <div className="flex justify-center md:justify-end gap-2">
-        <Button onClick={onConfirm} variant={"adaptive"} size={"small"} adaptive={true}>
+        <Button onClick={onConfirm} variant={"adaptive"} size={"small"}>
           {cancelText}
         </Button>
         <Button onClick={onClose} variant={"primary"} size={"small"}>
