@@ -22,6 +22,7 @@
   --color-gray: #747474;
   --color-gray-light: #f5f6f8;
   --color-gray-dark: #c5c5c5;
+  --color-black-light: rgba(0, 0, 0, 0.7);
 }
 
 * {
