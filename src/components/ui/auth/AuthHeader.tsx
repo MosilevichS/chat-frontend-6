@@ -1,6 +1,5 @@
 import Logo from "@/src/components/ui/Logo";
-import Image from "next/image";
-import backIcon from "@/assets/icons/back-icon.svg";
+import BackButton from "@/components/ui/BackButton";
 
 export const AuthHeader = () => {
   return (
@@ -17,17 +16,7 @@ export const AuthHeader = () => {
         md:absolute md:left-0 md:top-0
       "
       >
-        <Image
-          src={backIcon}
-          alt="Кнопка назад"
-          width={32}
-          height={32}
-          className="
-            cursor-pointer hover:opacity-80 transition-opacity
-            w-auto h-full
-            md:w-[32px] md:h-[32px]
-          "
-        />
+        <BackButton />
       </div>
       <Logo size="small" className="object-contain" />
     </div>
