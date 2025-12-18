@@ -35,7 +35,7 @@ export const Input = ({
       {error ? (
         <ErrorMessage error={error} />
       ) : (
-        <label htmlFor={name} className="block text-sm font-medium h-4 mb-[0.25rem] text-gray-700">
+        <label htmlFor={name} className="block text-sm font-medium h-4 mb-1 text-gray-700">
           {label}
         </label>
       )}
