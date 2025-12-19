@@ -6,7 +6,7 @@ interface ErrorProps {
 export const ErrorMessage = ({ error, className }: ErrorProps) => {
   return (
     <p
-      className={`text-[var(--color-error)] text-[14px] leading-[120%] tracking-[0.01em] align-middle min-h-[20px] block${className}`}
+      className={`text-[var(--color-error)] text-[14px] leading-[120%] tracking-[0.01em] align-middle min-h-[20px] mb-1 block${className}`}
     >
       {error}
     </p>

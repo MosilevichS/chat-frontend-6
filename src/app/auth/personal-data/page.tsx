@@ -50,13 +50,13 @@ export default function Page() {
     <div className="h-full flex items-center flex-col pb-10 md:pb-20 pt-6 md:pt-18 ">
       <AuthHeader />
 
-      <div className="flex flex-col items-center justify-center gap-3 md:gap-4 py-8 md:gap-6">
-        <h3 className="text-black font-medium text-[24px] leading-[120%] md:font-roboto md:font-semibold md:text-[32px] md:leading-[100%] tracking-normal  align-middle">
+      <div className="flex flex-col items-center justify-center gap-3 py-8 md:gap-6">
+        <h3 className="text-[var(--color-black)] font-medium text-[24px] leading-[120%] md:font-roboto md:font-semibold md:text-[32px] md:leading-[100%] tracking-normal  align-middle">
           Личная информация
         </h3>
         <span
           className="
-            font-roboto font-normal text-[18px] leading-[130%] tracking-[0.01em] text-center text-gray-600
+            font-roboto font-normal text-[18px] leading-[130%] tracking-[0.01em] text-center text-[var(--color-gray)]
             md:text-[18px]
           "
         >
@@ -94,7 +94,7 @@ export default function Page() {
             >
               Нажимая на «Зарегистрироваться», вы соглашаетесь с{" "}
               <a href="#">
-                <span className="text-blue-500 hover:text-blue-600">
+                <span className="texttext-[var(--color-violet)] hover:text-[var(--color-blue)]">
                   Пользовательским соглашением.
                 </span>
               </a>
