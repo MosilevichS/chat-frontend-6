@@ -1,41 +1,42 @@
 import { ErrorMessage } from "./ErrorMessage";
-import type { UseFormRegister, FieldValues } from "react-hook-form";
+import type { UseFormRegisterReturn } from "react-hook-form";
 import { twMerge } from "tailwind-merge";
 import type { InputHTMLAttributes } from "react";
 
 interface IInput {
-  inputClassName?: string;
   onChange?: InputHTMLAttributes<HTMLInputElement>["onChange"];
   name: string;
   label?: string;
   type?: "text" | "email" | "password" | "tel" | "number";
   placeholder: string;
-  containerClassName?: string;
-  register?: UseFormRegister<FieldValues>;
+  register?: UseFormRegisterReturn;
   error?: string;
   disabled?: boolean;
   defaultValue?: string;
+  className?: string;
 }
 
 export const Input = ({
-  inputClassName,
   onChange,
   name,
   label,
   type = "text",
   placeholder,
-  containerClassName,
   register,
   error,
   disabled = false,
   defaultValue,
+  className,
 }: IInput) => {
   return (
-    <div className={containerClassName}>
+    <div>
       {error ? (
         <ErrorMessage error={error} />
       ) : (
-        <label htmlFor={name} className="block text-sm font-medium h-4 mb-1 text-gray-700">
+        <label
+          htmlFor={name}
+          className="text-(--color-gray) text-[0.875rem] leading-[120%] tracking-[0.01em] mb-1 block"
+        >
           {label}
         </label>
       )}
@@ -48,18 +49,18 @@ export const Input = ({
         disabled={disabled}
         defaultValue={defaultValue}
         className={twMerge(
-          "w-full",
+          "w-full h-14",
           "text-lg tracking-[0.01em]",
-          "border-2 border-gray-500 rounded-md",
-          "py-4 px-5",
-          "focus:outline-none focus:border-[#7769E1] focus:ring-2 focus:ring-[#7769E1]/20",
-          "bg-white text-gray-900 placeholder:text-gray-500",
+          "border-2 border-(--color-gray) rounded-md",
+          "py-4 px-3 md:py-4 md:px-5",
+          "focus:outline-none focus:border-[var(--color-violet)]",
+          "bg-white text-[var(--color-gray)] placeholder:text-gray-500",
           "transition-all duration-200",
           "disabled:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-70",
-          error && "border-red-500 focus:border-red-500 focus:ring-red-200",
-          inputClassName,
+          error && "border-[var(--color-error)] focus:border-[var(--color-error)]",
+          className,
         )}
-        {...(register && { ...register(name) })}
+        {...register}
       />
     </div>
   );

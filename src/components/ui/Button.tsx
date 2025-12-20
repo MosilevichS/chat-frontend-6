@@ -9,10 +9,12 @@ interface IButton {
   disabled?: boolean;
   href?: string;
   onClick?: () => void;
+  type?: "button" | "submit" | "reset";
 }
 
 const Button = ({
   children,
+  type,
   variant = "primary",
   size = "medium",
   disabled = false,
