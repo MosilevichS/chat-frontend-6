@@ -7,7 +7,7 @@ const Page = () => {
   return (
     <div
       data-auth-welcome
-      className="pt-18 pb-20 flex h-full flex-col items-center auth-card--mobile-bg"
+      className="pt-11 pb-11 md:pt-18 md:pb-20 flex h-full flex-col items-center auth-card--mobile-bg"
     >
       <Logo size="large" className="mb-10 md:mb-16" />
       <h2 className="text-[2.125rem] md:text-[2rem] leading-11 md:leading-8 mb-4 md:mb-6 font-extrabold md:font-semibold bg-[linear-gradient(181.47deg,#D7D7D7_-221.42%,#FFF9F9_-78.94%,#4F4C4C_36.08%)] bg-clip-text text-transparent">
