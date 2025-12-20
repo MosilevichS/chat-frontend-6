@@ -14,7 +14,7 @@ const page = () => {
           </h3>
           <span
             className="
-            font-roboto font-normal text-[18px] leading-[130%] tracking-[0.01em] text-center text-[var(--color-gray)]
+            font-roboto font-normal text-[18px] leading-[130%] tracking-[0.01em] text-center text-[var(--color-black)]
             md:text-[18px]
           "
           >
