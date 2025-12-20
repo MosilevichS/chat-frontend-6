@@ -10,13 +10,15 @@ import { z } from "zod";
 const formSchema = z.object({
   name: z
     .string()
+    .min(1, "Заполните поле")
     .min(2, "Имя должно содержать минимум 2 символа")
-    .max(30, "Имя не должно превышать 30 символов")
-    .regex(/^[a-zA-Zа-яА-ЯёЁ\s-]+$/, "Имя может содержать только буквы, пробелы и дефисы")
+    .max(30, "Не более 30 символов")
+    .regex(/^[a-zA-Zа-яА-ЯёЁ\s-]+$/, "Используйте только буквы, пробел или тире")
     .trim(),
 
   nickName: z
     .string()
+    .min(1, "Заполните поле")
     .min(3, "Никнейм должен содержать минимум 3 символа")
     .max(30, "Никнейм не должен превышать 30 символов")
     .regex(
@@ -47,70 +49,54 @@ export default function Page() {
   };
 
   return (
-    <div className="h-full flex items-center flex-col pb-10 md:pb-20 pt-6 md:pt-18 ">
-      <AuthHeader />
+    <div className="h-full flex items-center flex-col pb-10 md:pb-20 pt-[4.5rem] md:pt-18 ">
+      <AuthHeader className="mb-5 md:mb-8" />
 
-      <div className="flex flex-col items-center justify-center gap-3 py-8 md:gap-6">
-        <h3 className="text-[var(--color-black)] font-medium text-[24px] leading-[120%] md:font-roboto md:font-semibold md:text-[32px] md:leading-[100%] tracking-normal  align-middle">
-          Личная информация
-        </h3>
-        <span
-          className="
-            font-roboto font-normal text-[18px] leading-[130%] tracking-[0.01em] text-center text-[var(--color-gray)]
-            md:text-[18px]
-          "
-        >
-          Пожалуйста, заполните данные
-        </span>
-      </div>
+      <h3 className="mb-3 md:mb-6 text-[var(--color-text)] font-medium text-2xl leading-[120%] md:font-semibold md:text-[2rem] md:leading-[100%] tracking-normal">
+        Личная информация
+      </h3>
+      <span className="mb-5 md:mb-6 text-lg leading-[130%] tracking-[0.01em] text-[var(--color-text)]">
+        Пожалуйста, заполните данные
+      </span>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1">
-        <div className="flex flex-col items-center gap-4 md:gap-6 flex-1">
-          <Input
-            register={register("name")}
-            name="name"
-            label="Введите имя"
-            placeholder=""
-            error={errors.name?.message}
-            containerClassName="w-full max-w-[360px]"
-          />
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col h-full">
+        <Input
+          register={register("name")}
+          name="name"
+          label="Введите имя"
+          placeholder=""
+          error={errors.name?.message}
+          className="mb-2 md:mb-3"
+        />
 
-          <Input
-            register={register("nickName")}
-            name="nickName"
-            label="Придумайте никнейм"
-            placeholder=""
-            error={errors.nickName?.message}
-            containerClassName="w-full max-w-[360px]"
-          />
-        </div>
-        <div className="mt-auto  pt-6 pb-4">
+        <Input
+          register={register("nickName")}
+          name="nickName"
+          label="Введите никнейм"
+          placeholder=""
+          error={errors.nickName?.message}
+        />
+
+        <div className="mt-auto">
           <div className="flex flex-col items-center">
-            <p
-              className="
-                font-roboto font-normal text-[12px] text-gray-500
-                md:text-[14px] max-w-[360px] mb-4
-              "
-            >
+            <p className="font-medium text-xs md:text-sm text-(--color-gray) max-w-[360px] mb-4 leading-[120%]">
               Нажимая на «Зарегистрироваться», вы соглашаетесь с{" "}
               <a href="#">
-                <span className="texttext-[var(--color-violet)] hover:text-[var(--color-blue)]">
+                <span className="font-medium text-(--color-violet) hover:text-(--color-violet-dark) hover:underline">
                   Пользовательским соглашением.
                 </span>
               </a>
             </p>
 
-            <div className="w-full max-w-[360px]">
-              <Button
-                type="submit"
-                size="medium"
-                variant="primary"
-                className="w-full"
-                disabled={isSubmitting || !isValid}
-              >
-                Зарегистрироваться
-              </Button>
-            </div>
+            <Button
+              type="submit"
+              size="medium"
+              variant="primary"
+              className="w-full"
+              disabled={isSubmitting || !isValid}
+            >
+              Зарегистрироваться
+            </Button>
           </div>
         </div>
       </form>
