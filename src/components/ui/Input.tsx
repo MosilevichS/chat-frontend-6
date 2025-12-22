@@ -4,6 +4,7 @@ import { twMerge } from "tailwind-merge";
 import type { InputHTMLAttributes } from "react";
 
 interface IInput {
+  onClick?: InputHTMLAttributes<HTMLInputElement>["onClick"];
   onChange?: InputHTMLAttributes<HTMLInputElement>["onChange"];
   name: string;
   label?: string;
@@ -17,6 +18,7 @@ interface IInput {
 }
 
 export const Input = ({
+  onClick,
   onChange,
   name,
   label,
@@ -42,6 +44,7 @@ export const Input = ({
       )}
 
       <input
+        onClick={onClick}
         onChange={onChange}
         id={name}
         type={type}
@@ -61,6 +64,7 @@ export const Input = ({
           className,
         )}
         {...register}
+
       />
     </div>
   );
