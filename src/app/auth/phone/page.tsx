@@ -6,6 +6,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Logo from "@/components/ui/Logo";
+import BackButton from "@/components/ui/BackButton";
+import { AuthHeader } from "@/components/ui/auth/AuthHeader";
 
 const formSchema = z.object({
   phone: z
@@ -40,7 +42,8 @@ export default function Page() {
 
   return (
     <div className="h-full flex items-center flex-col pb-10 md:pb-20 pt-[4.5rem] md:pt-20">
-      <div className="text-center">
+      <AuthHeader className="hidden relative md:flex md:mb-8" />
+      <div className="text-center md:hidden ">
         <Logo size="small" />
         <h3 className="mb-8 md:mb-6 text-[var(--color-text)] font-medium md:font-semibold text-[2rem] md:text-[3rem] leading-[120%] tracking-normal">
           А-Чат
