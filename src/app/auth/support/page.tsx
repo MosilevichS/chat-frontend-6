@@ -101,16 +101,31 @@ const SupportPage = () => {
           noValidate
         >
           <div className={twMerge("w-full", "mb-[10px]")}>
-            <span
-              className={twMerge(
-                "block",
-                "text-[0.875rem] leading-[120%] tracking-[0.01em]",
-                "text-[var(--color-gray)]",
-                "mb-2 ml-1",
-              )}
-            >
-              Укажите Ваш e-mail
-            </span>
+            {/* Метка для email - показываем только если нет ошибки */}
+            {!errors.email && (
+              <span
+                className={twMerge(
+                  "block",
+                  "text-[0.875rem] leading-[120%] tracking-[0.01em]",
+                  "text-[var(--color-gray)]",
+                  "mb-2 ml-0", // Изменено: ml-0 вместо ml-1
+                )}
+              >
+                Укажите Ваш e-mail
+              </span>
+            )}
+
+            {/* Сообщение об ошибке email - показываем вместо метки */}
+            {errors.email && (
+              <p
+                className={twMerge(
+                  "text-[var(--color-error)] text-[0.875rem] leading-[120%] tracking-[0.01em]",
+                  "mb-2 ml-0", // Изменено: ml-0 вместо ml-1
+                )}
+              >
+                {errors.email.message}
+              </p>
+            )}
 
             <Controller
               name="email"
@@ -129,7 +144,6 @@ const SupportPage = () => {
                     name="email"
                     type="email"
                     placeholder=""
-                    error={errors.email?.message}
                     className={twMerge(
                       "w-full max-w-[360px]",
                       "!border !border-[var(--color-gray)]",
@@ -147,22 +161,37 @@ const SupportPage = () => {
           </div>
 
           <div className={twMerge("w-full", "mb-[15px]")}>
-            <span
-              className={twMerge(
-                "block",
-                "text-[0.875rem] leading-[120%] tracking-[0.01em]",
-                "text-[var(--color-gray)]",
-                "mb-[6px] ml-1",
-              )}
-            >
-              Опишите Вашу проблему
-            </span>
+            {/* Метка для проблемы - показываем только если нет ошибки */}
+            {!errors.problem && (
+              <span
+                className={twMerge(
+                  "block",
+                  "text-[0.875rem] leading-[120%] tracking-[0.01em]",
+                  "text-[var(--color-gray)]",
+                  "mb-[6px] ml-0", // Изменено: ml-0 вместо ml-1
+                )}
+              >
+                Опишите Вашу проблему
+              </span>
+            )}
+
+            {/* Сообщение об ошибке проблемы - показываем вместо метки */}
+            {errors.problem && (
+              <p
+                className={twMerge(
+                  "text-[var(--color-error)] text-[0.875rem] leading-[120%] tracking-[0.01em]",
+                  "mb-[6px] ml-0", // Изменено: ml-0 вместо ml-1
+                )}
+              >
+                {errors.problem.message}
+              </p>
+            )}
 
             <Controller
               name="problem"
               control={control}
               rules={{
-                required: "Описание проблемы обязательно",
+                required: "Введите описание проблемы",
                 minLength: {
                   value: 5,
                   message: "Минимум 5 символов",
@@ -199,17 +228,6 @@ const SupportPage = () => {
                 </div>
               )}
             />
-
-            {errors.problem && (
-              <p
-                className={twMerge(
-                  "text-[var(--color-error)] text-[0.875rem] leading-[120%] tracking-[0.01em]",
-                  "mt-[6px]",
-                )}
-              >
-                {errors.problem.message}
-              </p>
-            )}
           </div>
 
           <div className={twMerge("w-full", "mb-[80px] mt-[-8px]")}>
