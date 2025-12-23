@@ -1,13 +1,13 @@
 "use client";
-import { useRef, useCallback } from "react";
+import { useState } from "react";
 import { Input } from "@/src/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Logo from "@/components/ui/Logo";
-import BackButton from "@/components/ui/BackButton";
 import { AuthHeader } from "@/components/ui/auth/AuthHeader";
+import ModalConfirm from "@/components/ui/modal/ModalConfirm";
 
 const formSchema = z.object({
   phone: z
@@ -20,6 +20,8 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 export default function Page() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [phoneValue, setPhoneValue] = useState("");
   const {
     register,
     handleSubmit,
@@ -28,16 +30,20 @@ export default function Page() {
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     mode: "onChange",
-    defaultValues: {
-      phone: "+7 900 000 00 00",
-    },
     criteriaMode: "firstError",
     reValidateMode: "onChange",
   });
+  const handleOpenModal = (data: FormData) => {
+    setPhoneValue(data.phone);
+    setIsModalOpen(true);
+  };
 
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
 
-  const onSubmit = (data: FormData) => {
-    console.log("Данные формы:", data);
+  const handleConfirm = () => {
+    setIsModalOpen(false);
   };
 
   return (
@@ -54,7 +60,10 @@ export default function Page() {
         Вход/регистрация
       </h3>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col h-full w-full max-w-sm px-4">
+      <form
+        onSubmit={handleSubmit(handleOpenModal)}
+        className="flex flex-col h-full w-full max-w-sm px-4"
+      >
         <Input
           register={register("phone", {
             onChange: e => {
@@ -104,6 +113,18 @@ export default function Page() {
           </div>
         </div>
       </form>
+      {isModalOpen && (
+        <div className="fixed bottom-30 md:bottom-40 inset-0 bg-opacity-50 flex items-center justify-center z-50">
+          <ModalConfirm
+            onClose={handleCloseModal}
+            onConfirm={handleConfirm}
+            title={phoneValue}
+            message="Номер телефона указан верно?"
+            confirmText="Верно"
+            cancelText="Изменить"
+          />
+        </div>
+      )}
     </div>
   );
 }
