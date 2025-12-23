@@ -1,45 +1,117 @@
 "use client";
 
-import type { ReactNode } from "react";
+// import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 // Компонент надо еще дорабатывать, сделать адпативным, поменять стили
-interface INavigation {
-  icon: ReactNode;
-}
+// interface INavigation {
+//   icon: ReactNode;
+// }
 
-const Navigation = ({ icon }: INavigation) => {
+const Navigation = ({}) => {
   const pathname = usePathname();
 
-  const navLinks = [
-    { path: "/chats", label: "Чаты" },
-    { path: "/groups", label: "Группы" },
-    { path: "/contacts", label: "Контакты" },
-    { path: "/settings", label: "Настройки" },
-  ];
-
+  const navActive = "md:bg-(--color-gray-light) text-(--color-violet)";
   const navBaseStyle =
-    "flex items-center justify-center w-12 h-12 p-2 rounded-lg transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 hover:bg-[var(--color-gray-light)]";
-  const navActive =
-    "bg-[var(--color-gray-light)] border border-[var(--color-border-light)] shadow-sm";
-  const navInactive = "hover:border-[var(--color-border-light)] hover:shadow-sm";
+    "flex flex-col items-center justify-center text-(--color-gray) text-sm font-normal w-full max-w-[81px] h-[41px] md:w-[48px] md:h-[48px] rounded-lg";
+  const iconActive = "fill-(--color-violet)";
+  const iconInActive = "fill-(--color-gray)";
+  const iconBase = "w-[24px] h-[24px] md:w-[32px] md:h-[32px] cursor-pointer";
+
+  // const navLinks = [
+  //   { path: "/chats", label: "Чаты" },
+  //   { path: "/groups", label: "Группы" },
+  //   { path: "/contacts", label: "Контакты" },
+  //   { path: "/settings", label: "Настройки" },
+  // ];
+
+  // const navBaseStyle =
+  //   "flex items-center justify-center w-12 h-12 p-2 rounded-lg transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 hover:bg-[var(--color-gray-light)]";
+  // const navActive =
+  //   "bg-[var(--color-gray-light)] border border-[var(--color-border-light)] shadow-sm";
+  // const navInactive = "hover:border-[var(--color-border-light)] hover:shadow-sm";
 
   return (
-    <nav>
-      <ul>
-        {navLinks.map(link => (
-          <li key={link.path}>
-            <Link
-              href={link.path}
-              className={`${navBaseStyle} ${pathname === link.path ? navActive : navInactive}`}
-              aria-label={link.label}
-            >
-              <span className="w-8 h-8">{icon}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+    // <nav>
+    //   <ul>
+    //     {navLinks.map(link => (
+    //       <li key={link.path}>
+    //         <Link
+    //           href={link.path}
+    //           className={`${navBaseStyle} ${pathname === link.path ? navActive : navInactive}`}
+    //           aria-label={link.label}
+    //         >
+    //           <span className="w-8 h-8">{icon}</span>
+    //         </Link>
+    //       </li>
+    //     ))}
+    //   </ul>
+    // </nav>
+
+    <nav className="fixed bottom-0 left-0 right-0 md:relative flex flex-row justify-center md:flex-col gap-y-3 gap-x-3 border-t border-(--color-black-light) md:border-0 pt-2  pb-8.5  md:py-0">
+      <Link
+        href="/main/chats"
+        className={`${navBaseStyle} ${pathname === "/main/chats" ? navActive : ""}`}
+      >
+        <svg
+          viewBox="0 0 32 32"
+          className={`${iconBase} ${pathname === "/main/chats" ? iconActive : iconInActive}`}
+        >
+          <path
+            id="Vector"
+            d="M26.668 2.66797L5.33464 2.66797C3.86797 2.66797 2.66797 3.86797 2.66797 5.33464L2.66797 29.3346L8.0013 24.0013L26.668 24.0013C28.1346 24.0013 29.3346 22.8013 29.3346 21.3346L29.3346 5.33464C29.3346 3.86797 28.1346 2.66797 26.668 2.66797ZM26.668 21.3346L8.0013 21.3346L5.33464 24.0013L5.33464 5.33464L26.668 5.33464L26.668 21.3346Z"
+          />
+        </svg>
+        <p className="md:hidden">Чаты</p>
+      </Link>
+
+      <Link
+        href="/main/groups"
+        className={`${navBaseStyle} ${pathname === "/main/groups" ? navActive : ""}`}
+      >
+        <svg
+          viewBox="0 0 29.334 26.668"
+          className={`${iconBase} ${pathname === "/main/groups" ? iconActive : iconInActive}`}
+        >
+          <path
+            id="Vector"
+            d="M0.485319 25.5339C-0.0140535 24.8237 -0.136455 23.9149 0.157236 23.0979L7.82616 1.76457C8.20672 0.705948 9.21067 0 10.3356 0L18.9978 0C20.1227 0 21.1266 0.705948 21.5072 1.76457L29.1761 23.0979C29.4698 23.9149 29.3474 24.8237 28.8481 25.5339C28.3487 26.244 27.5349 26.6667 26.6667 26.6667L19.4048 26.6667C18.215 26.6667 17.1692 25.8785 16.8414 24.7347L16.179 22.4237L13.1544 22.4237L12.492 24.7347C12.1642 25.8785 11.1184 26.6667 9.92856 26.6667L2.66668 26.6667C1.79851 26.6667 0.984691 26.244 0.485319 25.5339ZM11.1446 19.757L18.1887 19.757L19.4048 24L26.6667 24L18.9978 2.66667L10.3356 2.66667L2.66668 24L9.92856 24L11.1446 19.757ZM14.7481 7.75237L14.5853 7.75237L12.4116 15.3366L16.9218 15.3366L14.7481 7.75237Z"
+          />
+        </svg>
+        <p className="md:hidden">Группы</p>
+      </Link>
+      <Link
+        href="/main/contacts"
+        className={`${navBaseStyle} ${pathname === "/main/contacts" ? navActive : ""}`}
+      >
+        <svg
+          viewBox="0 0 32 32"
+          className={`${iconBase} ${pathname === "/main/contacts" ? iconActive : iconInActive}`}
+        >
+          <path
+            id="Vector"
+            d="M18.668 9.33333C18.668 12.28 16.2813 14.6667 13.3346 14.6667C10.388 14.6667 8.0013 12.28 8.0013 9.33333C8.0013 6.38667 10.388 4 13.3346 4C16.2813 4 18.668 6.38667 18.668 9.33333ZM16.0013 9.33333C16.0013 7.86667 14.8013 6.66667 13.3346 6.66667C11.868 6.66667 10.668 7.86667 10.668 9.33333C10.668 10.8 11.868 12 13.3346 12C14.8013 12 16.0013 10.8 16.0013 9.33333ZM26.668 20C26.668 20.9867 26.388 21.9067 25.908 22.6933C28.2813 25.0533 27.3346 24.12 29.3346 26.12L27.4546 28L24.028 24.5733C23.2413 25.04 22.3213 25.3333 21.3346 25.3333C18.388 25.3333 16.0013 22.9467 16.0013 20C16.0013 17.0533 18.388 14.6667 21.3346 14.6667C24.2813 14.6667 26.668 17.0533 26.668 20ZM18.668 20C18.668 21.4667 19.868 22.6667 21.3346 22.6667C22.8013 22.6667 24.0013 21.4667 24.0013 20C24.0013 18.5333 22.8013 17.3333 21.3346 17.3333C19.868 17.3333 18.668 18.5333 18.668 20ZM5.33464 22.6667C5.62797 21.7067 9.74797 20 13.3346 20C13.3346 19.0667 13.508 18.1733 13.8013 17.3467C10.1613 17.2133 2.66797 19.0267 2.66797 22.6667L2.66797 25.3333L15.388 25.3333C14.6946 24.56 14.148 23.6667 13.8013 22.6667L5.33464 22.6667Z"
+          />
+        </svg>
+        <p className="md:hidden">Контакты</p>
+      </Link>
+
+      <Link
+        href="/main/settings"
+        className={`${navBaseStyle} ${pathname === "/main/settings" ? navActive : ""}`}
+      >
+        <svg
+          viewBox="0 0 32 32"
+          className={`${iconBase} ${pathname === "/main/settings" ? iconActive : iconInActive}`}
+        >
+          <path
+            id="Vector"
+            d="M26.5522 17.308C26.607 16.8813 26.6481 16.4546 26.6481 16.0013C26.6481 15.548 26.607 15.1213 26.5522 14.6946L29.4444 12.4946C29.7049 12.2946 29.7734 11.9346 29.6089 11.6413L26.8675 7.02797C26.7441 6.81464 26.5111 6.69463 26.2643 6.69463C26.1821 6.69463 26.0998 6.70797 26.0313 6.73464L22.6182 8.06797C21.9054 7.53464 21.1378 7.09464 20.3016 6.7613L19.7807 3.22797C19.7396 2.90797 19.4518 2.66797 19.1091 2.66797L13.6261 2.66797C13.2835 2.66797 12.9956 2.90797 12.9545 3.22797L12.4336 6.7613C11.5974 7.09464 10.8298 7.54797 10.117 8.06797L6.70391 6.73464C6.62167 6.70797 6.53942 6.69463 6.45718 6.69463C6.22415 6.69463 5.99113 6.81464 5.86776 7.02797L3.12629 11.6413C2.94809 11.9346 3.03033 12.2946 3.29077 12.4946L6.18303 14.6946C6.1282 15.1213 6.08708 15.5613 6.08708 16.0013C6.08708 16.4413 6.1282 16.8813 6.18303 17.308L3.29077 19.508C3.03033 19.708 2.9618 20.068 3.12629 20.3613L5.86776 24.9746C5.99113 25.188 6.22415 25.308 6.47089 25.308C6.55313 25.308 6.63537 25.2946 6.70391 25.268L10.117 23.9346C10.8298 24.468 11.5974 24.908 12.4336 25.2413L12.9545 28.7746C12.9956 29.0946 13.2835 29.3346 13.6261 29.3346L19.1091 29.3346C19.4518 29.3346 19.7396 29.0946 19.7807 28.7746L20.3016 25.2413C21.1378 24.908 21.9054 24.4546 22.6182 23.9346L26.0313 25.268C26.1136 25.2946 26.1958 25.308 26.278 25.308C26.5111 25.308 26.7441 25.188 26.8675 24.9746L29.6089 20.3613C29.7734 20.068 29.7049 19.708 29.4444 19.508L26.5522 17.308ZM23.8381 15.028C23.893 15.4413 23.9067 15.7213 23.9067 16.0013C23.9067 16.2813 23.8793 16.5746 23.8381 16.9746L23.6462 18.4813L24.8662 19.4146L26.3466 20.5346L25.3871 22.148L23.6462 21.468L22.2207 20.908L20.987 21.8146C20.3976 22.2413 19.8356 22.5613 19.2736 22.788L17.8206 23.3613L17.6013 24.868L17.3271 26.668L15.4081 26.668L14.9283 23.3613L13.4754 22.788C12.8859 22.548 12.3376 22.2413 11.7893 21.8413L10.542 20.908L9.08899 21.4813L7.34816 22.1613L6.38864 20.548L7.86904 19.428L9.08899 18.4946L8.89709 16.988C8.85597 16.5746 8.82855 16.268 8.82855 16.0013C8.82855 15.7346 8.85597 15.428 8.89709 15.028L9.08899 13.5213L7.86904 12.588L6.38864 11.468L7.34816 9.85464L9.08899 10.5346L10.5146 11.0946L11.7482 10.188C12.3376 9.7613 12.8996 9.4413 13.4616 9.21463L14.9146 8.6413L15.1339 7.13463L15.4081 5.33464L17.3134 5.33464L17.7932 8.6413L19.2462 9.21463C19.8356 9.45463 20.3839 9.7613 20.9322 10.1613L22.1795 11.0946L23.6325 10.5213L25.3734 9.8413L26.3329 11.4546L24.8662 12.588L23.6462 13.5213L23.8381 15.028ZM16.3676 10.668C13.3383 10.668 10.8847 13.0546 10.8847 16.0013C10.8847 18.948 13.3383 21.3346 16.3676 21.3346C19.3969 21.3346 21.8506 18.948 21.8506 16.0013C21.8506 13.0546 19.3969 10.668 16.3676 10.668ZM16.3676 18.668C14.8598 18.668 13.6261 17.468 13.6261 16.0013C13.6261 14.5346 14.8598 13.3346 16.3676 13.3346C17.8754 13.3346 19.1091 14.5346 19.1091 16.0013C19.1091 17.468 17.8754 18.668 16.3676 18.668Z"
+          />
+        </svg>
+        <p className="md:hidden">Настройки</p>
+      </Link>
     </nav>
   );
 };

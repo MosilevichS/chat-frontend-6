@@ -27,3 +27,5 @@ const Logo = ({ size = "small", className }: ILogo) => {
 };
 
 export default Logo;
+
+
