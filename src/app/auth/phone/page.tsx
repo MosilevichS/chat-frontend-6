@@ -12,16 +12,12 @@ import Logo from "@/components/ui/Logo";
 
 const formSchema = z.object({
   phone: z.string().min(16, "Некорректный номер"),
-  // .regex(/^\+7 \d{3} \d{3} \d{2} \d{2}$/, {
-  //   message: "Используйте формат: +7 900 000 00 00",
-  // }),
 });
 type FormData = z.infer<typeof formSchema>;
 
 export default function Page() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [phoneValue, setPhoneValue] = useState("");
-  console.log(isModalOpen);
   const {
     register,
     handleSubmit,
@@ -44,7 +40,6 @@ export default function Page() {
 
   const handleConfirm = () => {
     setIsModalOpen(false);
-    console.log("click confirm");
   };
   const handleChangeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target.value;
