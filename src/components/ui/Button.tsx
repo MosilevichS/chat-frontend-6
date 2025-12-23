@@ -20,6 +20,7 @@ const Button = ({
   disabled = false,
   className = "",
   href,
+  onClick,
 }: IButton) => {
   const buttonBaseStyle =
     "inline-flex items-center justify-center focus:outline-none transition-all duration-200 ease-in-out";
@@ -59,6 +60,8 @@ const Button = ({
     <button
       disabled={disabled}
       className={`${buttonBaseStyle} ${disabled ? buttonDisabledStyle : variants[variant]} ${sizes[size]} ${className}`}
+      type={type}
+      onClick={onClick}
     >
       {children}
     </button>

@@ -1,13 +1,14 @@
 "use client";
 import { useState } from "react";
-import { Input } from "@/src/components/ui/Input";
-import Button from "@/components/ui/Button";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import Logo from "@/components/ui/Logo";
 import { AuthHeader } from "@/components/ui/auth/AuthHeader";
+import Input from "@/src/components/ui/Input";
+import Button from "@/components/ui/Button";
+import ModalBase from "@/src/components/ui/modal/ModalBase";
 import ModalConfirm from "@/components/ui/modal/ModalConfirm";
+import Logo from "@/components/ui/Logo";
 
 const formSchema = z.object({
   phone: z
@@ -51,18 +52,18 @@ export default function Page() {
       <AuthHeader className="hidden relative md:flex md:mb-8" />
       <div className="text-center md:hidden ">
         <Logo size="small" />
-        <h3 className="mb-8 md:mb-6 text-[var(--color-text)] font-medium md:font-semibold text-[2rem] md:text-[3rem] leading-[120%] tracking-normal">
+        <h3 className="mb-8 md:mb-6 text-(--color-text) font-medium md:font-semibold text-[2rem] md:text-[3rem] leading-[120%] tracking-normal">
           А-Чат
         </h3>
       </div>
 
-      <h3 className="mb-5 md:mb-6 text-[var(--color-text)] font-medium text-[1.5rem] leading-[120%] md:font-semibold md:text-[2rem] md:leading-[100%] tracking-normal">
+      <h3 className="mb-5 md:mb-6 text-(--color-text) font-medium text-[1.5rem] leading-[120%] md:font-semibold md:text-[2rem] md:leading-[100%] tracking-normal">
         Вход/регистрация
       </h3>
 
       <form
         onSubmit={handleSubmit(handleOpenModal)}
-        className="flex flex-col h-full w-full max-w-sm px-4"
+        className="flex flex-col h-full w-full max-w-[360px]"
       >
         <Input
           register={register("phone", {
@@ -91,7 +92,7 @@ export default function Page() {
           name="phone"
           label="Введите номер телефона"
           placeholder="+7 900 000 00 00"
-          className="mb-4 md:mb-3"
+          className="mb-4"
           onClick={e => {
             if (e.currentTarget.value === "+7 900 000 00 00") {
               setValue("phone", "+7 ", { shouldValidate: true });
@@ -99,22 +100,19 @@ export default function Page() {
           }}
         />
 
-        <div className="mt-auto">
-          <div className="flex flex-col items-center">
-            <Button
-              type="submit"
-              size="medium"
-              variant="primary"
-              className="w-full"
-              disabled={isSubmitting || !isValid}
-            >
-              {isSubmitting ? "Отправка..." : "Далее"}
-            </Button>
-          </div>
-        </div>
+        <Button
+          type="submit"
+          size="medium"
+          variant="primary"
+          className="md:mt-auto"
+          disabled={isSubmitting || !isValid}
+        >
+          {isSubmitting ? "Отправка..." : "Далее"}
+        </Button>
       </form>
+
       {isModalOpen && (
-        <div className="fixed bottom-30 md:bottom-40 inset-0 bg-opacity-50 flex items-center justify-center z-50">
+        <ModalBase onClose={handleCloseModal}>
           <ModalConfirm
             onClose={handleCloseModal}
             onConfirm={handleConfirm}
@@ -123,7 +121,7 @@ export default function Page() {
             confirmText="Верно"
             cancelText="Изменить"
           />
-        </div>
+        </ModalBase>
       )}
     </div>
   );

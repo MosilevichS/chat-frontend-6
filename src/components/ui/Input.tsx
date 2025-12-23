@@ -17,7 +17,7 @@ interface IInput {
   className?: string;
 }
 
-export const Input = ({
+const Input = ({
   onClick,
   onChange,
   name,
@@ -56,16 +56,17 @@ export const Input = ({
           "text-lg tracking-[0.01em]",
           "border-2 border-(--color-gray) rounded-md",
           "py-4 px-3 md:py-4 md:px-5",
-          "focus:outline-none focus:border-[var(--color-violet)]",
-          "bg-white text-[var(--color-gray)] placeholder:text-gray-500",
+          "focus:outline-none focus:border-(--color-violet)",
+          "bg-white text-(--color-text) placeholder:text-gray-500",
           "transition-all duration-200",
           "disabled:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-70",
-          error && "border-[var(--color-error)] focus:border-[var(--color-error)]",
+          error && "border-(--color-error) focus:border-(--color-error)",
           className,
         )}
         {...register}
-
       />
     </div>
   );
 };
+
+export default Input;
