@@ -13,8 +13,9 @@ interface IButton {
 }
 
 const Button = ({
+  onClick,
   children,
-  type,
+  type = "button",
   variant = "primary",
   size = "medium",
   disabled = false,
@@ -58,6 +59,8 @@ const Button = ({
 
   return (
     <button
+      onClick={onClick}
+      type={type}
       disabled={disabled}
       className={`${buttonBaseStyle} ${disabled ? buttonDisabledStyle : variants[variant]} ${sizes[size]} ${className}`}
       type={type}
