@@ -8,25 +8,27 @@ import { z } from "zod";
 import Logo from "@/components/ui/Logo";
 import { AuthHeader } from "@/components/ui/auth/AuthHeader";
 import ModalConfirm from "@/components/ui/modal/ModalConfirm";
+import ModalBase from "@/components/ui/modal/ModalBase";
 
 const formSchema = z.object({
   phone: z
     .string()
-    .min(1, "Введите номер телефона")
-    .regex(/^\+7 \d{3} \d{3} \d{2} \d{2}$/, {
-      message: "Используйте формат: +7 900 000 00 00",
-    }),
+    .min(16, "Некорректный номер")
+    // .regex(/^\+7 \d{3} \d{3} \d{2} \d{2}$/, {
+    //   message: "Используйте формат: +7 900 000 00 00",
+    // }),
 });
 type FormData = z.infer<typeof formSchema>;
 
 export default function Page() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [phoneValue, setPhoneValue] = useState("");
+  console.log(isModalOpen);
   const {
     register,
     handleSubmit,
     setValue,
-    formState: { isSubmitting, isValid },
+    formState: { isSubmitting, isValid, errors },
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     mode: "onChange",
@@ -44,6 +46,29 @@ export default function Page() {
 
   const handleConfirm = () => {
     setIsModalOpen(false);
+    console.log('click confirm');
+
+  };
+  const handleChangeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value;
+
+    const allDigits = input.replace(/\D/g, "");
+
+    let phoneDigits = allDigits.startsWith("7") ? allDigits.slice(1) : allDigits;
+
+    phoneDigits = phoneDigits.slice(0, 10);
+
+    let formatted = "+7";
+
+    if (phoneDigits.length > 0) formatted += " " + phoneDigits.slice(0, 3);
+    if (phoneDigits.length > 3) formatted += " " + phoneDigits.slice(3, 6);
+    if (phoneDigits.length > 6) formatted += " " + phoneDigits.slice(6, 8);
+    if (phoneDigits.length > 8) formatted += " " + phoneDigits.slice(8, 10);
+
+    setValue("phone", formatted, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
   };
 
   return (
@@ -66,40 +91,15 @@ export default function Page() {
       >
         <Input
           register={register("phone", {
-            onChange: e => {
-              const input = e.target.value;
-
-              const allDigits = input.replace(/\D/g, "");
-
-              let phoneDigits = allDigits.startsWith("7") ? allDigits.slice(1) : allDigits;
-
-              phoneDigits = phoneDigits.slice(0, 10);
-
-              let formatted = "+7";
-
-              if (phoneDigits.length > 0) formatted += " " + phoneDigits.slice(0, 3);
-              if (phoneDigits.length > 3) formatted += " " + phoneDigits.slice(3, 6);
-              if (phoneDigits.length > 6) formatted += " " + phoneDigits.slice(6, 8);
-              if (phoneDigits.length > 8) formatted += " " + phoneDigits.slice(8, 10);
-
-              setValue("phone", formatted, {
-                shouldValidate: true,
-                shouldDirty: true,
-              });
-            },
+            onChange: e => handleChangeInput(e),
           })}
           name="phone"
           label="Введите номер телефона"
           placeholder="+7 900 000 00 00"
           className="mb-4 md:mb-3"
-          onClick={e => {
-            if (e.currentTarget.value === "+7 900 000 00 00") {
-              setValue("phone", "+7 ", { shouldValidate: true });
-            }
-          }}
+          error={errors.phone?.message}
         />
-
-        <div className="mt-auto">
+        <div className="md:mt-auto">
           <div className="flex flex-col items-center">
             <Button
               type="submit"
@@ -108,23 +108,21 @@ export default function Page() {
               className="w-full"
               disabled={isSubmitting || !isValid}
             >
-              {isSubmitting ? "Отправка..." : "Далее"}
+              Далее
             </Button>
           </div>
         </div>
       </form>
-      {isModalOpen && (
-        <div className="fixed bottom-30 md:bottom-40 inset-0 bg-opacity-50 flex items-center justify-center z-50">
-          <ModalConfirm
-            onClose={handleCloseModal}
-            onConfirm={handleConfirm}
-            title={phoneValue}
-            message="Номер телефона указан верно?"
-            confirmText="Верно"
-            cancelText="Изменить"
-          />
-        </div>
-      )}
+      <ModalBase onClose={handleCloseModal} isOpen={isModalOpen}>
+        <ModalConfirm
+          onClose={handleCloseModal}
+          onConfirm={handleConfirm}
+          title={phoneValue}
+          message="Номер телефона указан верно?"
+          confirmText="Верно"
+          cancelText="Изменить"
+        />
+      </ModalBase>
     </div>
   );
 }
