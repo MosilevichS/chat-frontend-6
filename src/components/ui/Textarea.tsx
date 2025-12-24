@@ -1,35 +1,24 @@
-import { ErrorMessage } from "./ErrorMessage";
 import type { UseFormRegisterReturn } from "react-hook-form";
 import { twMerge } from "tailwind-merge";
-import type { InputHTMLAttributes } from "react";
+import { ErrorMessage } from "./ErrorMessage";
 
-interface IInput {
-  onClick?: InputHTMLAttributes<HTMLInputElement>["onClick"];
-  onChange?: InputHTMLAttributes<HTMLInputElement>["onChange"];
+interface ITextarea {
+  register: UseFormRegisterReturn;
   name: string;
-  label?: string;
-  type?: "text" | "email" | "password" | "tel" | "number";
+  label: string;
   placeholder: string;
-  register?: UseFormRegisterReturn;
   error?: string;
-  disabled?: boolean;
-  defaultValue?: string;
   className?: string;
 }
 
-const Input = ({
-  onClick,
-  onChange,
+const Textarea: React.FC<ITextarea> = ({
+  register,
   name,
   label,
-  type = "text",
   placeholder,
-  register,
   error,
-  disabled = false,
-  defaultValue,
   className,
-}: IInput) => {
+}) => {
   return (
     <div>
       {error ? (
@@ -43,19 +32,15 @@ const Input = ({
         </label>
       )}
 
-      <input
-        onClick={onClick}
-        onChange={onChange}
+      <textarea
+        {...register}
         id={name}
-        type={type}
         placeholder={placeholder}
-        disabled={disabled}
-        defaultValue={defaultValue}
         className={twMerge(
-          "w-full h-14",
-          "text-lg tracking-[0.01em]",
+          "w-full resize-none",
+          "text-lg tracking-[0.01em] leading-[130%]",
           "border border-(--color-gray) rounded-md",
-          "py-4 px-3 md:py-4 md:px-5",
+          "p-4",
           "focus:outline-none focus:border-(--color-violet)",
           "bg-white text-(--color-text) placeholder:text-gray-500",
           "transition-all duration-200",
@@ -63,10 +48,9 @@ const Input = ({
           error && "border-(--color-error) focus:border-(--color-error)",
           className,
         )}
-        {...register}
       />
     </div>
   );
 };
 
-export default Input;
+export default Textarea;
