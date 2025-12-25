@@ -1,14 +1,20 @@
 "use client";
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { AuthHeader } from "@/components/ui/auth/AuthHeader";
+import router from "next/router";
+import { useAppDispatch } from "@/src/hooks/useTypedSelector";
+import AuthHeader from "@/components/ui/auth/AuthHeader";
 import Input from "@/src/components/ui/Input";
 import Button from "@/components/ui/Button";
 import ModalBase from "@/src/components/ui/modal/ModalBase";
 import ModalConfirm from "@/components/ui/modal/ModalConfirm";
 import Logo from "@/components/ui/Logo";
+
+import { setPhone } from "@/src/store/slices/authSlice";
+import { useSendCodeMutation } from "@/src/services/authApi";
 
 const formSchema = z.object({
   phone: z.string().min(16, "Некорректный номер"),
@@ -17,7 +23,11 @@ type FormData = z.infer<typeof formSchema>;
 
 export default function Page() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [phoneValue, setPhoneValue] = useState("");
+  const [phone, setPhoneLocal] = useState("");
+
+  const dispatch = useAppDispatch();
+  const [sendCode, { isLoading }] = useSendCodeMutation();
+
   const {
     register,
     handleSubmit,
@@ -30,7 +40,8 @@ export default function Page() {
     reValidateMode: "onChange",
   });
   const handleOpenModal = (data: FormData) => {
-    setPhoneValue(data.phone);
+    setPhoneLocal(data.phone);
+    dispatch(setPhone(phone));
     setIsModalOpen(true);
   };
 
@@ -38,8 +49,14 @@ export default function Page() {
     setIsModalOpen(false);
   };
 
-  const handleConfirm = () => {
-    setIsModalOpen(false);
+  const handleConfirm = async () => {
+    try {
+      await sendCode({ phone }).unwrap();
+
+      router.push("/auth/phone-code");
+    } catch (e) {
+      console.log(e);
+    }
   };
   const handleChangeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target.value;
@@ -97,9 +114,9 @@ export default function Page() {
           size="medium"
           variant="primary"
           className="md:mt-auto"
-          disabled={isSubmitting || !isValid}
+          disabled={isSubmitting || !isValid || isLoading}
         >
-          {isSubmitting ? "Отправка..." : "Далее"}
+          Далее
         </Button>
       </form>
 
@@ -108,7 +125,7 @@ export default function Page() {
           <ModalConfirm
             onClose={handleCloseModal}
             onConfirm={handleConfirm}
-            title={phoneValue}
+            title={phone || ""}
             message="Номер телефона указан верно?"
             confirmText="Верно"
             cancelText="Изменить"
