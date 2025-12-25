@@ -13,5 +13,3 @@ const AuthLayout = ({ children }: { children: ReactNode }) => {
 };
 
 export default AuthLayout;
-
-

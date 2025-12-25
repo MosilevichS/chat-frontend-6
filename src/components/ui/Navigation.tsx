@@ -23,7 +23,7 @@ const Navigation = ({}) => {
 
   const navLinks = [
     {
-      path: "/main/chats",
+      path: "/",
       name: "Чаты",
       order: "1",
       svg1: (
@@ -44,7 +44,7 @@ const Navigation = ({}) => {
       ),
     },
     {
-      path: "/main/groups",
+      path: "/groups",
       name: "Группы",
       order: "3",
       svg1: (
@@ -67,7 +67,7 @@ const Navigation = ({}) => {
       ),
     },
     {
-      path: "/main/contacts",
+      path: "/contacts",
       name: "Контакты",
       order: "2",
       svg1: (
@@ -88,7 +88,7 @@ const Navigation = ({}) => {
       ),
     },
     {
-      path: "/main/settings",
+      path: "/settings",
       name: "Настройки",
       order: "4",
       svg1: (
