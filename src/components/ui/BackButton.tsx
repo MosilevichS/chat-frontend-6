@@ -10,6 +10,7 @@ const steps = ["", "phone", "phone-code", "personal-data", "done"];
 // Исключения: нестандартные страницы и их "назад" путь
 const exceptions: Record<string, string> = {
   support: "phone-code",
+  success: "support",
 };
 
 const BackButton = ({ className }: { className?: string }) => {
