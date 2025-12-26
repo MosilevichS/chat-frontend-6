@@ -3,14 +3,11 @@
 import { useEffect } from "react";
 
 interface IModalBase {
-  isOpen: boolean;
   onClose: () => void;
   children: React.ReactNode;
 }
 
-const ModalBase = ({ isOpen, onClose, children }: IModalBase) => {
-  if (!isOpen) return null;
-
+const ModalBase = ({ onClose, children }: IModalBase) => {
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
       if (event.key === "Escape") {

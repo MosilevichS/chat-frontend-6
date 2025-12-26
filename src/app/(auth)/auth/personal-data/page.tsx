@@ -1,11 +1,11 @@
 "use client";
 
-import { AuthHeader } from "@/src/components/ui/auth/AuthHeader";
-import { Input } from "@/src/components/ui/Input";
-import Button from "@/components/ui/Button";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import AuthHeader from "@/src/components/ui/auth/AuthHeader";
+import Input from "@/src/components/ui/Input";
+import Button from "@/components/ui/Button";
 
 const formSchema = z.object({
   name: z
@@ -49,13 +49,13 @@ export default function Page() {
   };
 
   return (
-    <div className="h-full flex items-center flex-col pb-10 md:pb-20 pt-[4.5rem] md:pt-18 ">
+    <div className="h-full flex items-center flex-col pb-10 md:pb-20 pt-[4.5rem] md:pt-18">
       <AuthHeader className="mb-5 md:mb-8" />
 
-      <h3 className="mb-3 md:mb-6 text-[var(--color-text)] font-medium text-2xl leading-[120%] md:font-semibold md:text-[2rem] md:leading-[100%] tracking-normal">
+      <h3 className="mb-3 md:mb-6 text-(--color-text) font-medium text-2xl leading-[120%] md:font-semibold md:text-[2rem] md:leading-[100%] tracking-normal">
         Личная информация
       </h3>
-      <span className="mb-5 md:mb-6 text-lg leading-[130%] tracking-[0.01em] text-[var(--color-text)]">
+      <span className="mb-5 md:mb-6 text-lg leading-[130%] tracking-[0.01em] text-(--color-text)">
         Пожалуйста, заполните данные
       </span>
 
@@ -92,7 +92,6 @@ export default function Page() {
               type="submit"
               size="medium"
               variant="primary"
-              className="w-full"
               disabled={isSubmitting || !isValid}
             >
               Зарегистрироваться
