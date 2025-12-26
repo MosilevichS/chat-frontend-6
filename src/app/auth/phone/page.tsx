@@ -17,13 +17,10 @@ import { setPhone } from "@/src/store/slices/authSlice";
 import { useSendCodeMutation } from "@/src/services/authApi";
 import { parseApiError } from "@/src/services/apiError";
 
-interface FormValues {
-  phone: string;
-}
-
 const formSchema = z.object({
-  phone: z.string().min(16, "Некорректный номер"),
+  phone_number: z.string().min(16, "Некорректный номер"),
 });
+
 type FormData = z.infer<typeof formSchema>;
 
 export default function Page() {
@@ -47,7 +44,7 @@ export default function Page() {
     reValidateMode: "onChange",
   });
   const handleOpenModal = (data: FormData) => {
-    setPhoneLocal(data.phone);
+    setPhoneLocal(data.phone_number);
     dispatch(setPhone(phone));
     setIsModalOpen(true);
   };
@@ -65,7 +62,7 @@ export default function Page() {
 
       if (fieldErrors) {
         Object.entries(fieldErrors).forEach(([field, messages]) => {
-          setError(field as keyof FormValues, {
+          setError(field as keyof FormData, {
             type: "server",
             message: messages[0],
           });
@@ -97,7 +94,7 @@ export default function Page() {
     if (phoneDigits.length > 6) formatted += " " + phoneDigits.slice(6, 8);
     if (phoneDigits.length > 8) formatted += " " + phoneDigits.slice(8, 10);
 
-    setValue("phone", formatted, {
+    setValue("phone_number", formatted, {
       shouldValidate: true,
       shouldDirty: true,
     });
@@ -122,17 +119,17 @@ export default function Page() {
         className="flex flex-col h-full w-full max-w-[360px]"
       >
         <Input
-          register={register("phone", {
+          register={register("phone_number", {
             onChange: e => handleChangeInput(e),
           })}
           name="phone"
           label="Введите номер телефона"
           placeholder="+7 900 000 00 00"
           className="mb-4"
-          error={errors.phone?.message}
+          error={errors.phone_number?.message}
         />
 
-        {errors.root && <p className="text-center text-(--color-error)">{errors.root.message}</p>}
+        {errors.root && <p className="text-(--color-error)">{errors.root.message}</p>}
 
         <Button
           type="submit"
