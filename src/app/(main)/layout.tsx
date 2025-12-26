@@ -7,9 +7,9 @@ const AuthLayout = ({ children }: { children: ReactNode }) => {
     <div className="max-w-[1440px] w-full min-h-screen mx-auto bg-(--color-white)">
       <div className="max-w-[1200px] w-full mx-auto flex flex-col gap-y-6">
         <Header />
-        <div className="flex flex-row gap-x-6">
+        <div className="flex flex-row gap-x-6 w-full max-w-[1200px]">
           <Navigation />
-          <div>{children}</div>
+          <div className="w-full">{children}</div>
         </div>
       </div>
     </div>

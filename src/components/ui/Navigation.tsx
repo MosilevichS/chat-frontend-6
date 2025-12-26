@@ -1,13 +1,7 @@
 "use client";
 
-// import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-
-// Компонент надо еще дорабатывать, сделать адпативным, поменять стили
-// interface INavigation {
-//   icon: ReactNode;
-// }
 
 const Navigation = () => {
   const pathname = usePathname();
@@ -112,7 +106,7 @@ const Navigation = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 md:relative flex flex-row justify-center md:flex-col gap-y-3 gap-x-3 border-t border-(--color-black-light) md:border-0 pt-2  pb-8.5  md:py-0">
+    <nav className="fixed bottom-0 left-0 right-0 md:relative flex flex-row justify-center md:flex-col md:h-[228px] gap-y-3 gap-x-3 border-t border-(--color-black-light) md:border-0 pt-2  pb-8.5  md:py-0">
       {navLinks.map((item, index) => (
         <Link
           href={item.path}

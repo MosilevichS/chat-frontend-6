@@ -8,7 +8,7 @@ interface IInput {
   onChange?: InputHTMLAttributes<HTMLInputElement>["onChange"];
   name: string;
   label?: string;
-  type?: "text" | "email" | "password" | "tel" | "number";
+  type?: "text" | "email" | "password" | "tel" | "number" | "search";
   placeholder: string;
   register?: UseFormRegisterReturn;
   error?: string;
