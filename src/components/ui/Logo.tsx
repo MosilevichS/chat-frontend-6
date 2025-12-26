@@ -5,13 +5,14 @@ import Image from "next/image";
 import logoIcon from "../../assets/icons/logo-icon.svg";
 
 interface ILogo {
-  size?: "small" | "large";
+  size?: "small" | "medium" | "large";
   className?: string;
 }
 
 const Logo = ({ size = "small", className }: ILogo) => {
   const logoSizes = {
     small: "w-[58px] h-[53px] md:w-[78px] md:h-[70px]",
+    medium: "w-[49px]",
     large: "w-[211px] h-[183px] md:w-[179px] md:h-[161px]",
   };
 
@@ -27,5 +28,3 @@ const Logo = ({ size = "small", className }: ILogo) => {
 };
 
 export default Logo;
-
-

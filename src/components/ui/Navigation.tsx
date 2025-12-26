@@ -9,7 +9,7 @@ import Link from "next/link";
 //   icon: ReactNode;
 // }
 
-const Navigation = ({}) => {
+const Navigation = () => {
   const pathname = usePathname();
 
   const navActive = "md:bg-(--color-gray-light) text-(--color-violet)";
@@ -19,7 +19,8 @@ const Navigation = ({}) => {
   const iconInActive = "fill-(--color-gray)";
   const iconInActiveStroke = "stroke-(--color-gray)";
   const iconActiveStroke = "stroke-(--color-violet)";
-  const iconBase = "w-[20px] h-[20px] md:w-[32px] md:h-[32px] cursor-pointer";
+  const iconBase =
+    "w-[20px] h-[20px] md:w-[32px] md:h-[32px] delay-200 hover:fill-(--color-violet) cursor-pointer";
 
   const navLinks = [
     {

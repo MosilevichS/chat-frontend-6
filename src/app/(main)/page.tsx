@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 const Chats = () => {
-  const user = false;
+  const user = true;
 
   if (!user) {
     redirect("/auth");
