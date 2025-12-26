@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import router from "next/router";
+import { useRouter } from "next/navigation";
 import { useAppDispatch } from "@/src/hooks/useTypedSelector";
 import AuthHeader from "@/components/ui/auth/AuthHeader";
 import Input from "@/src/components/ui/Input";
@@ -15,6 +15,11 @@ import Logo from "@/components/ui/Logo";
 
 import { setPhone } from "@/src/store/slices/authSlice";
 import { useSendCodeMutation } from "@/src/services/authApi";
+import { parseApiError } from "@/src/services/apiError";
+
+interface FormValues {
+  phone: string;
+}
 
 const formSchema = z.object({
   phone: z.string().min(16, "Некорректный номер"),
@@ -22,16 +27,18 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 export default function Page() {
+  const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [phone, setPhoneLocal] = useState("");
 
   const dispatch = useAppDispatch();
-  const [sendCode, { isLoading }] = useSendCodeMutation();
+  const [sendCode] = useSendCodeMutation();
 
   const {
     register,
     handleSubmit,
     setValue,
+    setError,
     formState: { isSubmitting, isValid, errors },
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -51,13 +58,29 @@ export default function Page() {
 
   const handleConfirm = async () => {
     try {
-      await sendCode({ phone }).unwrap();
-
+      await sendCode({ phone_number: phone.replace(/\s+/g, "") }).unwrap();
       router.push("/auth/phone-code");
-    } catch (e) {
-      console.log(e);
+    } catch (err) {
+      const { fieldErrors, message } = parseApiError(err);
+
+      if (fieldErrors) {
+        Object.entries(fieldErrors).forEach(([field, messages]) => {
+          setError(field as keyof FormValues, {
+            type: "server",
+            message: messages[0],
+          });
+        });
+      }
+
+      if (message) {
+        setError("root", {
+          type: "server",
+          message,
+        });
+      }
     }
   };
+
   const handleChangeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target.value;
 
@@ -109,12 +132,14 @@ export default function Page() {
           error={errors.phone?.message}
         />
 
+        {errors.root && <p className="text-center text-(--color-error)">{errors.root.message}</p>}
+
         <Button
           type="submit"
           size="medium"
           variant="primary"
           className="md:mt-auto"
-          disabled={isSubmitting || !isValid || isLoading}
+          disabled={isSubmitting || !isValid}
         >
           Далее
         </Button>

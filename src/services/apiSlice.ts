@@ -4,7 +4,7 @@ import type { RootState } from "@/src/store/store";
 import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
 
 const baseQuery = fetchBaseQuery({
-  baseUrl: "/api/v1/",
+  baseUrl: "https://api.dev.chat.ktsf.ru/api/v1/",
   prepareHeaders: (headers, { getState }) => {
     const token = (getState() as RootState).auth.accessToken;
     if (token) {

@@ -3,7 +3,7 @@ import { setTokens } from "@/src/store/slices/authSlice";
 
 export const authApi = apiSlice.injectEndpoints({
   endpoints: builder => ({
-    sendCode: builder.mutation<void, { phone: string }>({
+    sendCode: builder.mutation<void, { phone_number: string }>({
       query: body => ({
         url: "auth/messenger/login/get/code/",
         method: "POST",
