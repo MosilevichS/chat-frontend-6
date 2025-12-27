@@ -16,12 +16,7 @@ const Page = () => {
       <span className="text-(--color-violet-dark) text-lg leading-6">Привет!</span>
       <span className="text-(--color-violet-dark) text-lg leading-6">Давай знакомиться</span>
 
-      <Button
-        href="/auth/phone"
-        variant="primary"
-        size="medium"
-        className="mt-6 md:mt-auto text-white"
-      >
+      <Button href="/phone" variant="primary" size="medium" className="mt-6 md:mt-auto text-white">
         Начать
       </Button>
     </div>

@@ -56,7 +56,7 @@ export default function Page() {
   const handleConfirm = async () => {
     try {
       await sendCode({ phone_number: phone.replace(/\s+/g, "") }).unwrap();
-      router.push("/auth/phone-code");
+      router.push("/phone-code");
     } catch (err) {
       const { fieldErrors, message } = parseApiError(err);
 

@@ -55,7 +55,7 @@ export default function Page() {
   const onSubmit = async (data: FormData) => {
     try {
       await updateProfile(data).unwrap();
-      router.push("/auth/done");
+      router.push("/done");
     } catch (err) {
       const { fieldErrors, message } = parseApiError(err);
 
