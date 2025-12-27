@@ -1,15 +1,8 @@
 import Input from "@/src/components/ui/Input";
 import Image from "next/image";
-import { redirect } from "next/navigation";
-import search from "../../assets/icons/search.svg";
+import search from "../../../assets/icons/search.svg";
 
 const Chats = () => {
-  const user = true;
-
-  if (!user) {
-    redirect("/auth");
-  }
-
   return (
     <div className="flex flex-row  gap-x-6 w-full  justify-center">
       <div className="w-full md:max-w-[360px] min-h-[calc(100vh-84px)] mx-auto bg-(--color-gray-light) md:rounded-t-lg border border-(--color-gray-1) p-4">

@@ -18,7 +18,7 @@ const Navigation = () => {
 
   const navLinks = [
     {
-      path: "/",
+      path: "/chats",
       name: "Чаты",
       order: "1",
       svg1: (

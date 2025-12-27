@@ -6,7 +6,7 @@ import type { InputHTMLAttributes } from "react";
 interface IInput {
   onClick?: InputHTMLAttributes<HTMLInputElement>["onClick"];
   onChange?: InputHTMLAttributes<HTMLInputElement>["onChange"];
-  name: string;
+  name?: string;
   label?: string;
   type?: "text" | "email" | "password" | "tel" | "number" | "search";
   placeholder: string;

@@ -5,7 +5,7 @@ export const authApi = apiSlice.injectEndpoints({
   endpoints: builder => ({
     sendCode: builder.mutation<void, { phone_number: string }>({
       query: body => ({
-        url: "auth/messenger/login/get/code/",
+        url: "auth/messenger/login/get/code/", 
         method: "POST",
         body,
       }),
