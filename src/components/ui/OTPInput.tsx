@@ -101,7 +101,7 @@ export default function OTPInput({
       <div className="w-full max-w-[360px] flex flex-col justify-center">
         <button
           type="button"
-          className="mb-5 md:mb-9.5 text-lg font-medium leading-[120%] text-(--color-violet) disabled:text-(--color-gray) hover:opacity-70"
+          className="mb-5 md:mb-9.5 text-lg font-medium leading-[120%] text-(--color-violet) disabled:text-(--color-gray) not-disabled:hover:opacity-70"
           onClick={onResend}
           disabled={countdown.isDisabled}
         >

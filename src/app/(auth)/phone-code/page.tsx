@@ -10,6 +10,7 @@ import OTPInput from "@/src/components/ui/OTPInput";
 import BackButton from "@/src/components/ui/BackButton";
 import ModalBase from "@/src/components/ui/modal/ModalBase";
 import ModalSupport from "@/src/components/ui/modal/ModalSupport";
+import Snackbar from "@/src/components/ui/Snackbar";
 
 import { useOtpResend } from "@/src/hooks/useOtpResend";
 
@@ -41,8 +42,16 @@ export default function Page() {
   const [inputBlocked, setInputBlocked] = useState(false);
   const [resendLimitReached, setResendLimitReached] = useState(false);
 
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
+
+  // Показ снэкбара
+  const showSnackbar = () => {
+    setSnackbarMessage("");
+    setTimeout(() => setSnackbarMessage("Новый код отправлен"), 10);
+  };
 
   // Отправка кода
   const handleComplete = async (code: string) => {
@@ -74,6 +83,7 @@ export default function Page() {
 
     try {
       await sendCode({ phone_number: phone.replace(/\s+/g, "") }).unwrap();
+      showSnackbar();
       setErrorMessage(null);
       setValue("otp", "");
       resendCountdown.startShortCooldown();
@@ -92,7 +102,7 @@ export default function Page() {
   };
 
   return (
-    <div className="h-full flex items-center flex-col pb-10 md:pb-20 pt-6 md:pt-18">
+    <div className="h-full flex items-center flex-col pt-6 md:pt-18">
       <AuthHeader className="hidden md:flex md:mb-8" />
       <div className="relative w-full max-w-[360px] pt-5 mb-8 md:mb-6 md:hidden text-center">
         <BackButton className="md:hidden absolute top-0 left-0" />
@@ -126,6 +136,10 @@ export default function Page() {
           />
         )}
       />
+
+      <div className="w-full h-full relative">
+        <Snackbar message={snackbarMessage} />
+      </div>
 
       {isSupportModalOpen && (
         <ModalBase onClose={() => setIsSupportModalOpen(false)}>
