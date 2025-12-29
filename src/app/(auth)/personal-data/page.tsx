@@ -78,7 +78,7 @@ export default function Page() {
   };
 
   return (
-    <div className="h-full flex items-center flex-col pb-10 md:pb-20 pt-18 md:pt-18">
+    <div className="h-full flex items-center flex-col pb-10 md:pb-20 pt-6 md:pt-18">
       <AuthHeader className="mb-5 md:mb-8" />
 
       <h3 className="mb-3 md:mb-6 text-(--color-text) font-medium text-2xl leading-[120%] md:font-semibold md:text-[2rem] md:leading-[100%] tracking-normal">
@@ -88,7 +88,7 @@ export default function Page() {
         Пожалуйста, заполните данные
       </span>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col h-full">
+      <form onSubmit={handleSubmit(onSubmit)} className="w-full max-w-[360px] flex flex-col h-full">
         <Input
           register={register("first_name")}
           name="name"

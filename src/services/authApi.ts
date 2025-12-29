@@ -5,7 +5,7 @@ export const authApi = apiSlice.injectEndpoints({
   endpoints: builder => ({
     sendCode: builder.mutation<void, { phone_number: string }>({
       query: body => ({
-        url: "auth/messenger/login/get/code/", 
+        url: "auth/messenger/login/get/code/",
         method: "POST",
         body,
       }),
@@ -13,7 +13,7 @@ export const authApi = apiSlice.injectEndpoints({
 
     verifyCode: builder.mutation<
       { access: string; refresh: string; is_filled: boolean },
-      { phone: string; code: string }
+      { phone_number: string; code: string }
     >({
       query: body => ({
         url: "auth/messenger/login/get/token/",
@@ -25,7 +25,16 @@ export const authApi = apiSlice.injectEndpoints({
         dispatch(setTokens(data));
       },
     }),
+
+    sendMessageToSupport: builder.mutation<void, { email: string; text: string }>({
+      query: body => ({
+        url: "service/message/",
+        method: "POST",
+        body,
+      }),
+    }),
   }),
 });
 
-export const { useSendCodeMutation, useVerifyCodeMutation } = authApi;
+export const { useSendCodeMutation, useVerifyCodeMutation, useSendMessageToSupportMutation } =
+  authApi;

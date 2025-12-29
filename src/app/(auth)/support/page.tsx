@@ -4,55 +4,63 @@ import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+
 import AuthHeader from "@/src/components/ui/auth/AuthHeader";
 import Link from "next/link";
 import Button from "@/src/components/ui/Button";
 import Input from "@/src/components/ui/Input";
 import Textarea from "@/src/components/ui/Textarea";
 
+import { useSendMessageToSupportMutation } from "@/src/services/authApi";
+import { parseApiError } from "@/src/services/apiError";
+
 const formSchema = z.object({
   email: z.string().trim().min(1, "Email обязателен").email("Некорректный email"),
-  description: z
-    .string()
-    .trim()
-    .min(10, "Минимум 10 символов")
-    .max(2000, "Сообщение слишком длинное"),
+  text: z.string().trim().min(10, "Минимум 10 символов").max(2000, "Сообщение слишком длинное"),
 });
 
 type FormData = z.infer<typeof formSchema>;
 
-// Временная заглушка для сабмита формы
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const sendSupportRequest = (_: unknown): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      Math.random() > 0.3 ? resolve() : reject(new Error("Server error"));
-    }, 800);
-  });
-};
-
 const Page = () => {
+  const router = useRouter();
+  const [sendMessage] = useSendMessageToSupportMutation();
+
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting, isValid },
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     mode: "onChange",
     defaultValues: {
       email: "",
-      description: "",
+      text: "",
     },
   });
-  const router = useRouter();
 
   const onSubmit = async (data: FormData) => {
     try {
-      await sendSupportRequest(data); // API
+      await sendMessage(data).unwrap();
       router.push("/support/success");
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      const { fieldErrors, message } = parseApiError(err);
+
+      if (fieldErrors) {
+        Object.entries(fieldErrors).forEach(([field, messages]) => {
+          setError(field as keyof FormData, {
+            type: "server",
+            message: messages[0],
+          });
+        });
+      }
+
+      if (message) {
+        setError("root", {
+          type: "server",
+          message,
+        });
+      }
     }
   };
 
@@ -76,13 +84,15 @@ const Page = () => {
         />
 
         <Textarea
-          register={register("description")}
+          register={register("text")}
           name="description"
           label="Опишите Вашу проблему"
           placeholder=""
-          error={errors.description?.message}
+          error={errors.text?.message}
           className="mb-3 md:mb-2 h-[280px] md:h-[219px]"
         />
+
+        {errors.root && <p className="text-(--color-error)">{errors.root.message}</p>}
 
         <div>
           <p className="font-medium text-xs md:text-sm text-(--color-gray) leading-[120%] w-full mb-4 md:mb-5">

@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { useAppDispatch } from "@/src/hooks/useTypedSelector";
+
 import AuthHeader from "@/components/ui/auth/AuthHeader";
 import Input from "@/src/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -13,7 +13,6 @@ import ModalBase from "@/src/components/ui/modal/ModalBase";
 import ModalConfirm from "@/components/ui/modal/ModalConfirm";
 import Logo from "@/components/ui/Logo";
 
-import { setPhone } from "@/src/store/slices/authSlice";
 import { useSendCodeMutation } from "@/src/services/authApi";
 import { parseApiError } from "@/src/services/apiError";
 
@@ -28,7 +27,6 @@ export default function Page() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [phone, setPhoneLocal] = useState("");
 
-  const dispatch = useAppDispatch();
   const [sendCode] = useSendCodeMutation();
 
   const {
@@ -45,7 +43,6 @@ export default function Page() {
   });
   const handleOpenModal = (data: FormData) => {
     setPhoneLocal(data.phone_number);
-    dispatch(setPhone(phone));
     setIsModalOpen(true);
   };
 
@@ -56,6 +53,7 @@ export default function Page() {
   const handleConfirm = async () => {
     try {
       await sendCode({ phone_number: phone.replace(/\s+/g, "") }).unwrap();
+      localStorage.setItem("phoneNumber", phone);
       router.push("/phone-code");
     } catch (err) {
       const { fieldErrors, message } = parseApiError(err);
@@ -101,11 +99,11 @@ export default function Page() {
   };
 
   return (
-    <div className="h-full flex items-center flex-col pb-10 md:pb-20 pt-[4.5rem] md:pt-20">
-      <AuthHeader className="hidden relative md:flex md:mb-8" />
-      <div className="text-center md:hidden ">
+    <div className="h-full flex items-center flex-col pb-10 md:pb-20 pt-11 md:pt-20">
+      <AuthHeader className="hidden md:flex md:mb-8" />
+      <div className="mb-8 md:mb-6 md:hidden">
         <Logo size="small" />
-        <h3 className="mb-8 md:mb-6 text-(--color-text) font-medium md:font-semibold text-[2rem] md:text-[3rem] leading-[120%] tracking-normal">
+        <h3 className="text-(--color-text) font-medium md:font-semibold text-[2rem] md:text-[3rem] leading-[120%] tracking-normal">
           А-Чат
         </h3>
       </div>

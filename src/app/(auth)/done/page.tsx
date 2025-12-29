@@ -1,9 +1,15 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+
 import Logo from "@/src/components/ui/Logo";
 import Button from "@/components/ui/Button";
 import done from "@/src/assets/icons/done.svg";
 import Image from "next/image";
 
-const page = () => {
+export default function Page() {
+  const router = useRouter();
+
   return (
     <div className="flex w-full h-full items-center flex-col pb-20 pt-24 md:pt-18 ">
       <div className="hidden md:block">
@@ -24,11 +30,14 @@ const page = () => {
         Регистрация прошла успешно!
       </span>
 
-      <Button size="medium" variant="primary" className="md:mt-auto">
+      <Button
+        size="medium"
+        variant="primary"
+        className="md:mt-auto"
+        onClick={() => router.push("/chats")}
+      >
         Далее
       </Button>
     </div>
   );
-};
-
-export default page;
+}

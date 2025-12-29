@@ -31,7 +31,7 @@ const BackButton = ({ className }: { className?: string }) => {
   }
 
   const handleBack = () => {
-    router.push(`/auth/${previousStep}`);
+    router.push(`/${previousStep}`);
   };
 
   return (
