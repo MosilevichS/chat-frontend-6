@@ -80,7 +80,13 @@ export default function Page() {
     if (isInputDisabled || isVerifying) return;
 
     try {
-      await verifyCode({ phone_number: phone.replace(/\s+/g, ""), code }).unwrap();
+      const response = await verifyCode({ phone_number: phone.replace(/\s+/g, ""), code }).unwrap();
+      localStorage.removeItem("phoneNumber");
+      localStorage.removeItem("otp_timer");
+      localStorage.removeItem("inputError");
+      localStorage.removeItem("inputDisabled");
+      localStorage.setItem("accessToken", response.access);
+      localStorage.setItem("refreshToken", response.refresh);
       router.push("/personal-data");
     } catch (err) {
       const parsed = parseApiError(err);
