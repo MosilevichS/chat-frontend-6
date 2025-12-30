@@ -12,14 +12,39 @@ import ModalBase from "@/src/components/ui/modal/ModalBase";
 import ModalSupport from "@/src/components/ui/modal/ModalSupport";
 import Snackbar from "@/src/components/ui/Snackbar";
 
-import { useOtpResend } from "@/src/hooks/useOtpResend";
+import { useOtpTimer } from "@/src/hooks/useOtpTimer";
+import { useLocalStorageState } from "@/src/hooks/useLocalStorageState";
 
 import { useSendCodeMutation, useVerifyCodeMutation } from "@/src/services/authApi";
 import { parseApiError } from "@/src/services/apiError";
 
 export default function Page() {
+  const router = useRouter();
   const [phone, setPhone] = useState("");
 
+  const [resendLimitReached, setResendLimitReached] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
+  const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
+  const [isTimeOutModalOpen, setIsTimeOutModalOpen] = useState(false);
+
+  const [errorMessage, setErrorMessage] = useLocalStorageState<string>("inputError", "");
+  const [isInputDisabled, setIsInputDisabled] = useLocalStorageState<boolean>(
+    "inputDisabled",
+    false,
+  );
+
+  const { isButtonDisabled, label, startShort, startBlock10, startBlock60, initialized } =
+    useOtpTimer();
+
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsClient(true);
+  }, []);
+
+  // Получаем номер телефона
   useEffect(() => {
     const storedPhone = localStorage.getItem("phoneNumber");
     if (storedPhone) {
@@ -28,8 +53,14 @@ export default function Page() {
     }
   }, []);
 
-  const router = useRouter();
-  const resendCountdown = useOtpResend();
+  // Когда таймер закончился, очищаем ошибку
+  useEffect(() => {
+    if (!initialized) return;
+    if (!isButtonDisabled) {
+      setErrorMessage("");
+      setIsInputDisabled(false);
+    }
+  }, [initialized, isButtonDisabled, setErrorMessage, setIsInputDisabled]);
 
   const { control, setValue } = useForm({
     defaultValues: { otp: "" },
@@ -37,15 +68,6 @@ export default function Page() {
 
   const [verifyCode, { isLoading: isVerifying }] = useVerifyCodeMutation();
   const [sendCode] = useSendCodeMutation();
-
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [inputBlocked, setInputBlocked] = useState(false);
-  const [resendLimitReached, setResendLimitReached] = useState(false);
-
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-
-  const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
-  const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
 
   // Показ снэкбара
   const showSnackbar = () => {
@@ -55,7 +77,7 @@ export default function Page() {
 
   // Отправка кода
   const handleComplete = async (code: string) => {
-    if (inputBlocked || isVerifying) return;
+    if (isInputDisabled || isVerifying) return;
 
     try {
       await verifyCode({ phone_number: phone.replace(/\s+/g, ""), code }).unwrap();
@@ -63,11 +85,32 @@ export default function Page() {
     } catch (err) {
       const parsed = parseApiError(err);
 
-      setErrorMessage(parsed.message ?? "Неверный код");
       setValue("otp", "");
 
       if (parsed.message?.includes("Блокировка")) {
-        setInputBlocked(true);
+        setIsInputDisabled(true);
+      }
+      if (parsed.message?.includes("10 минут")) {
+        setErrorMessage("Слишком много неверных попыток.");
+        startBlock10();
+        setIsLimitModalOpen(true);
+      }
+
+      if (parsed.message?.includes("1 час")) {
+        startBlock60();
+        setErrorMessage("Слишком много неверных попыток.");
+        setIsInputDisabled(true);
+        setIsLimitModalOpen(true);
+      }
+
+      if (parsed.message?.includes("заблокирован")) {
+        startBlock60();
+        setErrorMessage("Слишком много неверных попыток.");
+        setIsInputDisabled(true);
+      }
+
+      if (parsed.message?.includes("Время действия")) {
+        setIsTimeOutModalOpen(true);
       }
     }
   };
@@ -75,29 +118,24 @@ export default function Page() {
   // Запрос на обновление кода
   const handleResend = async () => {
     if (resendLimitReached) {
-      setIsLimitModalOpen(true);
-      return;
     }
 
-    if (resendCountdown.isDisabled) return;
+    if (isButtonDisabled) return;
 
     try {
       await sendCode({ phone_number: phone.replace(/\s+/g, "") }).unwrap();
       showSnackbar();
-      setErrorMessage(null);
+      setErrorMessage("");
       setValue("otp", "");
-      resendCountdown.startShortCooldown();
+      startShort();
     } catch (err) {
       const parsed = parseApiError(err);
 
       if (parsed.message?.includes("превышено")) {
         setResendLimitReached(true);
-        resendCountdown.startLongBlock();
-        setIsLimitModalOpen(true);
+        startBlock60();
         return;
       }
-
-      setErrorMessage(parsed.message ?? "Не удалось отправить код");
     }
   };
 
@@ -128,11 +166,12 @@ export default function Page() {
             value={field.value}
             onChange={field.onChange}
             onComplete={handleComplete}
-            error={errorMessage}
-            disabled={inputBlocked || isVerifying}
+            error={isClient ? errorMessage : null}
+            disabled={isClient ? isInputDisabled : false}
             onSupport={() => setIsSupportModalOpen(true)}
             onResend={handleResend}
-            countdown={resendCountdown}
+            label={label}
+            isButtonDisabled={isButtonDisabled}
           />
         )}
       />
@@ -158,6 +197,16 @@ export default function Page() {
             onSupport={() => router.push("/support")}
             title="Лимит исчерпан"
             message="Попробуйте позднее"
+          ></ModalSupport>
+        </ModalBase>
+      )}
+
+      {isTimeOutModalOpen && (
+        <ModalBase onClose={() => setIsTimeOutModalOpen(false)}>
+          <ModalSupport
+            onClose={() => setIsTimeOutModalOpen(false)}
+            onSupport={() => router.push("/support")}
+            title="Срок действия кода истек"
           ></ModalSupport>
         </ModalBase>
       )}

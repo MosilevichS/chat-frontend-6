@@ -1,26 +1,23 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
+
 import clsx from "clsx";
 
 import Tooltip from "./Tooltip";
 import { ErrorMessage } from "./ErrorMessage";
 
-interface IOPTInput {
+interface IOTPInput {
   value: string;
   length?: number;
   onChange: (v: string) => void;
-  onComplete: (code: string) => void;
+  onComplete: (value: string, reset?: () => void) => void;
   error: string | null;
   disabled?: boolean;
   onSupport: () => void;
   onResend: () => void;
-  countdown: {
-    isDisabled: boolean;
-    label: string;
-    startShortCooldown: () => void;
-    startLongBlock: () => void;
-  };
+  label: string;
+  isButtonDisabled: boolean;
 }
 
 export default function OTPInput({
@@ -32,9 +29,18 @@ export default function OTPInput({
   disabled,
   onSupport,
   onResend,
-  countdown,
-}: IOPTInput) {
+  label,
+  isButtonDisabled,
+}: IOTPInput) {
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+
+  useEffect(() => {
+    if (error) {
+      onChange("");
+
+      inputsRef.current[0]?.focus();
+    }
+  }, [error, onChange]);
 
   const handleChange = (char: string, index: number) => {
     if (!/^\d?$/.test(char)) return;
@@ -73,6 +79,7 @@ export default function OTPInput({
       </div>
 
       {error && <ErrorMessage error={error} className="w-full max-w-[330px]" />}
+
       <div className="mb-3.5 md:mb-4 flex justify-center gap-[0.484rem]">
         {Array.from({ length }).map((_, index) => (
           <input
@@ -103,9 +110,9 @@ export default function OTPInput({
           type="button"
           className="mb-5 md:mb-9.5 text-lg font-medium leading-[120%] text-(--color-violet) disabled:text-(--color-gray) not-disabled:hover:opacity-70"
           onClick={onResend}
-          disabled={countdown.isDisabled}
+          disabled={isButtonDisabled}
         >
-          {countdown.label}
+          {label}
         </button>
         <button
           type="button"

@@ -1,3 +1,4 @@
+"use client";
 interface ErrorProps {
   error?: string;
   className?: string;

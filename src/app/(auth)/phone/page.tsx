@@ -52,9 +52,9 @@ export default function Page() {
 
   const handleConfirm = async () => {
     try {
+      router.push("/phone-code");
       await sendCode({ phone_number: phone.replace(/\s+/g, "") }).unwrap();
       localStorage.setItem("phoneNumber", phone);
-      router.push("/phone-code");
     } catch (err) {
       const { fieldErrors, message } = parseApiError(err);
 
