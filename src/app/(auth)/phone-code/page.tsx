@@ -46,11 +46,12 @@ export default function Page() {
 
   // Получаем номер телефона
   useEffect(() => {
-    const storedPhone = localStorage.getItem("phoneNumber");
-    if (storedPhone) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setPhone(storedPhone);
-    }
+    const updatePhone = () => {
+      setPhone(localStorage.getItem("phoneNumber") || "");
+    };
+    window.addEventListener("phoneChanged", updatePhone);
+    updatePhone();
+    return () => window.removeEventListener("phoneChanged", updatePhone);
   }, []);
 
   // Когда таймер закончился, очищаем ошибку
@@ -81,16 +82,21 @@ export default function Page() {
 
     try {
       const response = await verifyCode({ phone_number: phone.replace(/\s+/g, ""), code }).unwrap();
-      localStorage.removeItem("phoneNumber");
       localStorage.removeItem("otp_timer");
       localStorage.removeItem("inputError");
       localStorage.removeItem("inputDisabled");
       localStorage.setItem("accessToken", response.access);
       localStorage.setItem("refreshToken", response.refresh);
-      router.push("/personal-data");
+
+      if (response.is_filled) {
+        router.push("/chats");
+      }
+
+      router.push("/phone-code");
     } catch (err) {
       const parsed = parseApiError(err);
 
+      setErrorMessage(parsed.message ?? "Ошибка");
       setValue("otp", "");
 
       if (parsed.message?.includes("Блокировка")) {

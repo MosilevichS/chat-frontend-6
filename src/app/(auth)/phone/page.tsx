@@ -55,6 +55,7 @@ export default function Page() {
       router.push("/phone-code");
       await sendCode({ phone_number: phone.replace(/\s+/g, "") }).unwrap();
       localStorage.setItem("phoneNumber", phone);
+      window.dispatchEvent(new Event("phoneChanged"));
     } catch (err) {
       const { fieldErrors, message } = parseApiError(err);
 
