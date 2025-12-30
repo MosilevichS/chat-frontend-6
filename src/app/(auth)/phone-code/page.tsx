@@ -90,9 +90,9 @@ export default function Page() {
 
       if (response.is_filled) {
         router.push("/chats");
+      } else {
+        router.push("/personal-data");
       }
-
-      router.push("/phone-code");
     } catch (err) {
       const parsed = parseApiError(err);
 
