@@ -14,22 +14,22 @@ import { parseApiError } from "@/src/services/apiError";
 const formSchema = z.object({
   first_name: z
     .string()
-    .min(1, "Заполните поле")
-    .min(2, "Имя должно содержать минимум 2 символа")
-    .max(30, "Не более 30 символов")
+    .trim()
+    .nonempty("Заполните поле")
     .regex(/^[a-zA-Zа-яА-ЯёЁ\s-]+$/, "Используйте только буквы, пробел или тире")
-    .trim(),
+    .min(2, "Имя должно содержать минимум 2 символа")
+    .max(30, "Не более 30 символов"),
 
   nickname: z
     .string()
-    .min(1, "Заполните поле")
-    .min(3, "Никнейм должен содержать минимум 3 символа")
-    .max(30, "Никнейм не должен превышать 30 символов")
+    .trim()
+    .nonempty("Заполните поле")
     .regex(
       /^[a-zA-Z0-9_.-]+$/,
       "Никнейм может содержать только латинские буквы, цифры, точки, дефисы и подчеркивания",
     )
-    .trim(),
+    .min(3, "Никнейм должен содержать минимум 3 символа")
+    .max(30, "Никнейм не должен превышать 30 символов"),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -52,6 +52,7 @@ export default function Page() {
     },
   });
 
+  // Сабмит формы
   const onSubmit = async (data: FormData) => {
     try {
       await updateProfile(data).unwrap();
