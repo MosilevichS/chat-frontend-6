@@ -22,6 +22,7 @@
   --color-gray: #747474;
   --color-gray-light: #f5f6f8;
   --color-gray-1: #eeeeee;
+  --color-gray-2: #efeef7;
   --color-gray-dark: #c5c5c5;
   --color-black-light: #000000b3;
   --color-white: #ffffff;
@@ -51,4 +52,36 @@ a {
 
 ul {
   list-style: none;
+}
+
+/* кастомный стиль полосы прокрутки в чатах*/
+.scroll-custom:hover {
+  overflow-y: auto;
+  /* Для Firefox */
+  /* scrollbar-width: thin;
+  scrollbar-color: #c5c5c5 #f5f6f8; */
+
+  &::-webkit-scrollbar {
+    display: block;
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f5f6f8;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #c5c5c5;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-button {
+    display: none;
+  }
+}
+
+.scroll-custom {
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
