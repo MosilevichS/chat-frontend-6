@@ -1,0 +1,31 @@
+<svg viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="44.000000" height="44.000000" fill="none" customFrame="#000000">
+	<defs>
+		<g id="pixso_custom_effect_0">
+			<effect x="0.000000" y="4.000000" visibility="visible" fill="rgb(0,0,0)" fill-opacity="0.25" effectType="dropShadow" stdDeviation="4" radius="0" />
+		</g>
+		<filter id="filter_0" width="44.000000" height="44.000000" x="0.000000" y="0.000000" filterUnits="userSpaceOnUse" customEffect="url(#pixso_custom_effect_0)" color-interpolation-filters="sRGB">
+			<feFlood flood-opacity="0" result="BackgroundImageFix" />
+			<feColorMatrix result="hardAlpha" in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0 " />
+			<feOffset dx="0.000000" dy="4.000000" in="hardAlpha" />
+			<feGaussianBlur stdDeviation="1.33333337" />
+			<feComposite k2="-1" k3="1" in2="hardAlpha" operator="out" />
+			<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0 " />
+			<feBlend result="effect_dropShadow_1" in2="BackgroundImageFix" mode="normal" />
+			<feBlend result="shape" in="SourceGraphic" in2="effect_dropShadow_1" mode="normal" />
+		</filter>
+		<clipPath id="clipPath_0">
+			<rect width="44.000000" height="44.000000" x="0.000000" y="0.000000" fill="rgb(255,255,255)" />
+		</clipPath>
+		<clipPath id="clipPath_1">
+			<rect width="32.000000" height="32.000000" x="6.000000" y="6.000000" fill="rgb(255,255,255)" />
+		</clipPath>
+	</defs>
+	<g filter="url(#filter_0)" customFrame="url(#clipPath_0)">
+		<rect id="Create" width="44.000000" height="44.000000" x="0.000000" y="0.000000" />
+		<g id="ic / 32 / create group channel" customFrame="url(#clipPath_1)">
+			<rect id="ic / 32 / create group channel" width="32.000000" height="32.000000" x="6.000000" y="6.000000" />
+			<path id="Vector" d="M33.1228 15.1833L23.361 25.0804L18.1938 25.9687L19.1257 20.7864L28.8876 10.8893C30.0571 9.70356 31.9533 9.70356 33.1228 10.8893C34.2924 12.0751 34.2924 13.9975 33.1228 15.1833ZM31.2952 13.3303L22.1163 22.6365L21.3981 22.76L21.5238 22.0611L30.7152 12.7423C30.8754 12.5799 31.1351 12.5799 31.2952 12.7423C31.4554 12.9046 31.4554 13.1679 31.2952 13.3303ZM23.9417 13.0364L12.5846 13.0364C11.1572 13.0364 10 14.2096 10 15.6568L10 31.3795C10 32.8268 11.1572 34 12.5846 34L28.0924 34C29.5199 34 30.6771 32.8268 30.6771 31.3795L30.6771 20.4948L28.0924 23.1152L28.0924 31.3795L12.5846 31.3795L12.5846 15.6568L21.3571 15.6568L23.9417 13.0364Z" fill="rgb(119,105,225)" fill-rule="evenodd" />
+			<path id="Vector" d="" fill="rgb(119,105,225)" fill-rule="nonzero" />
+		</g>
+	</g>
+</svg>
