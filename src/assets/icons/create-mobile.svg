@@ -1,0 +1,25 @@
+<svg viewBox="0 0 32 36" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="32.000000" height="36.000000" fill="none" customFrame="#000000">
+	<defs>
+		<g id="pixso_custom_effect_0">
+			<effect x="0.000000" y="4.000000" visibility="visible" fill="rgb(0,0,0)" fill-opacity="0.25" effectType="dropShadow" stdDeviation="4" radius="0" />
+		</g>
+		<filter id="filter_0" width="32.000000" height="36.000000" x="0.000000" y="0.000000" filterUnits="userSpaceOnUse" customEffect="url(#pixso_custom_effect_0)" color-interpolation-filters="sRGB">
+			<feFlood flood-opacity="0" result="BackgroundImageFix" />
+			<feColorMatrix result="hardAlpha" in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0 " />
+			<feOffset dx="0.000000" dy="4.000000" in="hardAlpha" />
+			<feGaussianBlur stdDeviation="1.33333337" />
+			<feComposite k2="-1" k3="1" in2="hardAlpha" operator="out" />
+			<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0 " />
+			<feBlend result="effect_dropShadow_1" in2="BackgroundImageFix" mode="normal" />
+			<feBlend result="shape" in="SourceGraphic" in2="effect_dropShadow_1" mode="normal" />
+		</filter>
+		<clipPath id="clipPath_1">
+			<rect width="32.000000" height="32.000000" x="0.000000" y="0.000000" fill="rgb(255,255,255)" />
+		</clipPath>
+	</defs>
+	<g filter="url(#filter_0)" customFrame="url(#clipPath_1)">
+		<rect id="ic / 32 / create group channel" width="32.000000" height="32.000000" x="0.000000" y="0.000000" />
+		<path id="Vector" d="M27.1228 9.18329L17.361 19.0804L12.1938 19.9687L13.1257 14.7864L22.8876 4.88931C24.0571 3.70356 25.9533 3.70356 27.1228 4.88931C28.2924 6.07506 28.2924 7.99754 27.1228 9.18329ZM25.2952 7.33034L16.1163 16.6365L15.3981 16.76L15.5238 16.0611L24.7152 6.74225C24.8754 6.57986 25.1351 6.57986 25.2952 6.74225C25.4554 6.90465 25.4554 7.16795 25.2952 7.33034ZM17.9417 7.03636L6.58463 7.03636C5.15718 7.03636 4 8.20958 4 9.65681L4 25.3795C4 26.8268 5.15718 28 6.58463 28L22.0924 28C23.5199 28 24.6771 26.8268 24.6771 25.3795L24.6771 14.4948L22.0924 17.1152L22.0924 25.3795L6.58463 25.3795L6.58463 9.65681L15.3571 9.65681L17.9417 7.03636Z" fill="rgb(119,105,225)" fill-rule="evenodd" />
+		<path id="Vector" d="" fill="rgb(119,105,225)" fill-rule="nonzero" />
+	</g>
+</svg>

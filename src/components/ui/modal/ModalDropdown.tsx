@@ -22,13 +22,44 @@ const ModalDropdown = ({ onClose, children, className = "" }: IModalDropdown) =>
     };
   }, [onClose]);
 
+  // Закрытие по клику вне модалки на десктопе
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const modalContainer = target.closest(".modal-dropdown-container");
+      const createButton = target.closest('button[aria-label="Создать чат"]');
+
+      if (!modalContainer && !createButton) {
+        onClose();
+      }
+    };
+
+    // Добавляем обработчик только на десктопе
+    if (window.innerWidth >= 768) {
+      setTimeout(() => {
+        document.addEventListener("click", handleClickOutside);
+      }, 0);
+    }
+
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, [onClose]);
+
   return (
     <>
-      {/* Оверлей */}
-      <div className="fixed inset-0 z-40" onClick={onClose} aria-hidden="true" />
+      {/* Оверлей - видимый на мобильных, прозрачный на десктопе */}
+      <div
+        className="fixed inset-0 z-40 bg-(--color-overlay) md:bg-transparent"
+        onClick={onClose}
+        aria-hidden="true"
+      />
 
       {/* Выпадающее меню */}
-      <div className={`absolute z-50 ${className}`} onClick={e => e.stopPropagation()}>
+      <div
+        className={`absolute z-50 modal-dropdown-container ${className}`}
+        onClick={e => e.stopPropagation()}
+      >
         {children}
       </div>
     </>
