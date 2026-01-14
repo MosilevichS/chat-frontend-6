@@ -6,105 +6,14 @@ import search from "../../../assets/icons/search.svg";
 import { useEffect, useRef, useState } from "react";
 import { useClickOutside } from "@/src/hooks/useClickOutside";
 import ContextMenu from "./_components/ContextMenu";
+import { chatsList } from "@/src/data/chats";
 // import { useGetChatsQuery } from "@/src/services/chatsApi";
 
 const Chats = () => {
   const POPUP_HEIGHT = 238;
   const MENU_OFFSET = 20;
 
-  const [chats, setChats] = useState([
-    {
-      name: "Влад Ляшев",
-      avatar: "/avatar/avatar-1.png",
-      content: "Привет, Владик!",
-      time: "21:49",
-      new: true,
-      notifications: false,
-    },
-    {
-      name: "Сергей Евтушенко",
-      avatar: "/avatar/avatar-2.png",
-      content:
-        "Привет. Я оставил две стремянки и два шуруповёрта. Один в кейсе, а другой просто так. Одна батарейка может кончиться, тогда будете одним добивать. Воды с собой возьмите, там ничего уже не осталось.",
-      time: "21:49",
-      new: false,
-      notifications: false,
-    },
-    {
-      name: "Инна Георгиевна",
-      avatar: "/avatar/avatar-3.png",
-      content:
-        "Привет. Я оставил две стремянки и два шуруповёрта. Один в кейсе, а другой просто так. Одна батарейка может кончиться, тогда будете одним добивать. Воды с собой возьмите, там ничего уже не осталось.",
-      time: "21:49",
-      notifications: true,
-    },
-    {
-      name: "Константин Передвиженцев",
-      avatar: "/avatar/avatar-4.png",
-      content: "doc00498820200806132640.pdf",
-      time: "21:49",
-      new: true,
-      notifications: false,
-    },
-    {
-      name: "Анастасия Бортникова",
-      avatar: "/avatar/avatar-5.png",
-      content: "Мурка по утрам на балкон рвëтся. Никак не успокоится",
-      time: "21:49",
-      new: true,
-      notifications: true,
-    },
-    {
-      name: "Ванесса Рейхарт",
-      avatar: "/avatar/avatar-6.png",
-      content:
-        "Привет. Я оставил две стремянки и два шуруповёрта. Один в кейсе, а другой просто так. Одна батарейка может кончиться, тогда будете одним добивать. Воды с собой возьмите, там ничего уже не осталось.",
-      time: "ПН",
-      new: true,
-      notifications: false,
-    },
-    {
-      name: "Илья Макаров",
-      avatar: "/avatar/avatar-7.png",
-      content: "instruction.pdf",
-      time: "ПН",
-      new: false,
-      notifications: false,
-    },
-    {
-      name: "Алексей Митрофанов",
-      content:
-        "Мурка по утрам на балкон рвëтся. Жить не может без традиционного гуляния на балконе.",
-      time: "ПН",
-      new: false,
-      notifications: true,
-    },
-    {
-      name: "Александр Маслюченков",
-      avatar: "/avatar/avatar-9.png",
-      content:
-        "Мурка по утрам на балкон рвëтся. Жить не может без традиционного гуляния на балконе.",
-      time: "ПН",
-      new: false,
-      notifications: true,
-    },
-    {
-      name: "Ира Непогодьевшинаа",
-      avatar: "/avatar/avatar-10.png",
-      content: "Привет",
-      time: "30.12.23",
-      new: false,
-      notifications: true,
-    },
-    {
-      name: "Оксана Костомина",
-      avatar: "/avatar/avatar-11.png",
-      content: "Привет",
-      time: "30.12.23",
-      new: false,
-      notifications: false,
-    },
-  ]);
+  const [chats, setChats] = useState(chatsList);
   const [searchQuery, setSearchQuery] = useState("");
   const [openContextMenu, setOpenContextMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({
@@ -127,7 +36,6 @@ const Chats = () => {
       return container.scrollHeight > threshold;
     };
 
-    // Обработчик ховера
     const onMouseEnter = () => {
       if (isContentTall()) {
         container.style.paddingRight = "0px";
@@ -192,7 +100,6 @@ const Chats = () => {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log(e.target.value);
     setSearchQuery(e.target.value);
   };
 
@@ -202,8 +109,8 @@ const Chats = () => {
 
   return (
     <div className="flex flex-row  gap-x-6 w-full  justify-center md:mb-1">
-      <div className="w-full md:max-w-[360px] md:min-w-[360px] min-h-[calc(100vh-88px)]">
-        <div className="relative w-full p-4 bg-(--color-gray-light) md:rounded-t-lg border-t border-l border-r border-(--color-gray-1)">
+      <div className="w-full md:max-w-[360px] md:min-w-[360px] min-h-[calc(100vh-88px)] bg-(--color-gray-light) md:rounded-lg border border-(--color-gray-1)">
+        <div className="relative w-full p-4">
           <Input
             onChange={handleChange}
             placeholder="Поиск"
@@ -216,8 +123,7 @@ const Chats = () => {
 
         <div
           ref={containerRef}
-          className="w-full overflow-y-auto h-[calc(100vh-165px)] md:h-[calc(100vh-170px)] scroll-custom px-2 
-         bg-(--color-gray-light) md:rounded-b-lg border-b border-l border-r border-(--color-gray-1)"
+          className="w-full overflow-y-auto h-[calc(100vh-165px)] md:h-[calc(100vh-170px)] scroll-custom px-2"
         >
           {filteredChats.length > 0 ? (
             filteredChats.map((chat, index) => (
@@ -333,7 +239,7 @@ const Chats = () => {
 
       <div
         className="hidden md:flex justify-center text-center items-center w-full 
-      max-w-[744px] min-h-[calc(100vh-88px)] bg-(--color-gray-light) rounded-lg px-4"
+      max-w-[744px] min-h-[calc(100vh-88px)] bg-(--color-gray-light) rounded-lg  md:rounded-lg border border-(--color-gray-1) px-4"
       >
         <p className="text-(--color-gray) text-lg font-normal">
           Выберите контакт для начала общения
