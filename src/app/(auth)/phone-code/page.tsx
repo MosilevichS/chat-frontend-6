@@ -15,7 +15,8 @@ import Snackbar from "@/src/components/ui/Snackbar";
 import { useOtpTimer } from "@/src/hooks/useOtpTimer";
 import { useLocalStorageState } from "@/src/hooks/useLocalStorageState";
 
-import { useSendCodeMutation, useVerifyCodeMutation } from "@/src/services/authApi";
+import { loginAction } from "@/src/actions/auth";
+import { useSendCodeMutation } from "@/src/services/authApi";
 import { parseApiError } from "@/src/services/apiError";
 
 export default function Page() {
@@ -67,7 +68,6 @@ export default function Page() {
     defaultValues: { otp: "" },
   });
 
-  const [verifyCode, { isLoading: isVerifying }] = useVerifyCodeMutation();
   const [sendCode] = useSendCodeMutation();
 
   // Показ снэкбара
@@ -78,17 +78,16 @@ export default function Page() {
 
   // Отправка кода
   const handleComplete = async (code: string) => {
-    if (isInputDisabled || isVerifying) return;
-
     try {
-      const response = await verifyCode({ phone_number: phone.replace(/\s+/g, ""), code }).unwrap();
+      const { is_filled } = await loginAction({
+        phone_number: phone.replace(/\s+/g, ""),
+        code,
+      });
       localStorage.removeItem("otp_timer");
       localStorage.removeItem("inputError");
       localStorage.removeItem("inputDisabled");
-      localStorage.setItem("accessToken", response.access);
-      localStorage.setItem("refreshToken", response.refresh);
 
-      if (response.is_filled) {
+      if (is_filled) {
         router.push("/chats");
       } else {
         router.push("/personal-data");
