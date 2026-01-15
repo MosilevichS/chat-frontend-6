@@ -10,10 +10,12 @@ import channel from "../../../assets/icons/channel.svg";
 import group from "../../../assets/icons/group.svg";
 import ModalDropdown from "@/src/components/ui/modal/ModalDropdown";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const Chats = () => {
   const [isCreateButtonActive, setIsCreateButtonActive] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const router = useRouter();
 
   const handleCreateClick = () => {
     setIsCreateButtonActive(true);
@@ -21,15 +23,15 @@ const Chats = () => {
   };
 
   const handleCreateGroup = () => {
-    console.log("Создать группу");
     setIsModalOpen(false);
     setIsCreateButtonActive(false);
+    router.push('/chats/new-group'); // Переход на страницу создания группы
   };
 
   const handleCreateChannel = () => {
-    console.log("Создать канал");
     setIsModalOpen(false);
     setIsCreateButtonActive(false);
+    router.push('/chats/new-channel'); // Переход на страницу создания канала
   };
 
   const handleCloseModal = () => {
@@ -67,7 +69,6 @@ const Chats = () => {
                 width={26}
                 height={26}
                 className="mr-[2px]"
-                style={{ width: "auto", height: "auto" }}
               />
             </div>
 
@@ -77,7 +78,6 @@ const Chats = () => {
                 alt="Создать"
                 width={24}
                 height={24}
-                style={{ width: "auto", height: "auto" }}
               />
             </div>
           </button>
@@ -96,7 +96,6 @@ const Chats = () => {
                     width={24}
                     height={24}
                     className="w-6 h-6"
-                    style={{ width: "auto", height: "auto" }}
                   />
                 </button>
 
@@ -113,7 +112,6 @@ const Chats = () => {
                     width={24}
                     height={24}
                     className="w-6 h-6"
-                    style={{ width: "auto", height: "auto" }}
                   />
                 </button>
               </div>
@@ -129,7 +127,6 @@ const Chats = () => {
               height={60}
               alt="Фото"
               className="rounded-full"
-              style={{ width: "auto", height: "auto" }}
             />
             <div>
               <p className="font-medium">Влад Ляшев</p>
