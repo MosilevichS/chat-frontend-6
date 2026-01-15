@@ -11,12 +11,19 @@ export async function loginAction(payload: { phone_number: string; code: string 
     body: JSON.stringify(payload),
   });
 
+  const data = await res.json();
+
   if (!res.ok) {
-    throw new Error("Failed to login");
+    return {
+      success: false,
+      status: res.status,
+      message: data?.detail || data?.message || "Неверный код",
+      fieldErrors: data?.errors,
+    };
   }
 
   const { access, refresh, is_filled }: { access: string; refresh: string; is_filled: boolean } =
-    await res.json();
+    data;
 
   const cookieStore = await cookies();
   cookieStore.set("accessToken", access, {
@@ -32,7 +39,7 @@ export async function loginAction(payload: { phone_number: string; code: string 
     path: "/",
   });
 
-  return { is_filled };
+  return { success: true, is_filled };
 }
 
 export async function refreshAction() {

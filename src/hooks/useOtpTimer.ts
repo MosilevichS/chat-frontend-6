@@ -104,6 +104,12 @@ export function useOtpTimer() {
     start(BLOCK_1_HOUR_SEC, "block60");
   }, [start]);
 
+  const reset = useCallback(() => {
+    setUntil(null);
+    setType(null);
+    localStorage.removeItem(STORAGE_KEY);
+  }, []);
+
   const label = useMemo(() => {
     if (!isActive) return "Отправить новый код";
 
@@ -121,5 +127,6 @@ export function useOtpTimer() {
     startBlock10,
     startBlock60,
     initialized,
+    reset,
   };
 }
