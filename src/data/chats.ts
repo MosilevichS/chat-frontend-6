@@ -1,5 +1,6 @@
 export const chatsList = [
   {
+    id: "1",
     name: "Влад Ляшев",
     avatar: "/avatar/avatar-1.png",
     content: "Привет, Владик!",
@@ -10,6 +11,7 @@ export const chatsList = [
     was_online_at: "",
   },
   {
+    id: "2",
     name: "Сергей Евтушенко",
     avatar: "/avatar/avatar-2.png",
     content:
@@ -21,6 +23,7 @@ export const chatsList = [
     was_online_at: "",
   },
   {
+    id: "3",
     name: "Инна Георгиевна",
     avatar: "/avatar/avatar-3.png",
     content:
@@ -31,6 +34,7 @@ export const chatsList = [
     was_online_at: "был(а) только что",
   },
   {
+    id: "4",
     name: "Константин Передвиженцев",
     avatar: "/avatar/avatar-4.png",
     content: "doc00498820200806132640.pdf",
@@ -41,6 +45,7 @@ export const chatsList = [
     was_online_at: "был(а) 22 минуты назад",
   },
   {
+    id: "5",
     name: "Анастасия Бортникова",
     avatar: "/avatar/avatar-5.png",
     content: "Мурка по утрам на балкон рвëтся. Никак не успокоится",
@@ -51,6 +56,7 @@ export const chatsList = [
     was_online_at: "был(а) 22 часа назад",
   },
   {
+    id: "6",
     name: "Ванесса Рейхарт",
     avatar: "/avatar/avatar-6.png",
     content:
@@ -62,6 +68,7 @@ export const chatsList = [
     was_online_at: "был(а) вчера в 21:15",
   },
   {
+    id: "7",
     name: "Илья Макаров",
     avatar: "/avatar/avatar-7.png",
     content: "instruction.pdf",
@@ -72,6 +79,7 @@ export const chatsList = [
     was_online_at: "был(а) 02.04.24",
   },
   {
+    id: "8",
     name: "Алексей Митрофанов",
     content: "Мурка по утрам на балкон рвëтся. Жить не может без традиционного гуляния на балконе.",
     time: "ПН",
@@ -81,6 +89,7 @@ export const chatsList = [
     was_online_at: "был(а) 02.04.24",
   },
   {
+    id: "9",
     name: "Александр Маслюченков",
     avatar: "/avatar/avatar-9.png",
     content: "Мурка по утрам на балкон рвëтся. Жить не может без традиционного гуляния на балконе.",
@@ -91,6 +100,7 @@ export const chatsList = [
     was_online_at: "был(а) 02.04.24",
   },
   {
+    id: "10",
     name: "Ира Непогодьевшинаа",
     avatar: "/avatar/avatar-10.png",
     content: "Привет",
@@ -101,6 +111,7 @@ export const chatsList = [
     was_online_at: "был(а) 02.04.24",
   },
   {
+    id: "11",
     name: "Оксана Костомина",
     avatar: "/avatar/avatar-11.png",
     content: "Привет",
