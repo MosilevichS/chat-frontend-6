@@ -15,12 +15,14 @@ import Snackbar from "@/src/components/ui/Snackbar";
 import { useOtpTimer } from "@/src/hooks/useOtpTimer";
 import { useLocalStorageState } from "@/src/hooks/useLocalStorageState";
 
-import { useSendCodeMutation, useVerifyCodeMutation } from "@/src/services/authApi";
+import { loginAction } from "@/src/actions/auth";
+import { useSendCodeMutation } from "@/src/services/authApi";
 import { parseApiError } from "@/src/services/apiError";
 
 export default function Page() {
   const router = useRouter();
   const [phone, setPhone] = useState("");
+  const [blockedPhone, setBlockedPhone] = useState("");
 
   const [resendLimitReached, setResendLimitReached] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
@@ -34,7 +36,7 @@ export default function Page() {
     false,
   );
 
-  const { isButtonDisabled, label, startShort, startBlock10, startBlock60, initialized } =
+  const { isButtonDisabled, label, startShort, startBlock10, startBlock60, initialized, reset } =
     useOtpTimer();
 
   const [isClient, setIsClient] = useState(false);
@@ -47,27 +49,42 @@ export default function Page() {
   // Получаем номер телефона
   useEffect(() => {
     const updatePhone = () => {
-      setPhone(localStorage.getItem("phoneNumber") || "");
+      setPhone(localStorage.getItem("currentPhoneNumber") || "");
+      setBlockedPhone(localStorage.getItem("blockedPhoneNumber") || "");
     };
     window.addEventListener("phoneChanged", updatePhone);
     updatePhone();
     return () => window.removeEventListener("phoneChanged", updatePhone);
   }, []);
 
-  // Когда таймер закончился, очищаем ошибку
+  // Когда таймер закончился или был изменён номер телефона, очищаем ошибку и блок инпута
   useEffect(() => {
     if (!initialized) return;
+
     if (!isButtonDisabled) {
       setErrorMessage("");
       setIsInputDisabled(false);
     }
-  }, [initialized, isButtonDisabled, setErrorMessage, setIsInputDisabled]);
+
+    if (phone !== blockedPhone) {
+      setErrorMessage("");
+      setIsInputDisabled(false);
+      reset();
+    }
+  }, [
+    initialized,
+    isButtonDisabled,
+    setErrorMessage,
+    setIsInputDisabled,
+    phone,
+    blockedPhone,
+    reset,
+  ]);
 
   const { control, setValue } = useForm({
     defaultValues: { otp: "" },
   });
 
-  const [verifyCode, { isLoading: isVerifying }] = useVerifyCodeMutation();
   const [sendCode] = useSendCodeMutation();
 
   // Показ снэкбара
@@ -78,52 +95,54 @@ export default function Page() {
 
   // Отправка кода
   const handleComplete = async (code: string) => {
-    if (isInputDisabled || isVerifying) return;
+    const result = await loginAction({
+      phone_number: phone.replace(/\s+/g, ""),
+      code,
+    });
 
-    try {
-      const response = await verifyCode({ phone_number: phone.replace(/\s+/g, ""), code }).unwrap();
-      localStorage.removeItem("otp_timer");
-      localStorage.removeItem("inputError");
-      localStorage.removeItem("inputDisabled");
-      localStorage.setItem("accessToken", response.access);
-      localStorage.setItem("refreshToken", response.refresh);
-
-      if (response.is_filled) {
-        router.push("/chats");
-      } else {
-        router.push("/personal-data");
-      }
-    } catch (err) {
-      const parsed = parseApiError(err);
-
-      setErrorMessage(parsed.message ?? "Ошибка");
+    if (!result.success) {
       setValue("otp", "");
 
-      if (parsed.message?.includes("Блокировка")) {
-        setIsInputDisabled(true);
-      }
-      if (parsed.message?.includes("10 минут")) {
-        setErrorMessage("Слишком много неверных попыток.");
+      if (result.message.includes("10 минут")) {
         startBlock10();
+        setErrorMessage("Слишком много неверных попыток.");
+        setIsInputDisabled(true);
         setIsLimitModalOpen(true);
+        localStorage.setItem("blockedPhoneNumber", phone);
+        setBlockedPhone(localStorage.getItem("blockedPhoneNumber") || "");
+        return;
       }
 
-      if (parsed.message?.includes("1 час")) {
+      if (result.message.includes("1 час") || result.message.includes("заблокирован")) {
         startBlock60();
         setErrorMessage("Слишком много неверных попыток.");
         setIsInputDisabled(true);
         setIsLimitModalOpen(true);
+        localStorage.setItem("blockedPhoneNumber", phone);
+        setBlockedPhone(localStorage.getItem("blockedPhoneNumber") || "");
+        return;
       }
 
-      if (parsed.message?.includes("заблокирован")) {
-        startBlock60();
-        setErrorMessage("Слишком много неверных попыток.");
-        setIsInputDisabled(true);
-      }
-
-      if (parsed.message?.includes("Время действия")) {
+      if (result.message.includes("время действия")) {
         setIsTimeOutModalOpen(true);
+        return;
       }
+
+      setErrorMessage(result.message || "Ошибка авторизации");
+      return;
+    }
+
+    // Чистим локальное хранилище
+    localStorage.removeItem("otp_timer");
+    localStorage.removeItem("inputError");
+    localStorage.removeItem("inputDisabled");
+    localStorage.removeItem("currentPhoneNumber");
+    localStorage.removeItem("blockedPhoneNumber");
+
+    if (result.is_filled) {
+      router.push("/chats");
+    } else {
+      router.push("/personal-data");
     }
   };
 

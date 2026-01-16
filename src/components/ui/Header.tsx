@@ -8,7 +8,7 @@ const Header = () => {
   return (
     <header
       className="hidden md:flex items-center justify-between  h-[60px]  bg-(--color-gray-light) 
-          xl:rounded-b-lg border-b border-l border-r border-(--color-gray-1) px-4 py-2"
+          rounded-b-lg border-b border-l border-r border-(--color-gray-1) px-4 py-2"
     >
       <Logo size="medium" />
       <div className="flex gap-x-2">

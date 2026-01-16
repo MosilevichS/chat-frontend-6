@@ -1,4 +1,4 @@
-import { apiSlice } from "@/src/services/apiSlice";
+import { apiSlice } from "@/src/services/baseApi";
 import { setUser } from "@/src/store/slices/userSlice";
 import type { IUser } from "../types/user";
 
