@@ -1,14 +1,24 @@
 export interface IUser {
-  id?: number;
+  uid: string;
+  username: string;
   nickname: string;
   first_name: string;
-  last_name?: string | null;
-  patronymic?: string | null;
-  additional_information?: string | null;
+  last_name: string;
+  patronymic: string;
+  additional_information: string;
+  birthday: number;
+  email: string;
+  gender: string;
+  gender_label: string;
+  country: string;
+  country_label: string;
+  city_id: number;
+  city: string;
   phone: string;
-  email?: string | null;
-  birthday?: number | null;
-  gender?: "male" | "female" | "other";
-  country?: string | null;
-  city_id?: number | null;
+  avatar: string;
+  avatar_url: string;
+  avatar_webp: string;
+  avatar_webp_url: string;
+  is_filled: boolean;
+  is_staff: boolean;
 }

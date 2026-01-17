@@ -1,10 +1,10 @@
-import { apiSlice } from "@/src/services/baseApi";
+import { publicApi } from "@/src/services/baseApi";
 
-export const authApi = apiSlice.injectEndpoints({
+export const authApi = publicApi.injectEndpoints({
   endpoints: builder => ({
     sendCode: builder.mutation<void, { phone_number: string }>({
       query: body => ({
-        url: "auth/messenger/login/get/code/",
+        url: "/api/v1/auth/messenger/login/get/code/",
         method: "POST",
         body,
       }),
@@ -12,7 +12,7 @@ export const authApi = apiSlice.injectEndpoints({
 
     sendMessageToSupport: builder.mutation<void, { email: string; text: string }>({
       query: body => ({
-        url: "service/message/",
+        url: "/api/v1/service/message/",
         method: "POST",
         body,
       }),

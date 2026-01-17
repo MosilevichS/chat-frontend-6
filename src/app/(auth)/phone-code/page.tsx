@@ -52,10 +52,16 @@ export default function Page() {
       setPhone(localStorage.getItem("currentPhoneNumber") || "");
       setBlockedPhone(localStorage.getItem("blockedPhoneNumber") || "");
     };
+
     window.addEventListener("phoneChanged", updatePhone);
     updatePhone();
+
+    if (!localStorage.getItem("currentPhoneNumber")) {
+      router.push("/phone");
+    }
+
     return () => window.removeEventListener("phoneChanged", updatePhone);
-  }, []);
+  }, [router]);
 
   // Когда таймер закончился или был изменён номер телефона, очищаем ошибку и блок инпута
   useEffect(() => {

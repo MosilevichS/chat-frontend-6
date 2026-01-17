@@ -1,24 +1,16 @@
-import { apiSlice } from "@/src/services/baseApi";
-import { setUser } from "@/src/store/slices/userSlice";
+import { privateApi } from "@/src/services/baseApi";
+
 import type { IUser } from "../types/user";
 
-export const userApi = apiSlice.injectEndpoints({
+export const userApi = privateApi.injectEndpoints({
   endpoints: builder => ({
-    getProfile: builder.mutation<IUser, void>({
-      query: () => ({
-        url: "/auth/messenger/profile/",
-        method: "POST",
-        body: {},
-      }),
-      async onQueryStarted(_, { dispatch, queryFulfilled }) {
-        const { data } = await queryFulfilled;
-        dispatch(setUser(data));
-      },
+    getProfile: builder.query<IUser, void>({
+      query: () => "/user",
+      providesTags: ["User"],
     }),
-
     updateProfile: builder.mutation<IUser, Partial<IUser>>({
       query: body => ({
-        url: "/auth/messenger/profile/",
+        url: "/user",
         method: "POST",
         body,
       }),
@@ -27,4 +19,4 @@ export const userApi = apiSlice.injectEndpoints({
   }),
 });
 
-export const { useGetProfileMutation, useUpdateProfileMutation } = userApi;
+export const { useGetProfileQuery, useUpdateProfileMutation } = userApi;
