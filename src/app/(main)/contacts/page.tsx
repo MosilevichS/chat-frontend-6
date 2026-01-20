@@ -8,7 +8,8 @@ import { chatsList } from "@/src/data/chats";
 import ModalBase from "@/src/components/ui/modal/ModalBase";
 import ModalConfirm from "@/src/components/ui/modal/ModalConfirm";
 import { declension } from "@/src/utils/declension";
-import { useGetProfileQuery } from "@/src/services/userApi";
+// import { useGetProfileQuery } from "@/src/services/userApi";
+import { useAddContactByPhoneMutation, useGetContactsQuery } from "@/src/services/contactApi";
 
 const Contacts = () => {
   const [contacts, setContacts] = useState(chatsList);
@@ -18,9 +19,21 @@ const Contacts = () => {
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const { data, isLoading, isError, error } = useGetProfileQuery();
+  const { data, isLoading, isError, error } = useGetContactsQuery();
+  const [addContactByPhone] = useAddContactByPhoneMutation();
 
-  console.log(data);
+  const handleAddContact = async () => {
+    try {
+      const result = await addContactByPhone({
+        phone: "+72222222222",
+      }).unwrap();
+      console.log("Контакт добавлен:", result);
+    } catch (err) {
+      console.error("Ошибка:", err);
+    }
+  };
+
+  console.log(data, error);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -271,6 +284,7 @@ const Contacts = () => {
         <p className="text-(--color-gray) text-lg font-normal">
           Выберите контакт для начала общения
         </p>
+        <button onClick={handleAddContact}>Добавить</button>
       </div>
 
       {isModalOpen && (
