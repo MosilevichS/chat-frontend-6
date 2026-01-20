@@ -7,6 +7,8 @@ import { useEffect, useRef, useState } from "react";
 import { chatsList } from "@/src/data/chats";
 import ModalBase from "@/src/components/ui/modal/ModalBase";
 import ModalConfirm from "@/src/components/ui/modal/ModalConfirm";
+import { declension } from "@/src/utils/declension";
+import { useGetProfileQuery } from "@/src/services/userApi";
 
 const Contacts = () => {
   const [contacts, setContacts] = useState(chatsList);
@@ -16,6 +18,10 @@ const Contacts = () => {
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  const { data, isLoading, isError, error } = useGetProfileQuery();
+
+  console.log(data);
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -23,7 +29,7 @@ const Contacts = () => {
     // Функция: проверить, превышает ли высота контента 100vh − 165px
     const isContentTall = () => {
       const viewportHeight = window.innerHeight;
-      const threshold = viewportHeight - 165 - 36 - (selectedContactIds.length > 0 ? 76 : 0); 
+      const threshold = viewportHeight - 165 - 36 - (selectedContactIds.length > 0 ? 76 : 0);
       return container.scrollHeight > threshold;
     };
 
@@ -253,7 +259,7 @@ const Contacts = () => {
             className="flex items-start justify-center w-full h-[76px] font-normal text-(--color-error) bg-(--color-gray-1) md:rounded-b-lg pt-2"
             onClick={() => openModal()}
           >
-            Удалить {selectedContactIds.length} контакта
+            {`Удалить ${selectedContactIds.length} ${declension(selectedContactIds.length, ["контакт", "контакта", "контактов"])}`}
           </button>
         )}
       </div>
@@ -273,7 +279,11 @@ const Contacts = () => {
             onClose={handleCloseModal}
             onConfirm={handleConfirm}
             title="Удалить контакты"
-            message={`Вы уверены, что хотите удалить ${selectedContactIds.length} контакта?`}
+            message={
+              selectedContactIds.length === 1
+                ? "Вы уверены, что хотите удалить контакт?"
+                : `Вы уверены, что хотите удалить ${selectedContactIds.length} ${declension(selectedContactIds.length, ["контакт", "контакта", "контактов"])}?`
+            }
             confirmText="Удалить"
             cancelText="Отмена"
           />
