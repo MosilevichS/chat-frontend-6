@@ -5,7 +5,7 @@ import Image from "next/image";
 
 
 export const UseProfileInfo = () => {
-  // const {data} = useGetProfileQuery()
+  // const {data} = useGetProfileQuery({})
   // console.log("DATA:", data)
   return (
     <div className="flex flex-row items-center gap-x-2 p-3 w-full md:max-w-[360px]  bg-(--color-white) rounded-lg">

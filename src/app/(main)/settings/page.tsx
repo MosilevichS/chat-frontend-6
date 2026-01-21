@@ -6,7 +6,7 @@ const Settings = () => {
   return (
     <div className="flex gap-x-6 w-full  justify-center">
       <div className="w-full flex flex-col  md:max-w-[360px] min-h-[calc(100vh-84px)] mx-auto bg-(--color-gray-light) md:rounded-t-lg border border-(--color-gray-1) p-4">
-        <div className="relative w-full">
+        <div className="w-full">
           <p className="flex justify-center text-(--color-black)  font-medium text-[1.125rem] ">
             Настройки
           </p>
