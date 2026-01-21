@@ -2,7 +2,7 @@ import { UseProfileInfo, UserProfileActions } from "@/components/user-profile";
 import Image from "next/image";
 import delete_outline from "../../../assets/icons/delete_outline.svg";
 
-const Settings = () => {
+const Page = () => {
   return (
     <div className="flex gap-x-6 w-full  justify-center">
       <div className="w-full flex flex-col  md:max-w-[360px] min-h-[calc(100vh-84px)] mx-auto bg-(--color-gray-light) md:rounded-t-lg border border-(--color-gray-1) p-4">
@@ -27,4 +27,4 @@ const Settings = () => {
   );
 };
 
-export default Settings;
+export default Page;

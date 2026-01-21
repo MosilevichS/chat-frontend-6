@@ -4,7 +4,7 @@ import SettingsProfilePhoto from "@/components/user-profile/profile/SettingsProf
 import Link from "next/link";
 import backIcon from "@/assets/icons/back-icon.svg";
 
-const Profile = () => {
+const Page = () => {
   return (
     <div className="flex gap-x-6 w-full  justify-center">
       <div className="w-full flex flex-col  md:max-w-[360px] min-h-[calc(100vh-84px)] mx-auto bg-(--color-gray-light) md:rounded-t-lg border border-(--color-gray-1) p-0-4-4-4">
@@ -31,4 +31,4 @@ const Profile = () => {
     </div>
   );
 };
-export default Profile;
+export default Page;
