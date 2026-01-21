@@ -12,6 +12,7 @@ const NewChannelPage = () => {
       title="Создать канал"
       typeSelector={<ChannelTypeSelector value={channelType} onChange={setChannelType} />}
       placeholderText="Выберите контакт для начала общения"
+      nextPagePath="./add-subscribers"
     />
   );
 };
