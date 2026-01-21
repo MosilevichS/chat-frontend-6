@@ -12,7 +12,7 @@ const NewGroupPage = () => {
       title="Создать группу"
       typeSelector={<GroupTypeSelector value={groupType} onChange={setGroupType} />}
       placeholderText="Пригласить участников"
-      nextPagePath="./add-subscribers"
+      nextPagePath="/chats/add-subscribers?type=group"
     />
   );
 };
