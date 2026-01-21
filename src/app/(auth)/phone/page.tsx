@@ -59,6 +59,13 @@ export default function Page() {
     } catch (err) {
       const { fieldErrors, message } = parseApiError(err);
 
+      if (message?.includes("Аккаунт заблокирован")) {
+        localStorage.setItem("currentPhoneNumber", phone);
+        window.dispatchEvent(new Event("phoneChanged"));
+        router.push("/phone-code");
+        return;
+      }
+
       if (fieldErrors) {
         Object.entries(fieldErrors).forEach(([field, messages]) => {
           setError(field as keyof FormData, {

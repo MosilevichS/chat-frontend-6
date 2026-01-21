@@ -31,7 +31,7 @@ export async function loginAction(payload: { phone_number: string; code: string 
     secure: true,
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 15,
+    maxAge: 60 * 10,
   });
   cookieStore.set("refreshToken", refresh, {
     httpOnly: true,
@@ -46,5 +46,25 @@ export async function loginAction(payload: { phone_number: string; code: string 
     sameSite: "lax",
     path: "/",
   });
+
   return { success: true, is_filled };
+}
+
+export async function logoutAction() {
+  const cookieStore = await cookies();
+
+  cookieStore.delete({
+    name: "accessToken",
+    path: "/",
+  });
+  cookieStore.delete({
+    name: "refreshToken",
+    path: "/",
+  });
+  cookieStore.delete({
+    name: "isFilled",
+    path: "/",
+  });
+
+  return { success: true };
 }

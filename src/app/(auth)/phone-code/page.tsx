@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { useRouter } from "next/navigation";
 
@@ -22,7 +22,6 @@ import { parseApiError } from "@/src/services/apiError";
 export default function Page() {
   const router = useRouter();
   const [phone, setPhone] = useState("");
-  const [blockedPhone, setBlockedPhone] = useState("");
 
   const [resendLimitReached, setResendLimitReached] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
@@ -30,14 +29,26 @@ export default function Page() {
   const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
   const [isTimeOutModalOpen, setIsTimeOutModalOpen] = useState(false);
 
-  const [errorMessage, setErrorMessage] = useLocalStorageState<string>("inputError", "");
-  const [isInputDisabled, setIsInputDisabled] = useLocalStorageState<boolean>(
-    "inputDisabled",
+  const [blockedPhones, setBlockedPhones] = useLocalStorageState<string[]>("blockedPhones", []);
+  const [errorMessageBlocked, setErrorMessageBlocked] = useLocalStorageState<string>(
+    "inputErrorBlocked",
+    "",
+  );
+  const [errorMessageCurrent, setErrorMessageCurrent] = useLocalStorageState<string>(
+    "inputErrorCurrent",
+    "",
+  );
+  const [isInputDisabledBlocked, setIsInputDisabledBlocked] = useLocalStorageState<boolean>(
+    "inputDisabledBlocked",
     false,
   );
+  const [isInputDisabledCurrent] = useLocalStorageState<boolean>("inputDisabledCurrent", false);
 
-  const { isButtonDisabled, label, startShort, startBlock10, startBlock60, initialized, reset } =
-    useOtpTimer();
+  const isBlocked = blockedPhones.includes(phone);
+
+  const { isButtonDisabled, label, startShort, startBlock10, startBlock60, isActive } = useOtpTimer(
+    !isBlocked ? phone : blockedPhones[blockedPhones.indexOf(phone)],
+  );
 
   const [isClient, setIsClient] = useState(false);
 
@@ -50,7 +61,6 @@ export default function Page() {
   useEffect(() => {
     const updatePhone = () => {
       setPhone(localStorage.getItem("currentPhoneNumber") || "");
-      setBlockedPhone(localStorage.getItem("blockedPhoneNumber") || "");
     };
 
     window.addEventListener("phoneChanged", updatePhone);
@@ -63,29 +73,30 @@ export default function Page() {
     return () => window.removeEventListener("phoneChanged", updatePhone);
   }, [router]);
 
-  // Когда таймер закончился или был изменён номер телефона, очищаем ошибку и блок инпута
+  // Когда таймер закончился очищаем ошибку и блок инпута
+
+  const prevIsActiveRef = useRef<boolean | null>(null);
+
   useEffect(() => {
-    if (!initialized) return;
+    setErrorMessageCurrent("");
 
-    if (!isButtonDisabled) {
-      setErrorMessage("");
-      setIsInputDisabled(false);
+    if (prevIsActiveRef.current === null) {
+      prevIsActiveRef.current = isActive;
+      return;
     }
 
-    if (phone !== blockedPhone) {
-      setErrorMessage("");
-      setIsInputDisabled(false);
-      reset();
+    if (prevIsActiveRef.current && !isActive) {
+      console.log("OTP таймер закончился — выполняем очистку");
+
+      // твоя логика очистки
+      setErrorMessageCurrent("");
+      setErrorMessageBlocked("");
+      setIsInputDisabledBlocked(false);
+      setBlockedPhones(prev => prev.filter(p => p !== phone));
     }
-  }, [
-    initialized,
-    isButtonDisabled,
-    setErrorMessage,
-    setIsInputDisabled,
-    phone,
-    blockedPhone,
-    reset,
-  ]);
+
+    prevIsActiveRef.current = isActive;
+  }, [isActive, phone]);
 
   const { control, setValue } = useForm({
     defaultValues: { otp: "" },
@@ -111,21 +122,25 @@ export default function Page() {
 
       if (result.message.includes("10 минут")) {
         startBlock10();
-        setErrorMessage("Слишком много неверных попыток.");
-        setIsInputDisabled(true);
+        setErrorMessageBlocked("Слишком много неверных попыток.");
+        setIsInputDisabledBlocked(true);
         setIsLimitModalOpen(true);
-        localStorage.setItem("blockedPhoneNumber", phone);
-        setBlockedPhone(localStorage.getItem("blockedPhoneNumber") || "");
+        setBlockedPhones(prev => {
+          if (prev.includes(phone)) return prev;
+          return [...prev, phone];
+        });
         return;
       }
 
       if (result.message.includes("1 час") || result.message.includes("заблокирован")) {
         startBlock60();
-        setErrorMessage("Слишком много неверных попыток.");
-        setIsInputDisabled(true);
+        setErrorMessageBlocked("Слишком много неверных попыток.");
+        setIsInputDisabledBlocked(true);
         setIsLimitModalOpen(true);
-        localStorage.setItem("blockedPhoneNumber", phone);
-        setBlockedPhone(localStorage.getItem("blockedPhoneNumber") || "");
+        setBlockedPhones(prev => {
+          if (prev.includes(phone)) return prev;
+          return [...prev, phone];
+        });
         return;
       }
 
@@ -134,16 +149,18 @@ export default function Page() {
         return;
       }
 
-      setErrorMessage(result.message || "Ошибка авторизации");
+      setErrorMessageCurrent(result.message || "Ошибка авторизации");
       return;
     }
 
     // Чистим локальное хранилище
-    localStorage.removeItem("otp_timer");
+    localStorage.removeItem("otp_timers");
     localStorage.removeItem("inputError");
     localStorage.removeItem("inputDisabled");
     localStorage.removeItem("currentPhoneNumber");
-    localStorage.removeItem("blockedPhoneNumber");
+    localStorage.removeItem("blockedPhones");
+    localStorage.removeItem("inputErrorBlocked");
+    localStorage.removeItem("inputDisabledBlocked");
 
     if (result.is_filled) {
       router.push("/chats");
@@ -162,7 +179,8 @@ export default function Page() {
     try {
       await sendCode({ phone_number: phone.replace(/\s+/g, "") }).unwrap();
       showSnackbar();
-      setErrorMessage("");
+      setErrorMessageCurrent("");
+      setErrorMessageBlocked("");
       setValue("otp", "");
       startShort();
     } catch (err) {
@@ -203,8 +221,8 @@ export default function Page() {
             value={field.value}
             onChange={field.onChange}
             onComplete={handleComplete}
-            error={isClient ? errorMessage : null}
-            disabled={isClient ? isInputDisabled : false}
+            error={isClient && !isBlocked ? errorMessageCurrent : errorMessageBlocked}
+            disabled={isClient && !isBlocked ? isInputDisabledCurrent : isInputDisabledBlocked}
             onSupport={() => setIsSupportModalOpen(true)}
             onResend={handleResend}
             label={label}
