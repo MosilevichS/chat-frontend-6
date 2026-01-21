@@ -5,11 +5,15 @@ import Image from "next/image";
 import search from "../../../assets/icons/search.svg";
 import { useEffect, useRef, useState } from "react";
 import { chatsList } from "@/src/data/chats";
+import ModalBase from "@/src/components/ui/modal/ModalBase";
+import ModalConfirm from "@/src/components/ui/modal/ModalConfirm";
 
 const Contacts = () => {
-  const [chats, setChats] = useState(chatsList);
+  const [contacts, setContacts] = useState(chatsList);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -19,7 +23,7 @@ const Contacts = () => {
     // Функция: проверить, превышает ли высота контента 100vh − 165px
     const isContentTall = () => {
       const viewportHeight = window.innerHeight;
-      const threshold = viewportHeight - 165; // 100vh − 165px
+      const threshold = viewportHeight - 165 - 36 - (selectedContactIds.length > 0 ? 76 : 0); 
       return container.scrollHeight > threshold;
     };
 
@@ -43,14 +47,50 @@ const Contacts = () => {
       container.removeEventListener("mouseenter", onMouseEnter);
       container.removeEventListener("mouseleave", onMouseLeave);
     };
-  }, []);
+  }, [selectedContactIds.length]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   };
 
-  const filteredChats = chats.filter(chat =>
-    chat.name.toLowerCase().includes(searchQuery.trim().toLowerCase()),
+  const handleDeleteContacts = () => {
+    setEditing(true);
+  };
+
+  const cancelDeleteContacts = () => {
+    setEditing(false);
+    setSelectedContactIds([]);
+  };
+
+  const cancelDeletion = () => {
+    setSelectedContactIds([]);
+  };
+
+  const toggleContactSelection = (id: string) => {
+    setSelectedContactIds(prev =>
+      prev.includes(id) ? prev.filter(itemId => itemId !== id) : [...prev, id],
+    );
+  };
+
+  const openModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleConfirm = () => {
+    const updatedContacts = contacts.filter(contact => !selectedContactIds.includes(contact.id));
+
+    setContacts(updatedContacts);
+    setSelectedContactIds([]);
+    setEditing(false);
+    setIsModalOpen(false);
+  };
+
+  const filteredChats = contacts.filter(contact =>
+    contact.name.toLowerCase().includes(searchQuery.trim().toLowerCase()),
   );
 
   return (
@@ -66,35 +106,73 @@ const Contacts = () => {
           />
           <Image src={search} alt="Поиск" className="absolute left-7 top-8 w-[16px] md:w-[24px]" />
         </div>
-        <div className="flex justify-between items-center h-[36px] bg-(--color-gray-2) px-4">
-          <p className="text-sm font-normal leading-[1.2]">Контакты пользователей А-чата</p>
-          <button className="cursor-pointer">
-            <Image
-              src="/assets/icons/contacts/delete-gray.svg"
-              alt="Удалить"
-              width={24}
-              height={24}
-              className="w-[24px] h-[24px]"
-            />
-          </button>
-        </div>
+        {!editing ? (
+          <div className="flex justify-between items-center h-[36px] bg-(--color-gray-2) px-4">
+            <p className="text-sm font-normal leading-[1.2]">Контакты пользователей А-чата</p>
+            <button className="cursor-pointer" onClick={handleDeleteContacts}>
+              <Image
+                src="/assets/icons/contacts/delete-gray.svg"
+                alt="Удалить"
+                width={24}
+                height={24}
+                className="w-[24px] h-[24px]"
+              />
+            </button>
+          </div>
+        ) : (
+          <div className="flex justify-between items-center h-[36px] bg-(--color-gray-2) px-4">
+            <div className="flex gap-x-2">
+              <button className="cursor-pointer" onClick={cancelDeleteContacts}>
+                <Image
+                  src="/assets/icons/contacts/arrow-left.svg"
+                  alt="Отменить"
+                  width={24}
+                  height={24}
+                  className="w-[24px] h-[24px]"
+                />
+              </button>
+              <p className="font-medium">Удалить контакты</p>
+            </div>
+            {selectedContactIds.length > 0 ? (
+              <button className="cursor-pointer" onClick={cancelDeletion}>
+                <Image
+                  src="/assets/icons/contacts/cancel.svg"
+                  alt="Отменить"
+                  width={24}
+                  height={24}
+                  className="w-[24px] h-[24px]"
+                />
+              </button>
+            ) : (
+              <button className="cursor-default!">
+                <Image
+                  src="/assets/icons/contacts/delete-violet.svg"
+                  alt="Удалить"
+                  width={24}
+                  height={24}
+                  className="w-[24px] h-[24px]"
+                />
+              </button>
+            )}
+          </div>
+        )}
 
         <div
           ref={containerRef}
-          className="w-full overflow-y-auto h-[calc(100vh-165px)] md:h-[calc(100vh-206px)] scroll-custom px-2"
+          className={`w-full overflow-y-auto ${selectedContactIds.length > 0 ? "h-[calc(100vh-201px-76px)]" : "h-[calc(100vh-201px)]"}  ${selectedContactIds.length > 0 ? "md:h-[calc(100vh-206px-76px)]" : "md:h-[calc(100vh-206px)]"} scroll-custom px-2`}
         >
           {filteredChats.length > 0 ? (
-            filteredChats.map((chat, index) => (
+            filteredChats.map(contact => (
               <div
-                key={index}
-                className={`flex py-1.5 gap-x-2.5 min-w-[344px] h-[72px] cursor-pointer hover:bg-(--color-gray-2)
+                key={contact.id}
+                className={`flex items-center py-1.5 gap-x-2.5 min-w-[344px] h-[72px] cursor-pointer hover:bg-(--color-gray-2)
                    rounded-lg px-2 mt-2 mb-1
-               ${selectedChatId === `${chat.name}` ? "bg-(--color-gray-2)" : ""}`}
+               ${selectedContactIds.includes(contact.id) ? "bg-(--color-violet-1) hover:bg-(--color-violet-2)" : ""}`}
               >
-                {chat.avatar ? (
+                {contact.avatar ? (
                   <Image
                     className="h-10 w-10"
-                    src={chat.avatar}
+                    src={contact.avatar}
                     width={40}
                     height={40}
                     alt="Аватар"
@@ -108,20 +186,50 @@ const Contacts = () => {
                     alt="Аватар"
                   />
                 )}
-                <div className="relative after:absolute after:left-0 after:right-0 after:bottom-[-10px] after:border-b after:border-1 after:border-(--color-button-disabled) after:z--1 w-full">
-                  <p className="font-medium text‑lg leading-[1.2] truncate max-w-[165px] mb-0.5">
-                    {chat.name}
-                  </p>
-                  {chat.is_online && (
-                    <p className="text-sm font-normal text-(--color-violet) leading-[1.2] tracking-[1%] line-clamp-2">
-                      в сети
+                <div className="flex justify-between relative after:absolute after:left-0 after:right-0 after:bottom-[-22px] after:border-b after:border-1 after:border-(--color-button-disabled) after:z--1 w-full">
+                  <div>
+                    <p className="font-medium text‑lg leading-[1.2] truncate max-w-[165px] mb-0.5">
+                      {contact.name}
                     </p>
-                  )}
-                  {chat.was_online_at && (
-                    <p className="text-sm font-normal text-(--color-gray) leading-[1.2] tracking-[1%] line-clamp-2">
-                      {chat.was_online_at}
-                    </p>
-                  )}
+                    {contact.is_online && (
+                      <p className="text-sm font-normal text-(--color-violet) leading-[1.2] tracking-[1%] line-clamp-2">
+                        в сети
+                      </p>
+                    )}
+                    {contact.was_online_at && (
+                      <p className="text-sm font-normal text-(--color-gray) leading-[1.2] tracking-[1%] line-clamp-2">
+                        {contact.was_online_at}
+                      </p>
+                    )}
+                  </div>
+                  {editing &&
+                    (selectedContactIds.includes(contact.id) ? (
+                      <button
+                        className="cursor-pointer"
+                        onClick={() => toggleContactSelection(contact.id)}
+                      >
+                        <Image
+                          src="/assets/icons/contacts/checkbox-true.svg"
+                          alt="Выбрано"
+                          width={24}
+                          height={24}
+                          className="w-[24px] h-[24px]"
+                        />
+                      </button>
+                    ) : (
+                      <button
+                        className="cursor-pointer"
+                        onClick={() => toggleContactSelection(contact.id)}
+                      >
+                        <Image
+                          src="/assets/icons/contacts/checkbox.svg"
+                          alt="Выбрать"
+                          width={20}
+                          height={20}
+                          className="w-[20px] h-[20px]"
+                        />
+                      </button>
+                    ))}
                 </div>
               </div>
             ))
@@ -140,6 +248,14 @@ const Contacts = () => {
             </div>
           )}
         </div>
+        {selectedContactIds.length > 0 && (
+          <button
+            className="flex items-start justify-center w-full h-[76px] font-normal text-(--color-error) bg-(--color-gray-1) md:rounded-b-lg pt-2"
+            onClick={() => openModal()}
+          >
+            Удалить {selectedContactIds.length} контакта
+          </button>
+        )}
       </div>
 
       <div
@@ -150,6 +266,19 @@ const Contacts = () => {
           Выберите контакт для начала общения
         </p>
       </div>
+
+      {isModalOpen && (
+        <ModalBase onClose={handleCloseModal}>
+          <ModalConfirm
+            onClose={handleCloseModal}
+            onConfirm={handleConfirm}
+            title="Удалить контакты"
+            message={`Вы уверены, что хотите удалить ${selectedContactIds.length} контакта?`}
+            confirmText="Удалить"
+            cancelText="Отмена"
+          />
+        </ModalBase>
+      )}
     </div>
   );
 };

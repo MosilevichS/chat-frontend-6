@@ -52,10 +52,10 @@ export default function Page() {
 
   const handleConfirm = async () => {
     try {
-      router.push("/phone-code");
       await sendCode({ phone_number: phone.replace(/\s+/g, "") }).unwrap();
       localStorage.setItem("currentPhoneNumber", phone);
       window.dispatchEvent(new Event("phoneChanged"));
+      router.push("/phone-code");
     } catch (err) {
       const { fieldErrors, message } = parseApiError(err);
 

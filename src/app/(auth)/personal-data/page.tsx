@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
+
 import AuthHeader from "@/src/components/ui/auth/AuthHeader";
 import Input from "@/src/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -36,6 +37,7 @@ type FormData = z.infer<typeof formSchema>;
 
 export default function Page() {
   const router = useRouter();
+
   const [updateProfile] = useUpdateProfileMutation();
 
   const {

@@ -38,13 +38,18 @@ export async function loginAction(payload: { phone_number: string; code: string 
     sameSite: "lax",
     path: "/",
   });
-
+  cookieStore.set("isFilled", String(is_filled), {
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    path: "/",
+  });
   return { success: true, is_filled };
 }
 
 export async function refreshAction() {
   const cookieStore = await cookies();
-  const refreshToken = cookieStore.get("refresh_token")?.value;
+  const refreshToken = cookieStore.get("refreshToken")?.value;
 
   if (!refreshToken) throw new Error("Unauthorized");
 
@@ -56,9 +61,11 @@ export async function refreshAction() {
     body: JSON.stringify({ refresh: refreshToken }),
   });
 
+  if (!res.ok) throw new Error(`Refresh failed: ${res.status}`);
+
   const data = await res.json();
 
-  cookieStore.set("access_token", data.accessToken, {
+  cookieStore.set("accessToken", data.accessToken, {
     httpOnly: true,
     secure: true,
     sameSite: "lax",

@@ -13,25 +13,14 @@ interface IGroupTypeSelector {
 const GroupTypeSelector = ({ value, onChange }: IGroupTypeSelector) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const toggleExpanded = () => {
-    setIsExpanded(!isExpanded);
-  };
-
-  const handleRadioChange = (type: "closed" | "open") => {
-    onChange(type);
-    setIsExpanded(false);
-  };
-
   const getTypeLabel = () => {
     return value === "closed" ? "Закрытая" : "Открытая";
   };
 
   return (
     <>
-      {/* Мобильная версия - всегда видимый блок с радиокнопками */}
       <div className="md:hidden w-full">
         <div className="text-base font-normal text-gray-900 mb-4">Тип группы</div>
-
         <div className="border border-(--color-gray-1) rounded-lg overflow-hidden bg-white">
           <Radio
             label="Закрытая"
@@ -42,7 +31,6 @@ const GroupTypeSelector = ({ value, onChange }: IGroupTypeSelector) => {
             value="closed"
             className="border-b border-(--color-gray-1)"
           />
-
           <Radio
             label="Открытая"
             description="Открытую группу можно найти через поиск. Присоединиться к ней может любой пользователь."
@@ -54,14 +42,11 @@ const GroupTypeSelector = ({ value, onChange }: IGroupTypeSelector) => {
         </div>
       </div>
 
-      {/* Десктоп версия - раскрывающийся блок */}
       <div className="hidden md:block w-full">
         <div className="text-base font-normal text-gray-900 mb-4">Тип группы</div>
-
-        {/* Поле с текущим типом и кнопкой */}
         <div
           className="w-full border border-(--color-gray-1) rounded-lg overflow-hidden bg-white cursor-pointer hover:bg-gray-50"
-          onClick={toggleExpanded}
+          onClick={() => setIsExpanded(!isExpanded)}
         >
           <div className="flex items-center justify-between h-[44px] px-4">
             <span className="text-base font-normal text-gray-900">{getTypeLabel()}</span>
@@ -75,24 +60,22 @@ const GroupTypeSelector = ({ value, onChange }: IGroupTypeSelector) => {
           </div>
         </div>
 
-        {/* Раскрывающийся блок с радиокнопками */}
         {isExpanded && (
           <div className="mt-2 border border-(--color-gray-1) rounded-lg overflow-hidden bg-white">
             <Radio
               label="Закрытая"
               description="В закрытую группу можно попасть только по приглашению или пригласительной ссылке."
               checked={value === "closed"}
-              onChange={() => handleRadioChange("closed")}
+              onChange={() => { onChange("closed"); setIsExpanded(false); }}
               name="groupTypeDesktop"
               value="closed"
               className="border-b border-(--color-gray-1)"
             />
-
             <Radio
               label="Открытая"
               description="Открытую группу можно найти через поиск. Присоединиться к ней может любой пользователь."
               checked={value === "open"}
-              onChange={() => handleRadioChange("open")}
+              onChange={() => { onChange("open"); setIsExpanded(false); }}
               name="groupTypeDesktop"
               value="open"
             />

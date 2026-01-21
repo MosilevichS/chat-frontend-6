@@ -105,10 +105,12 @@ export function useOtpTimer() {
   }, [start]);
 
   const reset = useCallback(() => {
-    setUntil(null);
-    setType(null);
-    localStorage.removeItem(STORAGE_KEY);
-  }, []);
+    if (type === "block10" || type === "block60") {
+      setUntil(null);
+      setType(null);
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, [type]);
 
   const label = useMemo(() => {
     if (!isActive) return "Отправить новый код";
