@@ -1,19 +1,16 @@
 "use client"
-import Image from "next/image";
-// import { useGetProfileQuery } from "@/src/services/userApi";
-
-
+import { useGetProfileQuery } from "@/src/services/userApi";
+import Avatar from "@/components/ui/Avatar";
 
 export const UseProfileInfo = () => {
-  // const {data} = useGetProfileQuery({})
-  // console.log("DATA:", data)
+  const { data } = useGetProfileQuery();
   return (
     <div className="flex flex-row items-center gap-x-2 p-3 w-full md:max-w-[360px]  bg-(--color-white) rounded-lg">
-      <Image src="/avatar/avatar.png" width={82} height={82} alt="Фото" />
+      <Avatar picUrl="/avatar/avatar.png"/>
       <div className="h-full">
-        <p>Name</p>
-        <p>Username</p>
-        <p>Phone</p>
+        <p>{data?.first_name}</p>
+        <p>{data?.username}</p>
+        <p>{data?.phone}</p>
       </div>
     </div>
   );
