@@ -11,7 +11,7 @@ const NewChannelPage = () => {
     <BaseCreationPage
       title="Создать канал"
       typeSelector={<ChannelTypeSelector value={channelType} onChange={setChannelType} />}
-      placeholderText="Выберите контакт для начала общения"
+      placeholderText="Пригласить участников"
       nextPagePath="./add-subscribers"
     />
   );

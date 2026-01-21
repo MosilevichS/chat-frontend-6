@@ -4,11 +4,8 @@ import { twMerge } from "tailwind-merge";
 import type { InputHTMLAttributes } from "react";
 
 interface IInput {
-  id?: string;
   onClick?: InputHTMLAttributes<HTMLInputElement>["onClick"];
   onChange?: InputHTMLAttributes<HTMLInputElement>["onChange"];
-  onFocus?: InputHTMLAttributes<HTMLInputElement>["onFocus"];
-  onBlur?: InputHTMLAttributes<HTMLInputElement>["onBlur"];
   name?: string;
   label?: string;
   type?: "text" | "email" | "password" | "tel" | "number" | "search";
@@ -17,16 +14,12 @@ interface IInput {
   error?: string;
   disabled?: boolean;
   defaultValue?: string;
-  value?: string;
   className?: string;
 }
 
 const Input = ({
-  id,
   onClick,
   onChange,
-  onFocus,
-  onBlur,
   name,
   label,
   type = "text",
@@ -35,7 +28,6 @@ const Input = ({
   error,
   disabled = false,
   defaultValue,
-  value,
   className,
 }: IInput) => {
   return (
@@ -43,27 +35,22 @@ const Input = ({
       {error ? (
         <ErrorMessage error={error} />
       ) : (
-        label && (
-          <label
-            htmlFor={name}
-            className="text-(--color-gray) text-[0.875rem] leading-[120%] tracking-[0.01em] mb-1 block"
-          >
-            {label}
-          </label>
-        )
+        <label
+          htmlFor={name}
+          className="text-(--color-gray) text-[0.875rem] leading-[120%] tracking-[0.01em] mb-1 block"
+        >
+          {label}
+        </label>
       )}
 
       <input
-        id={id || name}
         onClick={onClick}
         onChange={onChange}
-        onFocus={onFocus}
-        onBlur={onBlur}
+        id={name}
         type={type}
         placeholder={placeholder}
         disabled={disabled}
         defaultValue={defaultValue}
-        value={value}
         className={twMerge(
           "w-full h-14",
           "text-lg tracking-[0.01em]",
