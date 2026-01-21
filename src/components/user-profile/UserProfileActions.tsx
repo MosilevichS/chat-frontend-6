@@ -11,13 +11,12 @@ export const UserProfileActions = () => {
         <Link
           key={name}
           href={href}
-          className="w-full p-3 flex items-center justify-between border-b border-(--color-gray-200)"
+          className="w-full p-3 flex items-center justify-between border-b border-[color:var(--color-gray-light)]
+          hover:bg-[color:var(--color-violet-ultra-light)] transition-colors hover:border-[color:var(--color-gray-300)]"
         >
           <div className="flex items-center gap-2">
             <Image src={picture} width={28} height={28} alt="" />
-            <span className="text-base font-normal text-1xl text-(--color-black)">
-              {name}
-            </span>
+            <span className="text-base font-normal text-1xl text-(--color-black)">{name}</span>
           </div>
           <Image
             src={vector}
@@ -31,7 +30,8 @@ export const UserProfileActions = () => {
       ))}
       <Link
         href="/"
-        className="w-full p-3 flex items-center justify-between border-b border-(--color-gray-200)"
+        className="w-full p-3 flex items-center justify-between border-b border-(--color-gray-light)
+        hover:bg-[color:var(--color-violet-ultra-light)] transition-colors hover:border-[color:var(--color-gray-300)]"
       >
         <div className="flex items-center gap-2">
           <Image src={leave} width={28} height={28} alt="" />
