@@ -10,7 +10,7 @@ import backDesktop from "../../../../assets/icons/back-desktop.svg";
 import backMobile from "../../../../assets/icons/back-icon.svg";
 import fotoNewGroup from "../../../../assets/icons/foto-new-group.svg";
 
-interface BaseCreationPageProps {
+interface IBaseCreationPage {
   title: string;
   typeSelector: ReactNode;
   placeholderText: string;
@@ -22,7 +22,7 @@ const BaseCreationPage = ({
   typeSelector,
   placeholderText,
   nextPagePath,
-}: BaseCreationPageProps) => {
+}: IBaseCreationPage) => {
   const router = useRouter();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");

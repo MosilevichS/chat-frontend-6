@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import Image from "next/image";
 
-interface InputWithCounterProps {
+interface IInputWithCounter {
   id: string;
   label: string;
   value: string;
@@ -27,7 +27,7 @@ const InputWithCounter = ({
   placeholder = "",
   className = "",
   showClearButton = true,
-}: InputWithCounterProps) => {
+}: IInputWithCounter) => {
   const [isFocused, setIsFocused] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
