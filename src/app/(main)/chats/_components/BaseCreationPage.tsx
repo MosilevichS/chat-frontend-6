@@ -15,6 +15,8 @@ interface IBaseCreationPage {
   typeSelector: ReactNode;
   placeholderText: string;
   nextPagePath: string;
+  groupType?: "closed" | "open";
+  channelType?: "public" | "private";
 }
 
 const BaseCreationPage = ({
@@ -22,6 +24,8 @@ const BaseCreationPage = ({
   typeSelector,
   placeholderText,
   nextPagePath,
+  groupType = "closed",
+  channelType = "public",
 }: IBaseCreationPage) => {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -40,7 +44,38 @@ const BaseCreationPage = ({
   }, []);
 
   const handleBack = () => router.back();
-  const handleNext = () => router.push(nextPagePath);
+
+  const handleNext = () => {
+    const type = title.includes("канал") ? "channel" : "group";
+
+    let chatType: string;
+    if (type === "channel") {
+      chatType = channelType === "public" ? "public-channel" : "private-channel";
+    } else {
+      chatType = groupType === "open" ? "public-group" : "private-group";
+    }
+
+    let photoBase64 = "";
+    if (selectedPhoto) {
+      const base64Match = selectedPhoto.match(/^data:image\/\w+;base64,(.+)$/);
+      if (base64Match && base64Match[1]) {
+        photoBase64 = base64Match[1];
+      }
+    }
+
+    const params = new URLSearchParams({
+      type,
+      name: encodeURIComponent(name),
+      description: encodeURIComponent(description),
+      chatType,
+    });
+
+    if (photoBase64) {
+      params.append("photo", photoBase64);
+    }
+
+    router.push(`/chats/add-subscribers?${params.toString()}`);
+  };
 
   const handlePhotoSelected = (
     file: File | null,

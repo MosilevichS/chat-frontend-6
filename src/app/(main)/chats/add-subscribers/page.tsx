@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Input from "@/src/components/ui/Input";
 import Button from "@/src/components/ui/Button";
@@ -10,6 +10,11 @@ import backMobile from "../../../../assets/icons/back-icon.svg";
 import search from "../../../../assets/icons/search.svg";
 import { chatsList } from "@/src/data/chats";
 import Checkbox from "@/src/components/ui/Checkbox";
+import {
+  useCreateGroupMutation,
+  useCreateChannelMutation,
+  chatCreationUtils,
+} from "@/src/services/groupOrChannelCreationApi";
 
 const AddSubscribersPage = () => {
   const router = useRouter();
@@ -18,26 +23,78 @@ const AddSubscribersPage = () => {
   const type = searchParams.get("type") || "group";
   const name = searchParams.get("name") || "";
   const description = searchParams.get("description") || "";
+  const photo = searchParams.get("photo") || "";
+  const chatType = searchParams.get("chatType") || "private-group";
+
+  const [createGroup, { isLoading: isCreatingGroup }] = useCreateGroupMutation();
+  const [createChannel, { isLoading: isCreatingChannel }] = useCreateChannelMutation();
 
   const [contacts] = useState(chatsList);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
-  const [isMobile, setIsMobile] = useState(false);
+  const [creationError, setCreationError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
+  const handleCreate = async () => {
+    setCreationError(null);
 
-  const handleBack = () => router.back();
+    try {
+      const avatarBase64 = photo ? chatCreationUtils.extractBase64FromDataUrl(photo) : "";
+      const avatar = chatCreationUtils.createAvatarObject(avatarBase64);
 
-  const handleCreate = () => {
-    if (type === "channel") {
-      router.push("/chats/channel-123");
-    } else {
-      router.push("/chats/group-123");
+      const decodedName = decodeURIComponent(name);
+      const decodedDescription = decodeURIComponent(description);
+
+      if (type === "group") {
+        const groupData = {
+          name: decodedName,
+          description: decodedDescription,
+          avatar,
+          chat_type: chatType as "public-group" | "private-group",
+          uid_users_list: selectedContactIds,
+        };
+
+        console.log("Создание группы с данными:", groupData);
+
+        const result = await createGroup(groupData).unwrap();
+
+        if (result.status === "OK" && result.object) {
+          console.log("Группа успешно создана:", result.object);
+          router.push("/chats");
+        } else {
+          setCreationError(result.error || "Неизвестная ошибка при создании группы");
+        }
+      } else if (type === "channel") {
+        const channelData = {
+          name: decodedName,
+          description: decodedDescription,
+          avatar,
+          chat_type: chatType as "public-channel" | "private-channel",
+          uid_users_list: selectedContactIds,
+        };
+
+        console.log("Создание канала с данными:", channelData);
+
+        const result = await createChannel(channelData).unwrap();
+
+        if (result.status === "OK" && result.object) {
+          console.log("Канал успешно создан:", result.object);
+          router.push("/chats");
+        } else {
+          setCreationError(result.error || "Неизвестная ошибка при создании канала");
+        }
+      }
+    } catch (err: any) {
+      console.error("Ошибка при создании чата:", err);
+
+      if (err?.data?.error) {
+        setCreationError(err.data.error);
+      } else if (err?.error) {
+        setCreationError(err.error);
+      } else if (err?.message) {
+        setCreationError(err.message);
+      } else {
+        setCreationError("Произошла ошибка при создании. Попробуйте еще раз.");
+      }
     }
   };
 
@@ -55,15 +112,22 @@ const AddSubscribersPage = () => {
     contact.name.toLowerCase().includes(searchQuery.trim().toLowerCase()),
   );
 
+  const isCreating = isCreatingGroup || isCreatingChannel;
   const title = type === "channel" ? "Добавить подписчиков" : "Пригласить участников";
-  const buttonText = type === "channel" ? "Создать канал" : "Создать группу";
+  const buttonText = isCreating
+    ? "Создание..."
+    : type === "channel"
+      ? "Создать канал"
+      : "Создать группу";
+
+  const errorMessage = creationError;
 
   return (
     <div className="flex flex-row gap-x-6 w-full justify-center md:mb-1">
       <div className="w-full md:max-w-[360px] md:min-w-[360px] min-h-[calc(100vh-88px)] bg-(--color-gray-light) md:rounded-lg border border-(--color-gray-1)">
         <div className="flex items-center w-full p-4 relative">
           <button
-            onClick={handleBack}
+            onClick={() => router.back()}
             className="flex-shrink-0 w-10 h-10 bg-transparent rounded-lg flex items-center justify-center transition-colors duration-200 hover:bg-gray-100 active:bg-gray-200"
             aria-label="Назад"
           >
@@ -80,6 +144,12 @@ const AddSubscribersPage = () => {
           </h1>
         </div>
 
+        {errorMessage && (
+          <div className="mx-4 mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-600 text-sm font-medium">{errorMessage}</p>
+          </div>
+        )}
+
         <div className="relative w-full px-4 pb-3">
           <Input
             onChange={handleSearchChange}
@@ -91,7 +161,7 @@ const AddSubscribersPage = () => {
           <Image
             src={search}
             alt="Поиск"
-            className="absolute left-7 top-[calc(50%-18px)] w-[16px] md:w-[24px]"
+            className="absolute left-7 top-1/2 -translate-y-1/2 w-[16px] md:w-[24px]"
           />
         </div>
 
@@ -168,7 +238,13 @@ const AddSubscribersPage = () => {
         </div>
 
         <div className="mt-auto pt-4 pb-4 px-4 border-t border-(--color-gray-1)">
-          <Button variant="primary" size="medium" onClick={handleCreate} className="w-full">
+          <Button
+            variant="primary"
+            size="medium"
+            onClick={handleCreate}
+            disabled={isCreating}
+            className="w-full"
+          >
             {buttonText}
           </Button>
         </div>
