@@ -31,7 +31,7 @@ export async function loginAction(payload: { phone_number: string; code: string 
     secure: true,
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 15,
+    maxAge: 60 * 10,
   });
   cookieStore.set("refreshToken", refresh, {
     httpOnly: true,

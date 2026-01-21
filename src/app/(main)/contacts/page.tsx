@@ -8,8 +8,8 @@ import { chatsList } from "@/src/data/chats";
 import ModalBase from "@/src/components/ui/modal/ModalBase";
 import ModalConfirm from "@/src/components/ui/modal/ModalConfirm";
 import { declension } from "@/src/utils/declension";
-// import { useGetProfileQuery } from "@/src/services/userApi";
 import { useAddContactByPhoneMutation, useGetContactsQuery } from "@/src/services/contactApi";
+import { Loader } from "@/src/components/ui/Loader";
 
 const Contacts = () => {
   const [contacts, setContacts] = useState(chatsList);
@@ -25,7 +25,7 @@ const Contacts = () => {
   const handleAddContact = async () => {
     try {
       const result = await addContactByPhone({
-        phone: "+72222222222",
+        phone: "+79057634678",
       }).unwrap();
       console.log("Контакт добавлен:", result);
     } catch (err) {
@@ -33,7 +33,9 @@ const Contacts = () => {
     }
   };
 
-  console.log(data, error);
+  console.log(isLoading);
+
+  console.log(data?.results || "Данные не загружены", error || "Нет ошибок");
 
   useEffect(() => {
     const container = containerRef.current;
@@ -285,6 +287,8 @@ const Contacts = () => {
           Выберите контакт для начала общения
         </p>
         <button onClick={handleAddContact}>Добавить</button>
+
+        <Loader text="контактов" />
       </div>
 
       {isModalOpen && (

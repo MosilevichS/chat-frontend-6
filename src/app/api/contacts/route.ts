@@ -8,7 +8,7 @@ export async function GET() {
   }
 
   try {
-    const res = await fetch(`${process.env.API_URL}/api/v1/contact/messenger-list/`, {
+    const res = await fetch(`${process.env.API_URL}/api/v1/contact/messenger-list/?page_size=10`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
