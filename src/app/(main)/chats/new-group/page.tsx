@@ -10,12 +10,7 @@ const NewGroupPage = () => {
   return (
     <BaseCreationPage
       title="Создать группу"
-      typeSelector={
-        <GroupTypeSelector 
-          value={groupType} 
-          onChange={setGroupType} 
-        />
-      }
+      typeSelector={<GroupTypeSelector value={groupType} onChange={setGroupType} />}
       placeholderText="Выберите контакт для начала общения"
     />
   );

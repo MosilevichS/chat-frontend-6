@@ -66,7 +66,10 @@ const GroupTypeSelector = ({ value, onChange }: IGroupTypeSelector) => {
               label="Закрытая"
               description="В закрытую группу можно попасть только по приглашению или пригласительной ссылке."
               checked={value === "closed"}
-              onChange={() => { onChange("closed"); setIsExpanded(false); }}
+              onChange={() => {
+                onChange("closed");
+                setIsExpanded(false);
+              }}
               name="groupTypeDesktop"
               value="closed"
               className="border-b border-(--color-gray-1)"
@@ -75,7 +78,10 @@ const GroupTypeSelector = ({ value, onChange }: IGroupTypeSelector) => {
               label="Открытая"
               description="Открытую группу можно найти через поиск. Присоединиться к ней может любой пользователь."
               checked={value === "open"}
-              onChange={() => { onChange("open"); setIsExpanded(false); }}
+              onChange={() => {
+                onChange("open");
+                setIsExpanded(false);
+              }}
               name="groupTypeDesktop"
               value="open"
             />

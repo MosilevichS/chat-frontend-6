@@ -1,4 +1,4 @@
-/*import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function proxy(req: NextRequest) {
@@ -40,42 +40,6 @@ export function proxy(req: NextRequest) {
   }
 
   return NextResponse.next();
-}
-
-export const config = {
-  matcher: [
-    "/",
-    "/phone/:path*",
-    "/phone-code/:path*",
-    "/personal-data/:path*",
-    "/done/:path*",
-    "/support/:path*",
-    "/chats/:path*",
-  ],
-};*/
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-
-export function proxy(req: NextRequest) {
-  const { pathname } = req.nextUrl;
-  
-  // Редирект с корня сразу в чаты
-  if (pathname === '/') {
-    return NextResponse.redirect(new URL("/chats", req.url));
-  }
-  
-  // Для разработки всегда разрешаем доступ
-  const response = NextResponse.next();
-  
-  // Устанавливаем тестовый токен
-  response.cookies.set({
-    name: 'accessToken',
-    value: 'dev_test_token',
-    path: '/',
-    maxAge: 86400,
-  });
-  
-  return response;
 }
 
 export const config = {

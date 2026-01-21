@@ -10,12 +10,7 @@ const NewChannelPage = () => {
   return (
     <BaseCreationPage
       title="Создать канал"
-      typeSelector={
-        <ChannelTypeSelector 
-          value={channelType} 
-          onChange={setChannelType} 
-        />
-      }
+      typeSelector={<ChannelTypeSelector value={channelType} onChange={setChannelType} />}
       placeholderText="Выберите контакт для начала общения"
     />
   );

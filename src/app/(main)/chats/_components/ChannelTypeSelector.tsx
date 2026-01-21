@@ -66,7 +66,10 @@ const ChannelTypeSelector = ({ value, onChange }: IChannelTypeSelector) => {
               label="Публичный"
               description="Публичный канал можно найти через поиск. Подписаться на него может любой пользователь."
               checked={value === "public"}
-              onChange={() => { onChange("public"); setIsExpanded(false); }}
+              onChange={() => {
+                onChange("public");
+                setIsExpanded(false);
+              }}
               name="channelTypeDesktop"
               value="public"
               className="border-b border-(--color-gray-1)"
@@ -75,7 +78,10 @@ const ChannelTypeSelector = ({ value, onChange }: IChannelTypeSelector) => {
               label="Частный"
               description="В частный канал можно попасть только по приглашению или пригласительной ссылке."
               checked={value === "private"}
-              onChange={() => { onChange("private"); setIsExpanded(false); }}
+              onChange={() => {
+                onChange("private");
+                setIsExpanded(false);
+              }}
               name="channelTypeDesktop"
               value="private"
             />

@@ -29,29 +29,32 @@ const BaseCreationPage = ({ title, typeSelector, placeholderText }: BaseCreation
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   const handleBack = () => router.back();
 
   const handleNext = () => {
-    console.log("Переход к следующему шагу", { 
-      name, 
-      description, 
+    console.log("Переход к следующему шагу", {
+      name,
+      description,
       hasPhoto: !!selectedPhoto,
       photoZoom,
-      photoPosition 
+      photoPosition,
     });
   };
 
-  const handlePhotoSelected = (file: File | null, cropData?: { zoom: number; position: { x: number; y: number } }) => {
+  const handlePhotoSelected = (
+    file: File | null,
+    cropData?: { zoom: number; position: { x: number; y: number } },
+  ) => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
         const imageUrl = reader.result as string;
         setSelectedPhoto(imageUrl);
-        
+
         if (cropData) {
           setPhotoZoom(cropData.zoom);
           setPhotoPosition(cropData.position);
@@ -83,7 +86,7 @@ const BaseCreationPage = ({ title, typeSelector, placeholderText }: BaseCreation
                 <Image src={backDesktop} alt="Назад" width={24} height={24} />
               </div>
             </button>
-            
+
             <h1 className="text-lg font-semibold text-gray-900 md:ml-3 ml-auto mr-auto md:mr-0">
               {title}
             </h1>
@@ -92,18 +95,18 @@ const BaseCreationPage = ({ title, typeSelector, placeholderText }: BaseCreation
           <div className="w-full px-4 flex flex-col">
             <div className="flex flex-col items-center w-full">
               <div className="relative mb-2 md:mb-4">
-                <div 
+                <div
                   className="relative w-[88px] h-[88px] md:w-[200px] md:h-[200px] cursor-pointer rounded-full overflow-hidden border border-(--color-gray-1)"
                   onClick={() => setIsPhotoModalOpen(true)}
                 >
                   {selectedPhoto ? (
                     <div className="w-full h-full relative overflow-hidden">
                       <div className="absolute inset-0 rounded-full overflow-hidden">
-                        <div 
+                        <div
                           className="absolute w-full h-full"
                           style={{
                             transform: `translate(${photoPosition.x * (isMobile ? 0.44 : 1)}px, ${photoPosition.y * (isMobile ? 0.44 : 1)}px) scale(${photoZoom})`,
-                            transformOrigin: 'center center'
+                            transformOrigin: "center center",
                           }}
                         >
                           <img
@@ -116,38 +119,38 @@ const BaseCreationPage = ({ title, typeSelector, placeholderText }: BaseCreation
                     </div>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-white">
-                      <Image 
-                        src={fotoNewGroup} 
-                        alt="Фото" 
-                        width={isMobile ? 88 : 200} 
+                      <Image
+                        src={fotoNewGroup}
+                        alt="Фото"
+                        width={isMobile ? 88 : 200}
                         height={isMobile ? 88 : 200}
-                        loading="eager" 
+                        loading="eager"
                       />
                     </div>
                   )}
                 </div>
               </div>
-              
-              <button 
+
+              <button
                 className="text-sm font-medium text-(--color-violet) mb-6 md:mb-8 hover:text-violet-700 transition-colors"
                 onClick={() => setIsPhotoModalOpen(true)}
               >
                 {selectedPhoto ? "Изменить фото" : "Выбрать фото"}
               </button>
-              
+
               <div className="w-full border border-(--color-gray-1) rounded-lg overflow-hidden bg-white mb-6">
                 <Input
                   placeholder="Название"
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={e => setName(e.target.value)}
                   className="w-full h-[44px] border-0 border-b border-(--color-gray-1) rounded-none px-4"
                 />
                 <Input
                   placeholder="Описание"
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={e => setDescription(e.target.value)}
                   className="w-full h-[44px] border-0 rounded-none px-4"
                 />
               </div>
-              
+
               {typeSelector}
             </div>
 
@@ -166,9 +169,7 @@ const BaseCreationPage = ({ title, typeSelector, placeholderText }: BaseCreation
         </div>
 
         <div className="hidden md:flex justify-center items-center w-full max-w-[744px] min-h-[calc(100vh-88px)] bg-(--color-gray-light) rounded-lg border border-(--color-gray-1) px-4">
-          <p className="text-(--color-gray) text-lg font-normal">
-            {placeholderText}
-          </p>
+          <p className="text-(--color-gray) text-lg font-normal">{placeholderText}</p>
         </div>
       </div>
 
