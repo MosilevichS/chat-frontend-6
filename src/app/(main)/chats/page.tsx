@@ -5,11 +5,11 @@ import Image from "next/image";
 import search from "../../../assets/icons/search.svg";
 import { useEffect, useRef, useState } from "react";
 import { useClickOutside } from "@/src/hooks/useClickOutside";
-import ContextMenu from "./_components/ContextMenu";
+import ContextMenu from "../../../components/ui/chats/ContextMenu";
 import { chatsList } from "@/src/data/chats";
 // import { useGetChatsQuery } from "@/src/services/chatsApi";
 
-const Chats = () => {
+const Page = () => {
   const POPUP_HEIGHT = 238;
   const MENU_OFFSET = 20;
 
@@ -249,4 +249,4 @@ const Chats = () => {
   );
 };
 
-export default Chats;
+export default Page;
