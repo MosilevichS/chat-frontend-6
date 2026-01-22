@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 
 import clsx from "clsx";
 
@@ -42,6 +42,16 @@ export default function OTPInput({
     }
   }, [error, onChange]);
 
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return null;
+  }
   const handleChange = (char: string, index: number) => {
     if (!/^\d?$/.test(char)) return;
 
