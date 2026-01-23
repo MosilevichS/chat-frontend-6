@@ -166,12 +166,14 @@ const Chats = () => {
               onClick={handleCreateClick}
             >
               <div className="md:hidden flex items-center justify-center mt-[2px]">
+                {/* Только этому изображению добавляем автоматическую ширину/высоту */}
                 <Image
                   src={createMobile}
                   alt="Создать"
                   width={26}
                   height={26}
                   className="mr-[2px]"
+                  style={{ width: "auto", height: "auto" }}
                 />
               </div>
 
