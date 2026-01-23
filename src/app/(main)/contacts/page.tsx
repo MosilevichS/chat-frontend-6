@@ -3,18 +3,62 @@
 import Input from "@/src/components/ui/Input";
 import Image from "next/image";
 import search from "../../../assets/icons/search.svg";
-import { useEffect, useRef, useState } from "react";
-import { chatsList } from "@/src/data/chats";
+import { useEffect, useMemo, useRef, useState } from "react";
+// import { chatsList } from "@/src/data/chats";
 import ModalBase from "@/src/components/ui/modal/ModalBase";
 import ModalConfirm from "@/src/components/ui/modal/ModalConfirm";
+import { declension } from "@/src/utils/declension";
+import {
+  useAddContactByPhoneMutation,
+  useDeleteContactMutation,
+  useGetContactsQuery,
+  useGetUsersListQuery,
+} from "@/src/services/contactApi";
+import { Loader } from "@/src/components/ui/Loader";
+import { timeFormat } from "@/src/utils/timeFormat";
+import type { IContact } from "@/src/types/contact";
 
-const Contacts = () => {
-  const [contacts, setContacts] = useState(chatsList);
+const Page = () => {
+  // const [contacts, setContacts] = useState<IContact[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [editing, setEditing] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const {
+    data,
+    isLoading,
+    error,
+  }: {
+    data?: { results: IContact[] };
+    isLoading: boolean;
+    error?: unknown;
+  } = useGetContactsQuery();
+  const [addContactByPhone] = useAddContactByPhoneMutation();
+  const [deleteContact] = useDeleteContactMutation();
+  // const { users, isSuccess } = useGetUsersListQuery([
+  //   {
+  //     phone_or_nickname: "+77056122436",
+  //   },
+  // ]);
+  const handleAddContact = async () => {
+    try {
+      const result = await addContactByPhone({
+        phone: "+78888888888",
+      }).unwrap();
+      console.log("Контакт добавлен:", result);
+    } catch (err) {
+      console.error("Ошибка:", err);
+    }
+  };
+
+  const contacts = useMemo(() => {
+    return data?.results || [];
+  }, [data]);
+
+  console.log(data?.results || "Данные не загружены", error || "Нет ошибок");
+  // console.log(users);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -23,7 +67,7 @@ const Contacts = () => {
     // Функция: проверить, превышает ли высота контента 100vh − 165px
     const isContentTall = () => {
       const viewportHeight = window.innerHeight;
-      const threshold = viewportHeight - 165 - 36 - (selectedContactIds.length > 0 ? 76 : 0); 
+      const threshold = viewportHeight - 165 - 36 - (selectedContactIds.length > 0 ? 76 : 0);
       return container.scrollHeight > threshold;
     };
 
@@ -47,7 +91,7 @@ const Contacts = () => {
       container.removeEventListener("mouseenter", onMouseEnter);
       container.removeEventListener("mouseleave", onMouseLeave);
     };
-  }, [selectedContactIds.length]);
+  }, [selectedContactIds.length, data]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -70,6 +114,7 @@ const Contacts = () => {
     setSelectedContactIds(prev =>
       prev.includes(id) ? prev.filter(itemId => itemId !== id) : [...prev, id],
     );
+    console.log(selectedContactIds);
   };
 
   const openModal = () => {
@@ -80,18 +125,24 @@ const Contacts = () => {
     setIsModalOpen(false);
   };
 
-  const handleConfirm = () => {
-    const updatedContacts = contacts.filter(contact => !selectedContactIds.includes(contact.id));
+  const handleConfirm = async () => {
+    try {
+      const result = await deleteContact({
+        contact_uids: selectedContactIds,
+      }).unwrap();
+      console.log("Контакт(ы) удален(ы):", result);
+    } catch (err) {
+      console.error("Ошибка:", err);
+    }
 
-    setContacts(updatedContacts);
     setSelectedContactIds([]);
     setEditing(false);
     setIsModalOpen(false);
   };
 
-  const filteredChats = contacts.filter(contact =>
-    contact.name.toLowerCase().includes(searchQuery.trim().toLowerCase()),
-  );
+  // const filteredChats = contacts.filter(contact =>
+  //   contact.name.toLowerCase().includes(searchQuery.trim().toLowerCase()),
+  // );
 
   return (
     <div className="flex flex-row gap-x-6 w-full justify-center md:mb-1">
@@ -107,18 +158,20 @@ const Contacts = () => {
           <Image src={search} alt="Поиск" className="absolute left-7 top-8 w-[16px] md:w-[24px]" />
         </div>
         {!editing ? (
-          <div className="flex justify-between items-center h-[36px] bg-(--color-gray-2) px-4">
-            <p className="text-sm font-normal leading-[1.2]">Контакты пользователей А-чата</p>
-            <button className="cursor-pointer" onClick={handleDeleteContacts}>
-              <Image
-                src="/assets/icons/contacts/delete-gray.svg"
-                alt="Удалить"
-                width={24}
-                height={24}
-                className="w-[24px] h-[24px]"
-              />
-            </button>
-          </div>
+          contacts.length > 0 && (
+            <div className="flex justify-between items-center h-[36px] bg-(--color-gray-2) px-4">
+              <p className="text-sm font-normal leading-[1.2]">Контакты пользователей А-чата</p>
+              <button className="cursor-pointer" onClick={handleDeleteContacts}>
+                <Image
+                  src="/assets/icons/contacts/delete-gray.svg"
+                  alt="Удалить"
+                  width={24}
+                  height={24}
+                  className="w-[24px] h-[24px]"
+                />
+              </button>
+            </div>
+          )
         ) : (
           <div className="flex justify-between items-center h-[36px] bg-(--color-gray-2) px-4">
             <div className="flex gap-x-2">
@@ -161,22 +214,27 @@ const Contacts = () => {
           ref={containerRef}
           className={`w-full overflow-y-auto ${selectedContactIds.length > 0 ? "h-[calc(100vh-201px-76px)]" : "h-[calc(100vh-201px)]"}  ${selectedContactIds.length > 0 ? "md:h-[calc(100vh-206px-76px)]" : "md:h-[calc(100vh-206px)]"} scroll-custom px-2`}
         >
-          {filteredChats.length > 0 ? (
-            filteredChats.map(contact => (
+          {isLoading ? (
+            <Loader text="контактов" className="pt-40" />
+          ) : contacts.length > 0 ? (
+            contacts.map(contact => (
               <div
-                key={contact.id}
+                key={contact.uid}
                 className={`flex items-center py-1.5 gap-x-2.5 min-w-[344px] h-[72px] cursor-pointer hover:bg-(--color-gray-2)
                    rounded-lg px-2 mt-2 mb-1
-               ${selectedContactIds.includes(contact.id) ? "bg-(--color-violet-1) hover:bg-(--color-violet-2)" : ""}`}
+               ${selectedContactIds.includes(contact.uid) ? "bg-(--color-violet-1) hover:bg-(--color-violet-2)" : ""}`}
               >
-                {contact.avatar ? (
-                  <Image
-                    className="h-10 w-10"
-                    src={contact.avatar}
-                    width={40}
-                    height={40}
-                    alt="Аватар"
-                  />
+                {contact.system_contact.avatar_url ? (
+                  <div className="min-w-10 min-h-10 w-10! h-10!  rounded-full overflow-hidden">
+                    <Image
+                      src={contact.system_contact.avatar_url}
+                      alt="Аватар"
+                      width={40}
+                      height={40}
+                      className="object-fill w-full h-full"
+                      priority
+                    />
+                  </div>
                 ) : (
                   <Image
                     className="h-10 w-10"
@@ -189,24 +247,23 @@ const Contacts = () => {
                 <div className="flex justify-between relative after:absolute after:left-0 after:right-0 after:bottom-[-22px] after:border-b after:border-1 after:border-(--color-button-disabled) after:z--1 w-full">
                   <div>
                     <p className="font-medium text‑lg leading-[1.2] truncate max-w-[165px] mb-0.5">
-                      {contact.name}
+                      {contact.first_name} {contact.last_name}
                     </p>
-                    {contact.is_online && (
+                    {contact.system_contact.is_online ? (
                       <p className="text-sm font-normal text-(--color-violet) leading-[1.2] tracking-[1%] line-clamp-2">
                         в сети
                       </p>
-                    )}
-                    {contact.was_online_at && (
+                    ) : (
                       <p className="text-sm font-normal text-(--color-gray) leading-[1.2] tracking-[1%] line-clamp-2">
-                        {contact.was_online_at}
+                        был(а) {timeFormat(contact.system_contact.was_online_at * 1000)}
                       </p>
                     )}
                   </div>
                   {editing &&
-                    (selectedContactIds.includes(contact.id) ? (
+                    (selectedContactIds.includes(contact.uid) ? (
                       <button
                         className="cursor-pointer"
-                        onClick={() => toggleContactSelection(contact.id)}
+                        onClick={() => toggleContactSelection(contact.uid)}
                       >
                         <Image
                           src="/assets/icons/contacts/checkbox-true.svg"
@@ -219,7 +276,7 @@ const Contacts = () => {
                     ) : (
                       <button
                         className="cursor-pointer"
-                        onClick={() => toggleContactSelection(contact.id)}
+                        onClick={() => toggleContactSelection(contact.uid)}
                       >
                         <Image
                           src="/assets/icons/contacts/checkbox.svg"
@@ -237,14 +294,13 @@ const Contacts = () => {
             <div className="flex flex-col items-center mt-45 text-center text-(--color-gray) font-normal">
               <Image
                 className="mb-6"
-                src="/images/not-found.png"
-                alt="Ничего не найдено"
+                src="/images/phone-book.png"
+                alt="Список контактов пока пуст"
+                loading="eager"
                 width={200}
                 height={200}
               />
-              <p className="mb-2 text-lg">Поиск не дал результатов</p>
-              <p className="text-[14px]">По вашему запросу ничего не найдено.</p>
-              <p className="text-[14px]">Измените запрос и попробуйте снова</p>
+              <p className="text-lg">Список контактов пока пуст</p>
             </div>
           )}
         </div>
@@ -253,7 +309,7 @@ const Contacts = () => {
             className="flex items-start justify-center w-full h-[76px] font-normal text-(--color-error) bg-(--color-gray-1) md:rounded-b-lg pt-2"
             onClick={() => openModal()}
           >
-            Удалить {selectedContactIds.length} контакта
+            {`Удалить ${selectedContactIds.length} ${declension(selectedContactIds.length, ["контакт", "контакта", "контактов"])}`}
           </button>
         )}
       </div>
@@ -265,6 +321,7 @@ const Contacts = () => {
         <p className="text-(--color-gray) text-lg font-normal">
           Выберите контакт для начала общения
         </p>
+        <button onClick={handleAddContact}>Добавить</button>
       </div>
 
       {isModalOpen && (
@@ -273,7 +330,11 @@ const Contacts = () => {
             onClose={handleCloseModal}
             onConfirm={handleConfirm}
             title="Удалить контакты"
-            message={`Вы уверены, что хотите удалить ${selectedContactIds.length} контакта?`}
+            message={
+              selectedContactIds.length === 1
+                ? "Вы уверены, что хотите удалить контакт?"
+                : `Вы уверены, что хотите удалить ${selectedContactIds.length} ${declension(selectedContactIds.length, ["контакт", "контакта", "контактов"])}?`
+            }
             confirmText="Удалить"
             cancelText="Отмена"
           />
@@ -283,4 +344,4 @@ const Contacts = () => {
   );
 };
 
-export default Contacts;
+export default Page;
