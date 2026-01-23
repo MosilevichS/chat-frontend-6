@@ -111,10 +111,10 @@ const Navigation = () => {
         <Link
           href={item.path}
           key={item.path}
-          className={`${navBaseStyle} max-md:order-${item.order} ${pathname === item.path ? navActive : ""}`}
+          className={`${navBaseStyle} max-md:order-${item.order} ${pathname.startsWith(item.path) ? navActive : ""}`}
         >
           <div
-            className={`${iconBase} hidden md:flex ${pathname === item.path ? iconActive : iconInActive} `}
+            className={`${iconBase} hidden md:flex ${pathname.startsWith(item.path) ? iconActive : iconInActive} `}
           >
             {item.svg1}
           </div>
