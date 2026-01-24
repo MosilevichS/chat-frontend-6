@@ -31,6 +31,10 @@ export const contactApi = privateApi.injectEndpoints({
       }),
       providesTags: ["Contacts"],
     }),
+    getContactById: builder.query<IContact, string>({
+      query: user_uid => `/contacts/${user_uid}`,
+      providesTags: ["Contacts"],
+    }),
   }),
 });
 
@@ -39,4 +43,5 @@ export const {
   useAddContactByPhoneMutation,
   useDeleteContactMutation,
   useGetUsersListQuery,
+  useGetContactByIdQuery,
 } = contactApi;
