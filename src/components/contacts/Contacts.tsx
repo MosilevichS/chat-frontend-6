@@ -2,8 +2,10 @@
 
 import Input from "@/src/components/ui/Input";
 import Image from "next/image";
-import search from "../../../assets/icons/search.svg";
+import search from "../../assets/icons/search.svg";
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 // import { chatsList } from "@/src/data/chats";
 import ModalBase from "@/src/components/ui/modal/ModalBase";
 import ModalConfirm from "@/src/components/ui/modal/ModalConfirm";
@@ -144,8 +146,10 @@ const Page = () => {
   //   contact.name.toLowerCase().includes(searchQuery.trim().toLowerCase()),
   // );
 
+  const pathname = usePathname();
+
   return (
-    <div className="flex flex-row gap-x-6 w-full justify-center md:mb-1">
+    <>
       <div className="w-full md:max-w-[360px] md:min-w-[360px] min-h-[calc(100vh-88px)] bg-(--color-gray-light) md:rounded-lg border border-(--color-gray-1)">
         <div className="relative w-full p-4">
           <Input
@@ -218,11 +222,13 @@ const Page = () => {
             <Loader text="контактов" className="pt-40" />
           ) : contacts.length > 0 ? (
             contacts.map(contact => (
-              <div
+              <Link
+                href={`/contacts/${contact.system_contact.uid}`}
                 key={contact.uid}
                 className={`flex items-center py-1.5 gap-x-2.5 min-w-[344px] h-[72px] cursor-pointer hover:bg-(--color-gray-2)
                    rounded-lg px-2 mt-2 mb-1
-               ${selectedContactIds.includes(contact.uid) ? "bg-(--color-violet-1) hover:bg-(--color-violet-2)" : ""}`}
+               ${selectedContactIds.includes(contact.uid) ? "bg-(--color-violet-1) hover:bg-(--color-violet-2)" : ""}
+               ${pathname.startsWith(`/contacts/${contact.system_contact.uid}`) ? "bg-(--color-violet-dark-opacity) hover:bg-(--color-violet-dark-opacity)" : ""}`}
               >
                 {contact.system_contact.avatar_url ? (
                   <div className="min-w-10 min-h-10 w-10! h-10!  rounded-full overflow-hidden">
@@ -246,15 +252,24 @@ const Page = () => {
                 )}
                 <div className="flex justify-between relative after:absolute after:left-0 after:right-0 after:bottom-[-22px] after:border-b after:border-1 after:border-(--color-button-disabled) after:z--1 w-full">
                   <div>
-                    <p className="font-medium text‑lg leading-[1.2] truncate max-w-[165px] mb-0.5">
+                    <p
+                      className={`font-medium text-lg leading-[1.2] truncate max-w-[165px] mb-0.5
+                        ${pathname.startsWith(`/contacts/${contact.system_contact.uid}`) ? "text-white" : ""}`}
+                    >
                       {contact.first_name} {contact.last_name}
                     </p>
                     {contact.system_contact.is_online ? (
-                      <p className="text-sm font-normal text-(--color-violet) leading-[1.2] tracking-[1%] line-clamp-2">
+                      <p
+                        className={`text-sm font-normal text-(--color-violet) leading-[1.2] tracking-[1%] line-clamp-2
+                          ${pathname.startsWith(`/contacts/${contact.system_contact.uid}`) ? "text-white" : ""}`}
+                      >
                         в сети
                       </p>
                     ) : (
-                      <p className="text-sm font-normal text-(--color-gray) leading-[1.2] tracking-[1%] line-clamp-2">
+                      <p
+                        className={`text-sm font-normal text-(--color-gray) leading-[1.2] tracking-[1%] line-clamp-2
+                          ${pathname.startsWith(`/contacts/${contact.system_contact.uid}`) ? "text-white" : ""}`}
+                      >
                         был(а) {timeFormat(contact.system_contact.was_online_at * 1000)}
                       </p>
                     )}
@@ -288,7 +303,7 @@ const Page = () => {
                       </button>
                     ))}
                 </div>
-              </div>
+              </Link>
             ))
           ) : (
             <div className="flex flex-col items-center mt-45 text-center text-(--color-gray) font-normal">
@@ -314,15 +329,7 @@ const Page = () => {
         )}
       </div>
 
-      <div
-        className="hidden md:flex justify-center text-center items-center w-full 
-      max-w-[744px] min-h-[calc(100vh-88px)] bg-(--color-gray-light) rounded-lg  md:rounded-lg border border-(--color-gray-1) px-4"
-      >
-        <p className="text-(--color-gray) text-lg font-normal">
-          Выберите контакт для начала общения
-        </p>
-        <button onClick={handleAddContact}>Добавить</button>
-      </div>
+      <button onClick={handleAddContact}>Добавить</button>
 
       {isModalOpen && (
         <ModalBase onClose={handleCloseModal}>
@@ -340,7 +347,7 @@ const Page = () => {
           />
         </ModalBase>
       )}
-    </div>
+    </>
   );
 };
 

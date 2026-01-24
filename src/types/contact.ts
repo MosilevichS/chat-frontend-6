@@ -9,6 +9,9 @@ interface ISystemContact {
 }
 
 export interface IContact {
+  was_online_at: number;
+  is_online: boolean;
+  avatar_url: string;
   owner_user: string;
   phone: string;
   first_name: string;
