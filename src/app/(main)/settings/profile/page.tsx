@@ -3,6 +3,7 @@ import delete_outline from "@/assets/icons/delete_outline.svg";
 import SettingsProfilePhoto from "@/components/user-profile/profile/SettingsProfilePhoto";
 import Link from "next/link";
 import backIcon from "@/assets/icons/back-icon.svg";
+import SettingsProfileChangeForm from "@/components/user-profile/profile/SettingsProfileChangeForm";
 
 const Page = () => {
   return (
@@ -18,6 +19,7 @@ const Page = () => {
             </p>
           </div>
           <SettingsProfilePhoto />
+          <SettingsProfileChangeForm />
 
         </div>
         <button className="flex mb-5 md:mb-0 mt-auto items-center gap-2 px-4">
