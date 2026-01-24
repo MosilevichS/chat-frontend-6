@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Input from "@/src/components/ui/Input";
 import Button from "@/src/components/ui/Button";
@@ -15,6 +15,7 @@ import {
   useCreateChannelMutation,
   chatCreationUtils,
 } from "@/src/services/groupOrChannelCreationApi";
+import { useDynamicHeight } from "@/src/hooks/useDynamicHeight";
 
 const AddSubscribersPage = () => {
   const router = useRouter();
@@ -33,6 +34,15 @@ const AddSubscribersPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
   const [creationError, setCreationError] = useState<string | null>(null);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useDynamicHeight({
+    containerRef,
+    hasActionButton: true,
+    hasHeader: true,
+    extraOffset: 72,
+  });
 
   const handleCreate = async () => {
     setCreationError(null);
@@ -83,15 +93,35 @@ const AddSubscribersPage = () => {
           setCreationError(result.error || "Неизвестная ошибка при создании канала");
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Ошибка при создании чата:", err);
 
-      if (err?.data?.error) {
-        setCreationError(err.data.error);
-      } else if (err?.error) {
-        setCreationError(err.error);
-      } else if (err?.message) {
-        setCreationError(err.message);
+      if (err && typeof err === "object" && "data" in err) {
+        const errorData = err as { data?: { error?: string } };
+        if (errorData.data?.error) {
+          setCreationError(errorData.data.error);
+        } else if (
+          errorData.data &&
+          typeof errorData.data === "object" &&
+          "message" in errorData.data
+        ) {
+          const errorObj = errorData.data as { message?: string };
+          if (errorObj.message) {
+            setCreationError(errorObj.message);
+          }
+        }
+      } else if (err && typeof err === "object" && "error" in err) {
+        const errorObj = err as { error?: string };
+        if (errorObj.error) {
+          setCreationError(errorObj.error);
+        }
+      } else if (err && typeof err === "object" && "message" in err) {
+        const errorObj = err as { message?: string };
+        if (errorObj.message) {
+          setCreationError(errorObj.message);
+        }
+      } else if (typeof err === "string") {
+        setCreationError(err);
       } else {
         setCreationError("Произошла ошибка при создании. Попробуйте еще раз.");
       }
@@ -132,10 +162,22 @@ const AddSubscribersPage = () => {
             aria-label="Назад"
           >
             <div className="md:hidden flex items-center justify-center">
-              <Image src={backMobile} alt="Назад" width={24} height={24} />
+              <Image
+                src={backMobile}
+                alt="Назад"
+                width={24}
+                height={24}
+                style={{ width: "auto", height: "auto" }}
+              />
             </div>
             <div className="hidden md:flex items-center justify-center">
-              <Image src={backDesktop} alt="Назад" width={24} height={24} />
+              <Image
+                src={backDesktop}
+                alt="Назад"
+                width={24}
+                height={24}
+                style={{ width: "auto", height: "auto" }}
+              />
             </div>
           </button>
 
@@ -166,9 +208,8 @@ const AddSubscribersPage = () => {
         </div>
 
         <div
-          className={`w-full overflow-y-auto px-2 overflow-x-hidden scroll-custom ${
-            selectedContactIds.length > 0 ? "h-[calc(100vh-201px-76px)]" : "h-[calc(100vh-201px)]"
-          }`}
+          ref={containerRef}
+          className="w-full overflow-y-auto px-2 overflow-x-hidden scroll-custom"
         >
           {filteredContacts.length > 0 ? (
             filteredContacts.map(contact => (

@@ -22,11 +22,13 @@
   --color-violet-ultra-light: #F5F4FF;
   --color-violet-light: #cec8ff;
   --color-violet-dark: #615aa3;
+  --color-violet-dark-opacity: #615aa399;
   --color-gray: #747474;
   --color-gray-light: #f5f6f8;
+  --color-gray-light-opacity: #f5f6f880;
   --color-gray-1: #eeeeee;
   --color-gray-2: #efeef7;
-  --color-gray-dark: #c5c5c5;
+  --color-gray-3: #e4e4e4;
   --color-black-light: #000000b3;
   --color-white: #ffffff;
 }
@@ -86,5 +88,14 @@ ul {
 .scroll-custom {
   &::-webkit-scrollbar {
     display: none;
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }

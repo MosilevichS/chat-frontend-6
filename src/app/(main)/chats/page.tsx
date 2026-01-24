@@ -11,12 +11,12 @@ import group from "../../../assets/icons/group.svg";
 import ModalDropdown from "@/src/components/ui/modal/ModalDropdown";
 import { useEffect, useRef, useState } from "react";
 import { useClickOutside } from "@/src/hooks/useClickOutside";
-import ContextMenu from "./_components/ContextMenu";
+import ContextMenu from "../../../components/ui/chats/ContextMenu";
 import { chatsList } from "@/src/data/chats";
 import { useRouter } from "next/navigation";
 // import { useGetChatsQuery } from "@/src/services/chatsApi";
 
-const Chats = () => {
+const Page = () => {
   const POPUP_HEIGHT = 238;
   const MENU_OFFSET = 20;
 
@@ -166,12 +166,14 @@ const Chats = () => {
               onClick={handleCreateClick}
             >
               <div className="md:hidden flex items-center justify-center mt-[2px]">
+                {/* Только этому изображению добавляем автоматическую ширину/высоту */}
                 <Image
                   src={createMobile}
                   alt="Создать"
                   width={26}
                   height={26}
                   className="mr-[2px]"
+                  style={{ width: "auto", height: "auto" }}
                 />
               </div>
 
@@ -339,4 +341,4 @@ const Chats = () => {
   );
 };
 
-export default Chats;
+export default Page;
