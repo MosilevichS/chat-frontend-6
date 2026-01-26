@@ -1,4 +1,4 @@
-import { UseProfileInfo, UserProfileActions } from "@/components/user-profile";
+import { UseProfileInfo, UserProfileActions } from "@/components/ui/user-profile";
 import Image from "next/image";
 import delete_outline from "../../../assets/icons/delete_outline.svg";
 

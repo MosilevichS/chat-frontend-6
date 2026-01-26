@@ -1,9 +1,9 @@
 import Image from "next/image";
 import delete_outline from "@/assets/icons/delete_outline.svg";
-import SettingsProfilePhoto from "@/components/user-profile/profile/SettingsProfilePhoto";
+import SettingsProfilePhoto from "@/components/ui/user-profile/profile/SettingsProfilePhoto";
 import Link from "next/link";
 import backIcon from "@/assets/icons/back-icon.svg";
-import SettingsProfileChangeForm from "@/components/user-profile/profile/SettingsProfileChangeForm";
+import SettingsProfileChangeForm from "@/components/ui/user-profile/profile/SettingsProfileChangeForm";
 
 const Page = () => {
   return (

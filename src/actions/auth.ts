@@ -1,7 +1,6 @@
 "use server";
 
 import { cookies } from "next/headers";
-
 export async function loginAction(payload: { phone_number: string; code: string }) {
   const res = await fetch(`${process.env.API_URL}/api/v1/auth/messenger/login/get/token/`, {
     method: "POST",
