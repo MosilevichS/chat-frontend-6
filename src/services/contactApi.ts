@@ -23,7 +23,7 @@ export const contactApi = privateApi.injectEndpoints({
       }),
       invalidatesTags: ["Contacts"],
     }),
-    getUsersList: builder.query<{ results: IContact[] }, string[]>({
+    getUsersList: builder.query<IContact[], { phone_or_nickname: string }[]>({
       query: body => ({
         url: "/contacts/list",
         method: "POST",

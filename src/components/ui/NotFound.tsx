@@ -5,7 +5,7 @@ const NotFound = () => {
     <div className="flex flex-col items-center mt-45 text-center text-(--color-gray) font-normal">
       <Image
         className="mb-6"
-        src="/images/not-found.png"
+        src="/images/not-found.svg"
         alt="Ничего не найдено"
         width={200}
         height={200}

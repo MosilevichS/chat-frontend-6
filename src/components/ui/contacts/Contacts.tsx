@@ -52,7 +52,7 @@ const Contacts = () => {
   const handleAddContact = async () => {
     try {
       const result = await addContactByPhone({
-        phone: "+72222222222",
+        phone: "+79999999992",
       }).unwrap();
       console.log("Контакт добавлен:", result);
     } catch (err) {
@@ -276,7 +276,7 @@ const Contacts = () => {
               <div className="flex flex-col items-center mt-45 text-center text-(--color-gray) font-normal">
                 <Image
                   className="mb-6"
-                  src="/images/phone-book.png"
+                  src="/images/phone-book.svg"
                   alt="Список контактов пока пуст"
                   width={200}
                   height={200}

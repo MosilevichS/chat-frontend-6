@@ -1,32 +1,54 @@
-export function timeFormat(timestamp: Date | number): string {
-  const now = Date.now();
-  const then = new Date(timestamp).getTime();
-  const diffMs = now - then;
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHr = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHr / 24);
+import { declension } from "./declension";
 
-  if (diffSec < 60) {
-    return "только что";
+export function timeFormat(time: Date | number): string {
+  if (typeof time !== "number" || time < 0) {
+    return "";
   }
 
-  if (diffMin < 60) {
-    return `${diffMin} минута${diffMin === 1 ? "" : diffMin < 5 ? "ы" : "н"} назад`;
+  const now = new Date().getTime();
+  const differenceTime = now - time;
+  const day = differenceTime / 1000 / 60 / 60 / 24;
+
+  if (day < 1) {
+    const hours = differenceTime / 1000 / 60 / 60;
+    const minutes = differenceTime / 1000 / 60;
+
+    if (minutes < 1 && hours < 1) {
+      return "только что";
+    }
+
+    if (minutes >= 1 && hours < 1) {
+      return `${new Date(differenceTime).getUTCMinutes()} ${declension(
+        new Date(differenceTime).getUTCMinutes(),
+
+        ["минут", "минуту", "минуты"],
+        2,
+      )} назад`;
+    }
+
+    if (hours >= 1) {
+      return `${new Date(differenceTime).getUTCHours()} ${declension(
+        new Date(differenceTime).getUTCHours(),
+
+        ["час", "часа", "часов"],
+        1,
+      )} назад`;
+    }
   }
 
-  if (diffHr < 24) {
-    return `${diffHr} час${diffHr === 1 ? "" : diffHr < 5 ? "а" : "ов"} назад`;
-  }
-
-  if (diffDay === 1) {
+  if (day < 2 && day >= 1) {
     return "вчера";
   }
 
-  const date = new Date(then);
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
+  if (day >= 2) {
+    const result = new Date(time).toLocaleDateString("ru-Ru", {
+      day: "numeric",
+      month: "numeric",
+      year: "2-digit",
+    });
 
-  return `${day}.${month}.${year}`;
+    return result;
+  }
+
+  return "";
 }
