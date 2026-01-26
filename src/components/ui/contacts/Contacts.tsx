@@ -2,7 +2,7 @@
 
 import Input from "@/src/components/ui/Input";
 import Image from "next/image";
-import search from "../../assets/icons/search.svg";
+import search from "../../../assets/icons/search.svg";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -278,7 +278,11 @@ const Page = () => {
                     (selectedContactIds.includes(contact.uid) ? (
                       <button
                         className="cursor-pointer"
-                        onClick={() => toggleContactSelection(contact.uid)}
+                        onClick={e => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          toggleContactSelection(contact.uid);
+                        }}
                       >
                         <Image
                           src="/assets/icons/contacts/checkbox-true.svg"
@@ -291,7 +295,11 @@ const Page = () => {
                     ) : (
                       <button
                         className="cursor-pointer"
-                        onClick={() => toggleContactSelection(contact.uid)}
+                        onClick={e => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          toggleContactSelection(contact.uid);
+                        }}
                       >
                         <Image
                           src="/assets/icons/contacts/checkbox.svg"
@@ -328,8 +336,6 @@ const Page = () => {
           </button>
         )}
       </div>
-
-      <button onClick={handleAddContact}>Добавить</button>
 
       {isModalOpen && (
         <ModalBase onClose={handleCloseModal}>

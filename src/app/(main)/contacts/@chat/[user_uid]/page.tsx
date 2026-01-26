@@ -6,14 +6,27 @@ import Image from "next/image";
 import call from "@/src/assets/icons/call.svg";
 import search from "@/src/assets/icons/search-messages.svg";
 import noMessages from "@/src/assets/icons/no-messages.svg";
-import { useGetContactByIdQuery } from "@/src/services/contactApi";
+import clip from "@/src/assets/icons/clip.svg";
+import close from "@/src/assets/icons/close.svg";
+import microphone from "@/src/assets/icons/microphone.svg";
+
+import type { IContact } from "@/src/types/contact";
+
 import { timeFormat } from "@/src/utils/timeFormat";
+import { useGetContactByIdQuery } from "@/src/services/contactApi";
+import { useGetContactsQuery } from "@/src/services/contactApi";
 
 export default function Page() {
   const { user_uid } = useParams<{ user_uid: string }>();
 
+  // Проверка есть ли пользователь в списке контактов
+  const { data: contactsData } = useGetContactsQuery();
+  const contacts = contactsData?.results;
+  const isInContacts = contacts?.some((contact: IContact) => contact.uid === user_uid);
+
+  // Получение контакта по uid
   const { data, isLoading, isError } = useGetContactByIdQuery(user_uid);
-  console.log("Contact data:", data);
+
   if (isLoading)
     return (
       <div className="hidden md:flex w-full max-w-[744px] min-h-[calc(100vh-88px)] bg-(--color-gray-light-opacity) rounded-lg  md:rounded-lg border border-(--color-gray-1) px-4">
@@ -74,12 +87,53 @@ export default function Page() {
           </button>
         </div>
       </header>
+
+      {isInContacts && (
+        <div className="h-[44px] w-full px-4 flex items-center bg-(--color-gray-light) border-b border-(--color-gray-3)">
+          <div className="flex gap-1">
+            <div className="w-[340px] flex justify-center">
+              <button className="text-(--color-violet) hover:opacity-80">
+                Добавить в контакты
+              </button>
+            </div>
+            <div className="w-[340px] flex justify-center">
+              <button className="text-(--color-error) hover:opacity-80">Заблокировать</button>
+            </div>
+          </div>
+          <button>
+            <Image src={close} alt="Закрыть" width={24} height={24} />
+          </button>
+        </div>
+      )}
+
       <main className="h-full flex flex-col items-center justify-center">
-        <Image src={noMessages} alt="Нет сообщений" width={200} height={200} className="mb-6" />
+        <Image
+          src={noMessages}
+          alt="Нет сообщений"
+          width={200}
+          height={200}
+          className="mb-6"
+          loading="eager"
+        />
         <p className="text-(--color-gray) text-lg leading-[130%]">Сообщений пока нет</p>
         <p className="text-(--color-gray) text-sm leading-[120%]">Напишите первым :)</p>
       </main>
-      <footer className="h-[60px] bg-(--color-gray-light) border-t border-(--color-gray-3)"></footer>
+
+      <footer className="flex items-center px-4 w-full h-[60px] bg-(--color-gray-light) border-t border-(--color-gray-3)">
+        <form className="flex justify-between items-center gap-2 w-full">
+          <button>
+            <Image src={clip} alt="Прикрепить файл" width={36} height={36} />
+          </button>
+          <input
+            type="text"
+            placeholder="Сообщение"
+            className="outline-none bg-white rounded-[1.25rem] py-2 pl-3 pr-10 w-full max-w-[624px]"
+          />
+          <button>
+            <Image src={microphone} alt="Микрофон" width={36} height={36} />
+          </button>
+        </form>
+      </footer>
     </div>
   );
 }
