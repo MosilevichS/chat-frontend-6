@@ -1,4 +1,4 @@
-import Contacts from "@/src/components/contacts/Contacts";
+import Contacts from "@/src/components/ui/contacts/Contacts";
 
 export default function ContactsLayout({
   chat,
