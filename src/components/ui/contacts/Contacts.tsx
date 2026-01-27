@@ -178,7 +178,7 @@ const Contacts = () => {
 
   return (
     <>
-      <div className="w-full md:max-w-[360px] md:min-w-[360px] min-h-[calc(100vh-88px)] bg-(--color-gray-light) md:rounded-lg border border-(--color-gray-1)">
+      <div className="w-full md:max-w-[360px] min-h-[calc(100vh-88px)] bg-(--color-gray-light) md:rounded-lg border border-(--color-gray-1)">
         <div className="relative w-full p-4">
           <Input
             onChange={handleChange}
@@ -280,6 +280,7 @@ const Contacts = () => {
                   alt="Список контактов пока пуст"
                   width={200}
                   height={200}
+                  loading="eager"
                 />
                 <p className="text-lg">Список контактов пока пуст</p>
               </div>
@@ -328,8 +329,6 @@ const Contacts = () => {
           </button>
         )}
       </div>
-
-      <button onClick={handleAddContact}>Добавить</button>
 
       <ModalDeleteContacts
         isOpen={isModalOpen}

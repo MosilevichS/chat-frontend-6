@@ -1,15 +1,22 @@
+"use client";
+
+import { useSelectedLayoutSegment } from "next/navigation";
 import Contacts from "@/src/components/ui/contacts/Contacts";
 
-export default function ContactsLayout({
-  chat,
-}: {
-  children: React.ReactNode;
-  chat: React.ReactNode;
-}) {
+export default function ContactsLayout({ chat }: { chat: React.ReactNode }) {
+  const segment = useSelectedLayoutSegment("chat");
+  const hasChat = Boolean(segment);
+
   return (
-    <div className="flex flex-row gap-x-6 justify-center md:mb-1">
-      <Contacts />
-      {chat}
-    </div>
+    <>
+      {/* MOBILE */}
+      <div className="block md:hidden h-full">{hasChat ? chat : <Contacts />}</div>
+
+      {/* DESKTOP */}
+      <div className="hidden md:flex md:gap-x-6 h-full">
+        <Contacts />
+        {chat}
+      </div>
+    </>
   );
 }
