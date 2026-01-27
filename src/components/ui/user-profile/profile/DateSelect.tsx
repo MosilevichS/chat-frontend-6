@@ -1,13 +1,22 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Controller, type Control } from "react-hook-form";
+import Image from "next/image";
+import backIcon from "@/assets/icons/back-icon.svg";
 
 interface DateSelectProps {
   name: string;
   control: Control<any>;
   fromYear?: number;
   toYear?: number;
+  defaultValue?: { day: string; month: string; year: string };
+}
+
+interface DateValue {
+  day: string;
+  month: string;
+  year: string;
 }
 
 const DateSelect = ({
@@ -15,11 +24,11 @@ const DateSelect = ({
   control,
   fromYear = 1900,
   toYear = new Date().getFullYear(),
+  defaultValue = { day: "", month: "", year: "" },
 }: DateSelectProps) => {
   const [open, setOpen] = useState<"day" | "month" | "year" | null>(null);
-  const ref = useRef<HTMLDivElement>(null);
-
-  const days = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, "0"));
+  const [daysInMonth, setDaysInMonth] = useState<string[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const months = [
     { value: "01", label: "Январь" },
@@ -36,53 +45,162 @@ const DateSelect = ({
     { value: "12", label: "Декабрь" },
   ];
 
+  // Годы от текущего до fromYear
   const years = Array.from({ length: toYear - fromYear + 1 }, (_, i) => String(toYear - i));
 
-  const inputClass =
-    "h-10 w-full bg-[color:var(--color-white)] cursor-pointer rounded-lg border border-[color:var(--color-gray)] px-3 text-sm focus:border-blue-500 focus:outline-none";
+  // Получение количества дней в месяце
+  const getDaysInMonth = useCallback((month: string, year: string) => {
+    if (!month || !year) return 31; // По умолчанию 31 день
 
+    const monthNum = parseInt(month);
+    const yearNum = parseInt(year);
+
+    // Проверка високосного года для февраля
+    if (month === "02") {
+      const isLeapYear = (yearNum % 4 === 0 && yearNum % 100 !== 0) || yearNum % 400 === 0;
+      return isLeapYear ? 29 : 28;
+    }
+
+    // Месяцы с 30 днями
+    const thirtyDayMonths = ["04", "06", "09", "11"];
+    return thirtyDayMonths.includes(month) ? 30 : 31;
+  }, []);
+
+  // Обновление списка дней при изменении месяца или года
+  const updateDaysList = useCallback(
+    (month: string, year: string) => {
+      const daysCount = getDaysInMonth(month, year);
+      const days = Array.from({ length: daysCount }, (_, i) => String(i + 1).padStart(2, "0"));
+      setDaysInMonth(days);
+    },
+    [getDaysInMonth],
+  );
+
+  // Получение названия месяца по значению
+  const getMonthLabel = useCallback(
+    (value: string) => {
+      if (!value) return "";
+      const month = months.find(m => m.value === value);
+      return month ? month.label : "";
+    },
+    [months],
+  );
+
+  // Валидация дня при изменении месяца/года
+  const validateDay = useCallback(
+    (dateValue: DateValue): DateValue => {
+      if (!dateValue.day || !dateValue.month || !dateValue.year) {
+        return dateValue;
+      }
+
+      const dayNum = parseInt(dateValue.day);
+      const maxDays = getDaysInMonth(dateValue.month, dateValue.year);
+
+      if (dayNum > maxDays) {
+        return { ...dateValue, day: String(maxDays).padStart(2, "0") };
+      }
+
+      return dateValue;
+    },
+    [getDaysInMonth],
+  );
+
+  // Обработчик изменения значения
+  const handleChange = useCallback(
+    (
+      currentValue: DateValue,
+      onChange: (value: DateValue) => void,
+      field: keyof DateValue,
+      newValue: string,
+    ) => {
+      const newDateValue = { ...currentValue, [field]: newValue };
+
+      // Если меняем месяц или год, валидируем день
+      if (field === "month" || field === "year") {
+        const validatedValue = validateDay(newDateValue);
+
+        // Обновляем список дней
+        if (validatedValue.month && validatedValue.year) {
+          updateDaysList(validatedValue.month, validatedValue.year);
+        }
+
+        onChange(validatedValue);
+      } else {
+        onChange(newDateValue);
+      }
+
+      setOpen(null);
+    },
+    [validateDay, updateDaysList],
+  );
+
+  // Обработчик клика вне компонента
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setOpen(null);
       }
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
-  const getMonthLabel = (value: string) =>
-    months.find(m => m.value === value)?.label ?? ""
+  // Инициализация списка дней
+  useEffect(() => {
+    if (defaultValue.month && defaultValue.year) {
+      updateDaysList(defaultValue.month, defaultValue.year);
+    } else {
+      // По умолчанию 31 день
+      setDaysInMonth(Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, "0")));
+    }
+  }, [defaultValue.month, defaultValue.year, updateDaysList]);
+
+  const inputClass =
+    "h-10 w-full bg-white cursor-pointer rounded-lg border border-gray-300 px-3 text-sm focus:border-blue-500 focus:outline-none";
+  const dropdownClass =
+    "absolute z-50 mt-1 w-full max-h-45 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg";
+  const optionClass = "cursor-pointer px-4 py-2 text-sm hover:bg-blue-50 transition-colors";
 
   return (
     <Controller
       name={name}
       control={control}
-      defaultValue={{ day: "1", month: "Января", year: "2000" }}
+      defaultValue={defaultValue}
       render={({ field }) => (
-        <div ref={ref} className="flex gap-3 relative">
+        <div ref={containerRef} className="flex items-start gap-3">
           {/* День */}
-          <div className="relative w-20">
-            <input
-              readOnly
-              placeholder="ДД"
-              value={field.value.day}
-              onClick={() => setOpen(open === "day" ? null : "day")}
-              className={inputClass}
-            />
+          <div className="relative w-24">
+            <div className="relative">
+              <input
+                readOnly
+                placeholder="День"
+                value={field.value?.day || ""}
+                onClick={() => setOpen(open === "day" ? null : "day")}
+                className={inputClass}
+              />
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                <Image
+                  src={backIcon}
+                  width={12}
+                  height={12}
+                  alt=""
+                  className={`transition-transform ${open === "day" ? "rotate-90" : "-rotate-90"}`}
+                />
+              </div>
+            </div>
 
             {open === "day" && (
-              <div className="absolute z-50 mt-1 max-h-35 w-full overflow-y-auto rounded-lg border bg-white shadow">
-                {days.map(d => (
+              <div className={dropdownClass}>
+                {daysInMonth.map(day => (
                   <div
-                    key={d}
-                    onClick={() => {
-                      field.onChange({ ...field.value, day: d });
-                      setOpen(null);
-                    }}
-                    className="cursor-pointer px-2 py-1 text-sm hover:bg-blue-100"
+                    key={day}
+                    onClick={() => handleChange(field.value, field.onChange, "day", day)}
+                    className={`${optionClass} ${field.value?.day === day ? "bg-blue-100 font-medium" : ""}`}
                   >
-                    {d}
+                    {day}
                   </div>
                 ))}
               </div>
@@ -90,30 +208,35 @@ const DateSelect = ({
           </div>
 
           {/* Месяц */}
-          <div className="relative w-32">
-            <input
-              readOnly
-              placeholder="ММ"
-              value={getMonthLabel(field.value.month)}
-              onClick={() => setOpen(open === "month" ? null : "month")}
-              className={inputClass}
-            />
+          <div className="relative w-36">
+            <div className="relative">
+              <input
+                readOnly
+                placeholder="Месяц"
+                value={getMonthLabel(field.value?.month || "")}
+                onClick={() => setOpen(open === "month" ? null : "month")}
+                className={inputClass}
+              />
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                <Image
+                  src={backIcon}
+                  width={12}
+                  height={12}
+                  alt=""
+                  className={`transition-transform ${open === "month" ? "rotate-90" : "-rotate-90"}`}
+                />
+              </div>
+            </div>
 
             {open === "month" && (
-              <div className="absolute z-50 mt-1 max-h-35 w-full overflow-y-auto rounded-lg border bg-white shadow">
-                {months.map(m => (
+              <div className={dropdownClass}>
+                {months.map(month => (
                   <div
-                    key={m.value}
-                    onClick={() => {
-                      field.onChange({
-                        ...field.value,
-                        month: m.value,
-                      });
-                      setOpen(null);
-                    }}
-                    className="cursor-pointer px-2 py-1 text-sm hover:bg-blue-100"
+                    key={month.value}
+                    onClick={() => handleChange(field.value, field.onChange, "month", month.value)}
+                    className={`${optionClass} ${field.value?.month === month.value ? "bg-blue-100 font-medium" : ""}`}
                   >
-                    {m.label}
+                    {month.label}
                   </div>
                 ))}
               </div>
@@ -121,30 +244,35 @@ const DateSelect = ({
           </div>
 
           {/* Год */}
-          <div className="relative w-24">
-            <input
-              readOnly
-              placeholder="ГГГГ"
-              value={field.value.year}
-              onClick={() => setOpen(open === "year" ? null : "year")}
-              className={inputClass}
-            />
+          <div className="relative w-28">
+            <div className="relative">
+              <input
+                readOnly
+                placeholder="Год"
+                value={field.value?.year || ""}
+                onClick={() => setOpen(open === "year" ? null : "year")}
+                className={inputClass}
+              />
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                <Image
+                  src={backIcon}
+                  width={12}
+                  height={12}
+                  alt=""
+                  className={`transition-transform ${open === "year" ? "rotate-90" : "-rotate-90"}`}
+                />
+              </div>
+            </div>
 
             {open === "year" && (
-              <div className="absolute z-50 mt-1 max-h-35 w-full overflow-y-auto rounded-lg border bg-white shadow">
-                {years.map(y => (
+              <div className={dropdownClass}>
+                {years.map(year => (
                   <div
-                    key={y}
-                    onClick={() => {
-                      field.onChange({
-                        ...field.value,
-                        year: y,
-                      });
-                      setOpen(null);
-                    }}
-                    className="cursor-pointer px-2 py-1 text-sm hover:bg-blue-100"
+                    key={year}
+                    onClick={() => handleChange(field.value, field.onChange, "year", year)}
+                    className={`${optionClass} ${field.value?.year === year ? "bg-blue-100 font-medium" : ""}`}
                   >
-                    {y}
+                    {year}
                   </div>
                 ))}
               </div>
