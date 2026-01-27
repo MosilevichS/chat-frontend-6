@@ -29,7 +29,7 @@ const Page = () => {
           </span>
         </button>
       </div>
-      <div className="hidden  md:flex justify-center items-center w-full max-w-[744px] min-h-[calc(100vh-84px)] bg-(--color-gray-light) rounded-t-lg px-4"></div>
+      <div className="hidden  md:flex  justify-center items-center w-full max-w-[744px] min-h-[calc(100vh-84px)] bg-(--color-gray-light) rounded-t-lg px-4"></div>
     </div>
   );
 };

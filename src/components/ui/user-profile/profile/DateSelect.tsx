@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
-import { Controller, type Control } from "react-hook-form";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { type Control, Controller } from "react-hook-form";
 import Image from "next/image";
 import backIcon from "@/assets/icons/back-icon.svg";
 
@@ -50,20 +50,20 @@ const DateSelect = ({
 
   // Получение количества дней в месяце
   const getDaysInMonth = useCallback((month: string, year: string) => {
-    if (!month || !year) return 31; // По умолчанию 31 день
+    if (!month || !year) return 31;
 
     const monthNum = parseInt(month);
     const yearNum = parseInt(year);
 
     // Проверка високосного года для февраля
-    if (month === "02") {
+    if (monthNum === 2) {
       const isLeapYear = (yearNum % 4 === 0 && yearNum % 100 !== 0) || yearNum % 400 === 0;
       return isLeapYear ? 29 : 28;
     }
 
     // Месяцы с 30 днями
-    const thirtyDayMonths = ["04", "06", "09", "11"];
-    return thirtyDayMonths.includes(month) ? 30 : 31;
+    const thirtyDayMonths = [4, 6, 9, 11];
+    return thirtyDayMonths.includes(monthNum) ? 30 : 31;
   }, []);
 
   // Обновление списка дней при изменении месяца или года
@@ -176,7 +176,7 @@ const DateSelect = ({
             <div className="relative">
               <input
                 readOnly
-                placeholder="День"
+                placeholder={defaultValue.day || "День"}
                 value={field.value?.day || ""}
                 onClick={() => setOpen(open === "day" ? null : "day")}
                 className={inputClass}
@@ -187,7 +187,7 @@ const DateSelect = ({
                   width={12}
                   height={12}
                   alt=""
-                  className={`transition-transform ${open === "day" ? "rotate-90" : "-rotate-90"}`}
+                  className={`transition-transform ${open === "day" ? "-rotate-90" : "rotate-90"}`}
                 />
               </div>
             </div>
@@ -212,7 +212,7 @@ const DateSelect = ({
             <div className="relative">
               <input
                 readOnly
-                placeholder="Месяц"
+                placeholder={defaultValue.month ? getMonthLabel(defaultValue.month) : "Месяц"}
                 value={getMonthLabel(field.value?.month || "")}
                 onClick={() => setOpen(open === "month" ? null : "month")}
                 className={inputClass}
@@ -223,7 +223,7 @@ const DateSelect = ({
                   width={12}
                   height={12}
                   alt=""
-                  className={`transition-transform ${open === "month" ? "rotate-90" : "-rotate-90"}`}
+                  className={`transition-transform ${open === "month" ? "-rotate-90" : "rotate-90"}`}
                 />
               </div>
             </div>
@@ -248,7 +248,7 @@ const DateSelect = ({
             <div className="relative">
               <input
                 readOnly
-                placeholder="Год"
+                placeholder={defaultValue.year || "Год"}
                 value={field.value?.year || ""}
                 onClick={() => setOpen(open === "year" ? null : "year")}
                 className={inputClass}
@@ -259,7 +259,7 @@ const DateSelect = ({
                   width={12}
                   height={12}
                   alt=""
-                  className={`transition-transform ${open === "year" ? "rotate-90" : "-rotate-90"}`}
+                  className={`transition-transform ${open === "year" ? "-rotate-90" : "rotate-90"}`}
                 />
               </div>
             </div>
