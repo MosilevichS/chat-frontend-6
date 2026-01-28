@@ -2,12 +2,12 @@
 import { useForm } from "react-hook-form";
 import { useEffect } from "react";
 
-import Input from "@/components/ui/Input";
 import DateSelect from "@/components/ui/user-profile/profile/DateSelect";
 import Button from "@/components/ui/Button";
 
 import { useGetProfileQuery, useUpdateProfileMutation } from "@/src/services/userApi";
 import { dateToUnixTimestamp, unixTimestampToDateParts } from "@/src/hooks/useDateUtils";
+import { arrayOfInputs } from "@/components/ui/user-profile/profile/modal/arrayOfInputs";
 
 type FormValues = {
   first_name?: string;
@@ -35,23 +35,22 @@ const SettingsProfileChangeForm = () => {
   });
 
   useEffect(() => {
-    if (data) {
-      reset({
-        first_name: data?.first_name || "",
-        last_name: data?.last_name || "",
-        nickname: data?.nickname || "",
-        additional_information: data?.additional_information || "",
-      });
+    if (!data) return;
 
-      // Преобразуем timestamp из базы данных в DateParts
-      if (data?.birthday) {
-        const birthDateParts = unixTimestampToDateParts(data.birthday);
-        setValue("birthDate", birthDateParts);
-      }
+    reset({
+      first_name: data.first_name ?? "",
+      last_name: data.last_name ?? "",
+      nickname: data.nickname ?? "",
+      additional_information: data.additional_information ?? "",
+    });
+
+    if (data.birthday) {
+      setValue("birthDate", unixTimestampToDateParts(data.birthday));
     }
   }, [data, reset, setValue]);
 
   const onSubmit = async (formData: FormValues) => {
+    console.log("formData", formData);
     try {
       const dateBirthday = dateToUnixTimestamp(formData.birthDate);
       if (dateBirthday === null) {
@@ -65,7 +64,7 @@ const SettingsProfileChangeForm = () => {
         birthday: dateBirthday,
         additional_information: formData.additional_information,
       };
-
+      console.log("updateData", updateData);
       await updateProfile(updateData).unwrap();
     } catch (error) {
       console.error("Ошибка при обновлении профиля:", error);
@@ -79,27 +78,25 @@ const SettingsProfileChangeForm = () => {
   return (
     <div className="w-full p-4">
       <form className="gap-3 flex flex-col" onSubmit={handleSubmit(onSubmit)}>
-        <Input
-          placeholder=""
-          {...register("first_name")}
-          label="Изменить имя"
-          defaultValue={data?.first_name}
-        />
-        <Input
-          placeholder=""
-          {...register("last_name")}
-          label="Изменить фамилию"
-          defaultValue={data?.last_name}
-        />
-        <Input
-          placeholder=""
-          {...register("nickname")}
-          label="Изменить никнейм"
-          defaultValue={data?.nickname}
-        />
-
+        {arrayOfInputs.map(el => (
+          <div key={el.name} >
+            <label className="text-(--color-gray) text-[0.875rem] leading-[120%] tracking-[0.01em] mb-1 block">
+              {el.label}
+            </label>
+            <input
+              className="w-full h-14
+            text-lg
+            border border-(--color-gray) rounded-md
+            py-4 px-3 md:py-4 md:px-5
+            focus:outline-none focus:border-(--color-violet)
+            bg-white text-(--color-text) placeholder:text-gray-500
+            transition-all duration-200"
+              {...register(el.name)}
+            />
+          </div>
+        ))}
         <div className="mb-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Дата рождения</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Введите дату своего рождения</label>
           <DateSelect
             name="birthDate"
             control={control}
@@ -112,14 +109,21 @@ const SettingsProfileChangeForm = () => {
             }
           />
         </div>
-
-        <Input
-          placeholder=""
-          {...register("additional_information")}
-          label="Напишите пару слов о себе"
-          className="mb-2"
-          defaultValue={data?.additional_information}
-        />
+        <div>
+          <label className="text-(--color-gray) text-[0.875rem] leading-[120%] tracking-[0.01em] mb-1 block">
+            Напишите пару слов о себе
+          </label>
+          <input
+            className="w-full h-14
+            text-lg
+            border border-(--color-gray) rounded-md
+            py-4 px-3 md:py-4 md:px-5
+            focus:outline-none focus:border-(--color-violet)
+            bg-white text-(--color-text) placeholder:text-gray-500
+            transition-all duration-200"
+            {...register("additional_information")}
+          />
+        </div>
 
         <Button
           type="submit"

@@ -18,7 +18,7 @@ export const userApi = privateApi.injectEndpoints({
     }),
     deleteProfile: builder.mutation<void, string>({
       query: uid => ({
-        url: `/user/${uid}`, // → /api/user/{uid}
+        url: `auth/messenger/profile/${uid}`, // → /api/user/{uid}
         method: "DELETE",
       }),
       invalidatesTags: ["User"],

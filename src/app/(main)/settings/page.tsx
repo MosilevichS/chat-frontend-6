@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { logoutAction } from "@/src/actions/auth";
 
-import Button from "@/components/ui/Button";
 import ModalConfirm from "@/components/ui/modal/ModalConfirm";
 
 const Page = () => {
