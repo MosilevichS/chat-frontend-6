@@ -16,16 +16,14 @@ import { declension } from "@/src/utils/declension";
 import { useDebounce } from "@/src/hooks/useDebounce";
 
 import {
-  useAddContactByPhoneMutation,
+  // useAddContactByPhoneMutation,
   useDeleteContactMutation,
   useGetContactsQuery,
   useGetUsersListQuery,
 } from "@/src/services/contactApi";
 
 const Contacts = () => {
-  // const [contacts, setContacts] = useState<IContact[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [editing, setEditing] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
@@ -34,31 +32,30 @@ const Contacts = () => {
   const {
     data,
     isLoading,
-    // error,
   }: {
     data?: { results: IContact[] };
     isLoading: boolean;
     error?: unknown;
   } = useGetContactsQuery();
-  const [addContactByPhone] = useAddContactByPhoneMutation();
-  const [deleteContact, { isLoading: isDeleteLoading }] = useDeleteContactMutation();
+  // const [addContactByPhone] = useAddContactByPhoneMutation();
+  const [deleteContact] = useDeleteContactMutation();
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
   const { data: users } = useGetUsersListQuery(
-    debouncedQuery ? [{ phone_or_nickname: debouncedSearchQuery }] : [],
+    debouncedSearchQuery ? [{ phone_or_nickname: debouncedSearchQuery }] : [],
   );
 
-  const handleAddContact = async () => {
-    try {
-      const result = await addContactByPhone({
-        phone: "+79999999992",
-      }).unwrap();
-      console.log("Контакт добавлен:", result);
-    } catch (err) {
-      console.error("Ошибка:", err);
-    }
-  };
+  // const handleAddContact = async () => {
+  //   try {
+  //     const result = await addContactByPhone({
+  //       phone: "+75555555555",
+  //     }).unwrap();
+  //     console.log("Контакт добавлен:", result);
+  //   } catch (err) {
+  //     console.error("Ошибка:", err);
+  //   }
+  // };
 
   const filteredContacts = useMemo(() => {
     const allContacts = data?.results || [];
@@ -70,16 +67,6 @@ const Contacts = () => {
       return fullName.includes(searchQuery.toLowerCase());
     });
   }, [data, searchQuery]);
-
-  console.log(filteredContacts);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setDebouncedQuery(searchQuery);
-    }, 500);
-
-    return () => clearTimeout(timeout);
-  }, [searchQuery]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -130,10 +117,6 @@ const Contacts = () => {
     };
   }, [selectedContactIds.length]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-  };
-
   const handleDeleteContacts = () => {
     setEditing(true);
   };
@@ -178,23 +161,43 @@ const Contacts = () => {
 
   return (
     <>
-      <div className="w-full md:max-w-[360px] md:min-w-[360px] min-h-[calc(100vh-88px)] bg-(--color-gray-light) md:rounded-lg border border-(--color-gray-1)">
-        <div className="relative w-full p-4">
+      <div className="w-full md:max-w-[360px] md:min-w-[360px] min-h-[calc(100vh-84px)] md:min-h-[calc(100vh-88px)] bg-(--color-gray-light) md:rounded-lg border border-(--color-gray-1)">
+        <div className="relative w-full p-4 h-[80px]">
           <Input
-            onChange={handleChange}
+            onChange={e => {
+              setSearchQuery(e.target.value);
+              setSelectedContactIds([]);
+            }}
+            value={searchQuery}
             placeholder="Поиск"
-            type="search"
+            type="text"
+            pattern=".*"
             className="placeholder:text-base placeholder:height-1.3; placeholder:font-normal border border-(--color-gray-1) 
-            pr-3 pl-11 pt-2.5 pb-2.5 md:pr-3 md:pl-11 md:pt-2.5 md:pb-2.5 h-[44px]"
+            pr-11 pl-11 pt-2.5 pb-2.5 md:pr-11 md:pl-11 md:pt-2.5 md:pb-2.5 h-[44px]"
           />
-          <Image src={search} alt="Поиск" className="absolute left-7 top-8 w-[16px] md:w-[24px]" />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")}>
+              <Image
+                src="/assets/icons/contacts/clear-btn.svg"
+                alt="Очистить"
+                width={24}
+                height={24}
+                className="absolute right-7  top-8.5 md:top-8 w-[20px] md:w-[24px]"
+              />
+            </button>
+          )}
+          <Image
+            src={search}
+            alt="Поиск"
+            className="absolute left-7 top-8.5 md:top-8 w-[20px] md:w-[24px]"
+          />
         </div>
 
         {filteredContacts.length > 0 &&
           (!editing ? (
             filteredContacts.length > 0 && (
               <div className="flex justify-between items-center h-[36px] bg-(--color-gray-2) px-4">
-                <p className="text-sm font-normal leading-[1.2]">Контакты пользователей А-чата</p>
+                <p className="text-sm font-normal leading-[1.2]">Мои контакты</p>
                 <button className="cursor-pointer" onClick={handleDeleteContacts}>
                   <Image
                     src="/assets/icons/contacts/delete-gray.svg"
@@ -255,7 +258,7 @@ const Contacts = () => {
           className={`w-full overflow-y-auto ${selectedContactIds.length > 0 ? "h-[calc(100vh-201px-76px)]" : "h-[calc(100vh-201px)]"} 
            ${selectedContactIds.length > 0 ? "md:h-[calc(100vh-206px-76px)]" : "md:h-[calc(100vh-206px)]"} scroll-custom pl-2 pr-1.5`}
         >
-          {(isLoading || isDeleteLoading) && <Loader text="контактов" className="pt-40" />}
+          {isLoading && <Loader text="контактов" className="pt-40" />}
 
           {filteredContacts.length > 0 &&
             filteredContacts.map(contact => (
@@ -265,6 +268,7 @@ const Contacts = () => {
                 isSelected={selectedContactIds.includes(contact.uid)}
                 isEditing={editing}
                 onSelect={toggleContactSelection}
+                isToggleButtonVisible
               />
             ))}
 
@@ -285,13 +289,17 @@ const Contacts = () => {
               </div>
             )}
 
-          {filteredContacts.length > 0 && users !== undefined && users.length > 0 && (
-            <div className="flex justify-between items-center h-[36px] bg-(--color-gray-2) -mx-1.5 px-4">
-              <p className="text-sm font-normal leading-[1.2]">Пользователи А-Чата</p>
-            </div>
-          )}
+          {searchQuery &&
+            filteredContacts.length > 0 &&
+            users !== undefined &&
+            users.length > 0 && (
+              <div className="flex justify-between items-center h-[36px] bg-(--color-gray-2) -mx-1.5 px-4">
+                <p className="text-sm font-normal leading-[1.2]">Пользователи А-Чата</p>
+              </div>
+            )}
+
           {searchQuery && users !== undefined && users.length > 0 && (
-            <div className="mt-4">
+            <div>
               {users.map(user => (
                 <ContactItem
                   key={user.uid}
@@ -309,6 +317,7 @@ const Contacts = () => {
                   isSelected={selectedContactIds.includes(user.uid)}
                   isEditing={editing}
                   onSelect={toggleContactSelection}
+                  isToggleButtonVisible={false}
                 />
               ))}
             </div>
@@ -329,7 +338,7 @@ const Contacts = () => {
         )}
       </div>
 
-      <button onClick={handleAddContact}>Добавить</button>
+      {/* <button onClick={handleAddContact}>Добавить</button> */}
 
       <ModalDeleteContacts
         isOpen={isModalOpen}
