@@ -1,29 +1,42 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Avatar from "@/components/ui/Avatar";
 import ModalPhotoPicker from "@/components/ui/modal/ModalPhotoPicker";
 
 const SettingsProfilePhoto = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentPhoto, setCurrentPhoto] = useState<string | null>("/avatar/avatar.png");
+  const [currentPhoto, setCurrentPhoto] = useState<string>("/avatar/avatar.png");
 
   const handleOpenModal = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
+
+  useEffect(() => {
+    return () => {
+      if (currentPhoto.startsWith("blob:")) {
+        URL.revokeObjectURL(currentPhoto);
+      }
+    };
+  }, [currentPhoto]);
 
   const handlePhotoSelected = (
     photo: File | null,
     cropData?: { zoom: number; position: { x: number; y: number } },
   ) => {
     if (photo) {
-      // Создаем временный URL для предпросмотра
       const imageUrl = URL.createObjectURL(photo);
-      setCurrentPhoto(imageUrl);
-      // Здесь можно отправить фото на сервер
+
+      setCurrentPhoto(prev => {
+        if (prev && prev.startsWith("blob:")) {
+          URL.revokeObjectURL(prev);
+        }
+        return imageUrl;
+      });
+
       console.log("Photo selected:", photo, cropData);
     } else {
-      // Если фото null, можно сбросить к дефолтному
       setCurrentPhoto("/avatar/avatar.png");
     }
+
     handleCloseModal();
   };
 

@@ -7,10 +7,7 @@ import DateSelect from "@/components/ui/user-profile/profile/DateSelect";
 import Button from "@/components/ui/Button";
 
 import { useGetProfileQuery, useUpdateProfileMutation } from "@/src/services/userApi";
-import {
-  dateToUnixTimestamp,
-  unixTimestampToDateParts,
-} from "@/src/hooks/useDateUtils";
+import { dateToUnixTimestamp, unixTimestampToDateParts } from "@/src/hooks/useDateUtils";
 
 type FormValues = {
   first_name?: string;
@@ -37,7 +34,6 @@ const SettingsProfileChangeForm = () => {
     },
   });
 
-  // Загрузка данных пользователя при монтировании
   useEffect(() => {
     if (data) {
       reset({
@@ -62,12 +58,11 @@ const SettingsProfileChangeForm = () => {
         return;
       }
 
-      // Подготавливаем данные для отправки
       const updateData = {
         first_name: formData.first_name,
         last_name: formData.last_name,
         nickname: formData.nickname,
-        birthday: dateBirthday, //
+        birthday: dateBirthday,
         additional_information: formData.additional_information,
       };
 

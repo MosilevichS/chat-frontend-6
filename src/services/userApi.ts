@@ -16,7 +16,15 @@ export const userApi = privateApi.injectEndpoints({
       }),
       invalidatesTags: ["User"],
     }),
+    deleteProfile: builder.mutation<void, string>({
+      query: uid => ({
+        url: `/user/${uid}`, // → /api/user/{uid}
+        method: "DELETE",
+      }),
+      invalidatesTags: ["User"],
+    }),
   }),
+  overrideExisting: true,
 });
 
-export const { useGetProfileQuery, useUpdateProfileMutation } = userApi;
+export const { useGetProfileQuery, useUpdateProfileMutation, useDeleteProfileMutation } = userApi;
