@@ -6,7 +6,9 @@ import { useDeleteProfileMutation, useGetProfileQuery } from "@/src/services/use
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { logoutAction } from "@/src/actions/auth";
+
 import Button from "@/components/ui/Button";
+import ModalConfirm from "@/components/ui/modal/ModalConfirm";
 
 const Page = () => {
   const router = useRouter();
@@ -64,38 +66,23 @@ const Page = () => {
         >
           <Image src={delete_outline} width={16} height={16} alt="Удалить профиль" />
           <span className="text-base font-normal text-[color:var(--color-error)] hover:opacity-60 transition-opacity">
-            {isLoading ? "Удаление..." : "Удалить профиль"}
+            Удалить профиль
           </span>
         </button>
+        {showConfirm && (
+          <div className="fixed inset-0  bg-opacity-50 flex items-center justify-center z-50">
+            <ModalConfirm
+              title="Удаление профиля"
+              message="Это действие необратимо. Все данные будут удалены без возможности восстановления."
+              confirmText="Удалить"
+              cancelText="Отмена"
+              onConfirm={confirmDelete}
+              onClose={cancelDelete}
+            />
+          </div>
+        )}
       </div>
       <div className="hidden md:flex justify-center items-center w-full max-w-[744px] min-h-[calc(100vh-84px)] bg-(--color-gray-light) rounded-t-lg px-4"></div>
-
-      {/* Модальное окно подтверждения */}
-      {showConfirm && (
-        <div className="fixed inset-0  bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-[329px] w-full">
-            <h3 className="flex justify-center font-semibold mb-4">Удаление профиля</h3>
-            <p className="mb-6 px-4 flex justify-center text-[color:var(--color-gray)]">
-              Это действие необратимо. Все данные будут удалены без возможности восстановления.
-            </p>
-
-            <div className="flex justify-center gap-3">
-              <Button
-                size="medium"
-                variant="secondary2"
-                onClick={cancelDelete}
-                disabled={isLoading}
-                className="border border-[color:var(--color-violet)]  transition-colors"
-              >
-                Отмена
-              </Button>
-              <Button size="medium" variant="primary" onClick={confirmDelete} disabled={isLoading}>
-                Удалить
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

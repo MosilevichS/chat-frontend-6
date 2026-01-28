@@ -1,5 +1,4 @@
 import Image from "next/image";
-import delete_outline from "@/assets/icons/delete_outline.svg";
 import SettingsProfilePhoto from "@/components/ui/user-profile/profile/SettingsProfilePhoto";
 import Link from "next/link";
 import backIcon from "@/assets/icons/back-icon.svg";
