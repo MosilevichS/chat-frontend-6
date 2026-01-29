@@ -16,7 +16,6 @@ import { declension } from "@/src/utils/declension";
 import { useDebounce } from "@/src/hooks/useDebounce";
 
 import {
-  useAddContactByPhoneMutation,
   useDeleteContactMutation,
   useGetContactsQuery,
   useGetUsersListQuery,
@@ -40,7 +39,7 @@ const Contacts = () => {
     isLoading: boolean;
     error?: unknown;
   } = useGetContactsQuery();
-  const [addContactByPhone] = useAddContactByPhoneMutation();
+
   const [deleteContact, { isLoading: isDeleteLoading }] = useDeleteContactMutation();
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
@@ -48,17 +47,6 @@ const Contacts = () => {
   const { data: users } = useGetUsersListQuery(
     debouncedQuery ? [{ phone_or_nickname: debouncedSearchQuery }] : [],
   );
-
-  const handleAddContact = async () => {
-    try {
-      const result = await addContactByPhone({
-        phone: "+79999999992",
-      }).unwrap();
-      console.log("Контакт добавлен:", result);
-    } catch (err) {
-      console.error("Ошибка:", err);
-    }
-  };
 
   const filteredContacts = useMemo(() => {
     const allContacts = data?.results || [];
@@ -70,8 +58,6 @@ const Contacts = () => {
       return fullName.includes(searchQuery.toLowerCase());
     });
   }, [data, searchQuery]);
-
-  console.log(filteredContacts);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
