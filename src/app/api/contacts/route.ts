@@ -25,7 +25,26 @@ export async function GET() {
     }
 
     const data = await res.json();
-    return new Response(JSON.stringify(data), {
+
+    const sortedData = data.results.sort(
+      (
+        a: { system_contact: { was_online_at: number } },
+        b: { system_contact: { was_online_at: number } },
+      ) => {
+        const dateA = a.system_contact.was_online_at;
+        const dateB = b.system_contact.was_online_at;
+        return dateB - dateA;
+      },
+    );
+
+    const responseData = {
+      count: data.count,
+      next: data.next,
+      previous: data.previous,
+      results: sortedData,
+    };
+
+    return new Response(JSON.stringify(responseData), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
