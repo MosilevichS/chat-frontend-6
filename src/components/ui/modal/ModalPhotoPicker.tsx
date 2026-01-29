@@ -34,6 +34,7 @@ const ModalPhotoPicker = ({
   // Сброс состояния при закрытии
   useEffect(() => {
     if (!isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedImage(currentPhoto);
       setZoom(currentZoom);
       setPosition(currentPosition);
