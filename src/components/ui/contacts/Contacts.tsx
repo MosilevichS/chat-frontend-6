@@ -39,9 +39,8 @@ const Contacts = () => {
     isLoading: boolean;
     error?: unknown;
   } = useGetContactsQuery();
-  const [deleteContact] = useDeleteContactMutation();
 
-  console.log(data);
+  const [deleteContact] = useDeleteContactMutation();
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
@@ -291,6 +290,7 @@ const Contacts = () => {
                   alt="Список контактов пока пуст"
                   width={200}
                   height={200}
+                  loading="eager"
                 />
                 <p className="text-lg">Список контактов пока пуст</p>
               </div>

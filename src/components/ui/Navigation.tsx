@@ -1,10 +1,26 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 const Navigation = () => {
   const pathname = usePathname();
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Проверяем детальный маршрут /contacts/[uid]
+  const pathSegments = pathname?.split("/").filter(Boolean) || [];
+  const isContactsDetail = pathSegments[0] === "contacts" && pathSegments.length > 1;
+
+  if (isMobile && isContactsDetail) return null;
 
   const navActive = "md:bg-(--color-gray-light) text-(--color-violet)";
   const navBaseStyle =
