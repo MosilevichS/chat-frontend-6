@@ -16,11 +16,11 @@ import { declension } from "@/src/utils/declension";
 import { useDebounce } from "@/src/hooks/useDebounce";
 
 import {
-  // useAddContactByPhoneMutation,
   useDeleteContactMutation,
   useGetContactsQuery,
   useGetUsersListQuery,
 } from "@/src/services/contactApi";
+import { useMediaQuery } from "@/src/hooks/useMediaQuery";
 
 const Contacts = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -28,6 +28,8 @@ const Contacts = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const isMobile = useMediaQuery();
 
   const {
     data,
@@ -37,25 +39,15 @@ const Contacts = () => {
     isLoading: boolean;
     error?: unknown;
   } = useGetContactsQuery();
-  // const [addContactByPhone] = useAddContactByPhoneMutation();
   const [deleteContact] = useDeleteContactMutation();
+
+  console.log(data);
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
   const { data: users } = useGetUsersListQuery(
     debouncedSearchQuery ? [{ phone_or_nickname: debouncedSearchQuery }] : [],
   );
-
-  // const handleAddContact = async () => {
-  //   try {
-  //     const result = await addContactByPhone({
-  //       phone: "+75555555555",
-  //     }).unwrap();
-  //     console.log("Контакт добавлен:", result);
-  //   } catch (err) {
-  //     console.error("Ошибка:", err);
-  //   }
-  // };
 
   const filteredContacts = useMemo(() => {
     const allContacts = data?.results || [];
@@ -74,10 +66,14 @@ const Contacts = () => {
 
     let high;
 
-    // Функция: проверить, превышает ли высота контента 100vh − 165px
+    // проверяет, превышает ли высота контента контейнер прокрутки
     const isContentTall = () => {
       const viewportHeight = window.innerHeight;
-      const threshold = viewportHeight - 165 - 36 - (selectedContactIds.length > 0 ? 76 : 0);
+      // высота контейнера прокрутки
+      const threshold = isMobile
+        ? viewportHeight - 200
+        : viewportHeight - 204 - (selectedContactIds.length > 0 ? 76 : 0);
+
       return container.scrollHeight > threshold;
     };
 
@@ -146,10 +142,9 @@ const Contacts = () => {
 
   const handleConfirm = async () => {
     try {
-      const result = await deleteContact({
+      await deleteContact({
         contact_uids: selectedContactIds,
       }).unwrap();
-      console.log("Контакт(ы) удален(ы):", result);
     } catch (err) {
       console.error("Ошибка:", err);
     }
@@ -198,14 +193,18 @@ const Contacts = () => {
             filteredContacts.length > 0 && (
               <div className="flex justify-between items-center h-[36px] bg-(--color-gray-2) px-4">
                 <p className="text-sm font-normal leading-[1.2]">Мои контакты</p>
-                <button className="cursor-pointer" onClick={handleDeleteContacts}>
-                  <Image
-                    src="/assets/icons/contacts/delete-gray.svg"
-                    alt="Удалить"
-                    width={24}
-                    height={24}
-                    className="w-[24px] h-[24px]"
-                  />
+                <button className="cursor-pointer " onClick={handleDeleteContacts}>
+                  {isMobile ? (
+                    <p className="text-(--color-violet) font-normal">Выбрать</p>
+                  ) : (
+                    <Image
+                      src="/assets/icons/contacts/delete-gray.svg"
+                      alt="Удалить"
+                      width={24}
+                      height={24}
+                      className="w-[24px] h-[24px]"
+                    />
+                  )}
                 </button>
               </div>
             )
@@ -221,27 +220,35 @@ const Contacts = () => {
                     className="w-[24px] h-[24px]"
                   />
                 </button>
-                <p className="font-medium">Удалить контакты</p>
+                <p className="font-medium">{isMobile ? "Мои контакты" : "Удалить контакты"}</p>
               </div>
               {selectedContactIds.length > 0 ? (
-                <button className="cursor-pointer" onClick={cancelDeletion}>
-                  <Image
-                    src="/assets/icons/contacts/cancel.svg"
-                    alt="Отменить"
-                    width={24}
-                    height={24}
-                    className="w-[24px] h-[24px]"
-                  />
-                </button>
+                isMobile ? (
+                  <p className="text-(--color-violet) font-normal">Выбрать</p>
+                ) : (
+                  <button className="cursor-pointer" onClick={cancelDeletion}>
+                    <Image
+                      src="/assets/icons/contacts/cancel.svg"
+                      alt="Отменить"
+                      width={24}
+                      height={24}
+                      className="w-[24px] h-[24px]"
+                    />
+                  </button>
+                )
               ) : (
                 <button className="cursor-default!">
-                  <Image
-                    src="/assets/icons/contacts/delete-violet.svg"
-                    alt="Удалить"
-                    width={24}
-                    height={24}
-                    className="w-[24px] h-[24px]"
-                  />
+                  {isMobile ? (
+                    <p className="text-(--color-violet) font-normal">Выбрать</p>
+                  ) : (
+                    <Image
+                      src="/assets/icons/contacts/delete-violet.svg"
+                      alt="Удалить"
+                      width={24}
+                      height={24}
+                      className="w-[24px] h-[24px]"
+                    />
+                  )}
                 </button>
               )}
             </div>
@@ -255,7 +262,7 @@ const Contacts = () => {
 
         <div
           ref={containerRef}
-          className={`w-full overflow-y-auto ${selectedContactIds.length > 0 ? "h-[calc(100vh-201px-76px)]" : "h-[calc(100vh-201px)]"} 
+          className={`w-full overflow-y-auto h-[calc(100vh-200px)] 
            ${selectedContactIds.length > 0 ? "md:h-[calc(100vh-206px-76px)]" : "md:h-[calc(100vh-206px)]"} scroll-custom pl-2 pr-1.5`}
         >
           {isLoading && <Loader text="контактов" className="pt-40" />}
@@ -328,17 +335,53 @@ const Contacts = () => {
             users.length === 0 && <NotFound />}
         </div>
 
-        {selectedContactIds.length > 0 && (
-          <button
-            className="flex items-start justify-center w-full h-[76px] font-normal text-(--color-error) bg-(--color-gray-1) md:rounded-b-lg pt-2"
-            onClick={() => openModal()}
-          >
-            {`Удалить ${selectedContactIds.length} ${declension(selectedContactIds.length, ["контакт", "контакта", "контактов"], 1)}`}
-          </button>
-        )}
+        {selectedContactIds.length > 0 &&
+          (isMobile ? (
+            <div className="fixed bottom-0 z-20 flex justify-between w-full h-[84px]  bg-(--color-gray-1) pb-4 px-4">
+              <div className="flex items-center gap-x-5">
+                <button onClick={() => cancelDeletion()}>
+                  <Image
+                    src="/assets/icons/contacts/clear-btn.svg"
+                    alt="Очистить"
+                    width={24}
+                    height={24}
+                    className=" w-[24px]"
+                  />
+                </button>
+                <p className="font-medium">
+                  {`Выбрано ${selectedContactIds.length} ${declension(selectedContactIds.length, ["контакт", "контакта", "контактов"], 1)}`}
+                </p>
+              </div>
+              <div className="flex gap-x-7">
+                <button>
+                  <Image
+                    src="/assets/icons/contacts/send-message.svg"
+                    alt="Переслать"
+                    width={24}
+                    height={24}
+                    className=" w-[24px]"
+                  />
+                </button>
+                <button onClick={() => openModal()}>
+                  <Image
+                    src="/assets/icons/chat/delete.svg"
+                    alt="Удалить"
+                    width={24}
+                    height={24}
+                    className=" w-[24px]"
+                  />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              className="flex items-start justify-center w-full h-[76px] font-normal text-(--color-error) bg-(--color-gray-1) md:rounded-b-lg pt-2"
+              onClick={() => openModal()}
+            >
+              {`Удалить ${selectedContactIds.length} ${declension(selectedContactIds.length, ["контакт", "контакта", "контактов"], 1)}`}
+            </button>
+          ))}
       </div>
-
-      {/* <button onClick={handleAddContact}>Добавить</button> */}
 
       <ModalDeleteContacts
         isOpen={isModalOpen}
