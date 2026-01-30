@@ -49,7 +49,6 @@ export default function Page() {
 
       ws.onmessage = event => {
         const data = JSON.parse(event.data);
-        console.log("Received:", data);
 
         setMessages(prevMessages => [...prevMessages, data]);
       };
@@ -228,8 +227,8 @@ export default function Page() {
 
           <main className="flex flex-1 flex-col items-center justify-center">
             {messages.length > 0 ? (
-              messages.map((message, i) => (
-                <div key={i} className="mb-4 px-4 w-full max-w-[624px]">
+              messages.map(message => (
+                <div key={message.id} className="mb-4 px-4 w-full max-w-[624px]">
                   <div className="bg-white py-2 px-3 rounded-lg shadow-md max-w-[80%]">
                     <p className="text-(--color-black)">{message.content}</p>
                   </div>

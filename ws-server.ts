@@ -8,6 +8,7 @@ wss.on("connection", ws => {
   ws.on("message", message => {
     const data = JSON.parse(message.toString());
 
+    console.log("Received:", data);
     ws.send(
       JSON.stringify({
         content: data.object.content,
