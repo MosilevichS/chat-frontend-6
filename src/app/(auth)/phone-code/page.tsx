@@ -161,6 +161,7 @@ export default function Page() {
     localStorage.removeItem("blockedPhones");
     localStorage.removeItem("inputErrorBlocked");
     localStorage.removeItem("inputDisabledBlocked");
+    localStorage.removeItem("inputDisabledCurrent");
 
     if (result.is_filled) {
       router.push("/chats");
