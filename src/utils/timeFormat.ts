@@ -1,54 +1,48 @@
 import { declension } from "./declension";
 
-export function timeFormat(time: Date | number): string {
-  if (typeof time !== "number" || time < 0) {
-    return "";
-  }
+type TimeFormatMode = "relative" | "time";
 
-  const now = new Date().getTime();
-  const differenceTime = now - time;
-  const day = differenceTime / 1000 / 60 / 60 / 24;
+export function timeFormat(time: Date | number, mode: TimeFormatMode = "relative"): string {
+  if (!time) return "";
 
-  if (day < 1) {
-    const hours = differenceTime / 1000 / 60 / 60;
-    const minutes = differenceTime / 1000 / 60;
+  const timestamp =
+    typeof time === "number"
+      ? time < 1e12
+        ? time * 1000 // unix → ms
+        : time
+      : time.getTime();
 
-    if (minutes < 1 && hours < 1) {
-      return "только что";
-    }
-
-    if (minutes >= 1 && hours < 1) {
-      return `${new Date(differenceTime).getUTCMinutes()} ${declension(
-        new Date(differenceTime).getUTCMinutes(),
-
-        ["минут", "минуту", "минуты"],
-        2,
-      )} назад`;
-    }
-
-    if (hours >= 1) {
-      return `${new Date(differenceTime).getUTCHours()} ${declension(
-        new Date(differenceTime).getUTCHours(),
-
-        ["час", "часа", "часов"],
-        1,
-      )} назад`;
-    }
-  }
-
-  if (day < 2 && day >= 1) {
-    return "вчера";
-  }
-
-  if (day >= 2) {
-    const result = new Date(time).toLocaleDateString("ru-Ru", {
-      day: "numeric",
-      month: "numeric",
-      year: "2-digit",
+  // HH:MM режим
+  if (mode === "time") {
+    return new Date(timestamp).toLocaleTimeString("ru-RU", {
+      hour: "2-digit",
+      minute: "2-digit",
     });
-
-    return result;
   }
 
-  return "";
+  // Relative режим
+  const now = Date.now();
+  const diff = now - timestamp;
+
+  const minutes = Math.floor(diff / 1000 / 60);
+  const hours = Math.floor(diff / 1000 / 60 / 60);
+  const days = Math.floor(diff / 1000 / 60 / 60 / 24);
+
+  if (minutes < 1) return "только что";
+
+  if (minutes < 60) {
+    return `${minutes} ${declension(minutes, ["минута", "минуты", "минут"], 2)} назад`;
+  }
+
+  if (hours < 24) {
+    return `${hours} ${declension(hours, ["час", "часа", "часов"], 1)} назад`;
+  }
+
+  if (days === 1) return "вчера";
+
+  return new Date(timestamp).toLocaleDateString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+  });
 }
