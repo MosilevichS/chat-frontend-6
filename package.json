@@ -2,6 +2,7 @@
   "name": "chat-frontend-6",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -19,11 +20,13 @@
     "clsx": "^2.1.1",
     "lucide-react": "^0.563.0",
     "next": "^16.0.10",
+    "next": "^16.1.6",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-hook-form": "^7.68.0",
     "react-redux": "^9.2.0",
     "tailwind-merge": "^3.4.0",
+    "ws": "^8.19.0",
     "zod": "^4.2.1"
   },
   "devDependencies": {
@@ -34,13 +37,15 @@
     "@storybook/addon-vitest": "^10.1.7",
     "@storybook/nextjs-vite": "^10.1.7",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^20.19.30",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.49.0",
     "@typescript-eslint/parser": "^8.49.0",
     "@vitest/browser-playwright": "^4.0.15",
     "@vitest/coverage-v8": "^4.0.15",
+    "baseline-browser-mapping": "^2.9.19",
     "eslint": "^9",
     "eslint-config-next": "16.0.7",
     "eslint-config-prettier": "^10.1.8",
@@ -50,7 +55,8 @@
     "prettier": "^3.7.4",
     "storybook": "^10.1.7",
     "tailwindcss": "^4",
-    "typescript": "^5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
     "vite": "^7.2.7",
     "vitest": "^4.0.15"
   }

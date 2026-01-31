@@ -15,6 +15,8 @@ interface IInput {
   disabled?: boolean;
   defaultValue?: string;
   className?: string;
+  value?: string;
+  pattern?: string;
 }
 
 const Input = ({
@@ -29,6 +31,8 @@ const Input = ({
   disabled = false,
   defaultValue,
   className,
+  value,
+  pattern,
 }: IInput) => {
   return (
     <div>
@@ -47,6 +51,8 @@ const Input = ({
         onClick={onClick}
         onChange={onChange}
         id={name}
+        value={value}
+        pattern={pattern}
         type={type}
         placeholder={placeholder}
         disabled={disabled}

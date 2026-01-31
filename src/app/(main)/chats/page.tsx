@@ -14,7 +14,7 @@ import { useClickOutside } from "@/src/hooks/useClickOutside";
 import ContextMenu from "../../../components/ui/chats/ContextMenu";
 import { chatsList } from "@/src/data/chats";
 import { useRouter } from "next/navigation";
-// import { useGetChatsQuery } from "@/src/services/chatsApi";
+import { useGetChatsQuery } from "@/src/services/chatsApi";
 
 const Page = () => {
   const POPUP_HEIGHT = 238;
@@ -94,9 +94,9 @@ const Page = () => {
 
   useClickOutside(popupRef, handleOutsideClick);
 
-  // const { data, isLoading, error } = useGetChatsQuery();
+  const { data, isLoading, error } = useGetChatsQuery();
 
-  // console.log(data, error);
+  console.log(data, error);
 
   const toggleNotifications = () => {
     if (!selectedChatId) return;
@@ -156,7 +156,7 @@ const Page = () => {
               <Image
                 src={search}
                 alt="Поиск"
-                className="absolute left-7 top-1/2 -translate-y-1/2 w-[16px] md:w-[24px]"
+                className="absolute left-3 top-4 w-[20px] md:w-[24px]"
               />
             </div>
 
