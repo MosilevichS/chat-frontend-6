@@ -5,9 +5,11 @@ import type { IMessage } from "@/src/types/message";
 export default function IncomingMessage({
   message,
   markAsRead,
+  className,
 }: {
   message: IMessage;
   markAsRead: (message: IMessage) => void;
+  className?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -35,7 +37,7 @@ export default function IncomingMessage({
   return (
     <div
       ref={ref}
-      className="relative mr-auto py-2.5 pl-3 pr-14 bg-(--color-gray-1) rounded-2xl rounded-bl-sm"
+      className={`relative mr-auto py-2.5 pl-3 pr-14 bg-(--color-gray-1) rounded-2xl rounded-bl-sm ${className}`}
     >
       <span>{message.content}</span>
       <div className="absolute bottom-2.5 right-3">

@@ -21,12 +21,15 @@ import ModalBase from "@/src/components/ui/modal/ModalBase";
 import ModalSuccess from "@/src/components/ui/modal/ModalSuccess";
 import OutgoingMessage from "@/src/components/ui/chat/OutgoingMessage";
 import IncomingMessage from "@/src/components/ui/chat/IncomingMessage";
+import DateDivider from "@/src/components/ui/chat/DateDivider";
 
 import { timeFormat } from "@/src/utils/timeFormat";
+import formatChatDate from "@/src/utils/formatChatDate";
 
 import { useGetContactByIdQuery } from "@/src/services/contactApi";
 import { useGetContactsQuery, useAddContactByPhoneMutation } from "@/src/services/contactApi";
 import { useGetProfileQuery } from "@/src/services/userApi";
+import React from "react";
 
 export default function Chat() {
   // WebSocket и сообщения
@@ -180,24 +183,24 @@ export default function Chat() {
   const profile = profileData;
 
   // Загрузка истории сообщений
-  // useEffect(() => {
-  //   async function fetchMessages() {
-  //     try {
-  //       const res = await fetch(`/api/get-messages-list/${user_uid}`);
-  //       if (res.ok) {
-  //         const data = await res.json();
-  //         console.log("Fetched messages:", data);
-  //         // setMessages(data.results);
-  //       } else {
-  //         console.error("Failed to fetch messages:", res.statusText);
-  //       }
-  //     } catch (error) {
-  //       console.error("Error fetching messages:", error);
-  //     }
-  //   }
+  useEffect(() => {
+    async function fetchMessages() {
+      try {
+        const res = await fetch(`/api/get-messages-list/${user_uid}`);
+        if (res.ok) {
+          const data = await res.json();
+          console.log("Fetched messages:", data);
+          setMessages(data.results);
+        } else {
+          console.error("Failed to fetch messages:", res.statusText);
+        }
+      } catch (error) {
+        console.error("Error fetching messages:", error);
+      }
+    }
 
-  //   fetchMessages();
-  // }, [user_uid]);
+    fetchMessages();
+  }, [user_uid]);
 
   // Получение контакта по uid
   const { data, isLoading, isError } = useGetContactByIdQuery(user_uid);
@@ -230,7 +233,7 @@ export default function Chat() {
   return (
     <>
       <div className="md:flex w-full overflow-hidden">
-        <div className="relative flex flex-col w-full h-screen md:h-full max-w-[744px] bg-(--color-gray-light-opacity) rounded-lg border border-(--color-gray-1)">
+        <div className="relative flex flex-col w-full h-screen md:h-[calc(100vh-88px)] max-w-[744px] bg-(--color-gray-light-opacity) rounded-lg border border-(--color-gray-1)">
           <header
             className="px-4 w-full flex justify-between items-center min-h-[60px] bg-(--color-gray-light) rounded-t-lg border-b border-(--color-gray-3) z-30 cursor-pointer"
             onClick={() => setProfileOpen(true)}
@@ -315,9 +318,9 @@ export default function Chat() {
             </div>
           )}
 
-          <main className="h-full">
+          <main className="flex flex-col flex-1 overflow-hidden">
             {messages.length === 0 ? (
-              <div className="h-full flex flex-1 flex-col items-center justify-center">
+              <div className="flex flex-1 flex-col items-center justify-center">
                 <Image
                   src={noMessages}
                   alt="Нет сообщений"
@@ -330,14 +333,34 @@ export default function Chat() {
                 <p className="text-(--color-gray) text-sm leading-[120%]">Напишите первым :)</p>
               </div>
             ) : (
-              <div className="w-full h-full flex flex-col-reverse gap-2 px-4 pb-2 overflow-y-auto">
-                {messages.map((message, index) =>
-                  message.from_user.uid !== data.uid ? (
-                    <OutgoingMessage key={index} message={message} />
-                  ) : (
-                    <IncomingMessage key={index} message={message} markAsRead={markedAsRead} />
-                  ),
-                )}
+              <div className="mt-auto flex flex-col px-4 pb-2 overflow-y-auto">
+                {messages.map((message, index) => {
+                  const prevMessage = messages[index - 1];
+
+                  const showDateDivider =
+                    !prevMessage ||
+                    new Date(prevMessage.created_at * 1000).toDateString() !==
+                      new Date(message.created_at * 1000).toDateString();
+
+                  return (
+                    <React.Fragment key={message.uid}>
+                      {showDateDivider && <DateDivider date={formatChatDate(message.created_at)} />}
+
+                      {message.from_user.uid !== data.uid ? (
+                        <OutgoingMessage
+                          message={message}
+                          className={`${prevMessage && prevMessage.from_user.uid !== message.from_user.uid ? "mt-3" : "mt-2"}`}
+                        />
+                      ) : (
+                        <IncomingMessage
+                          message={message}
+                          markAsRead={markedAsRead}
+                          className={`${prevMessage && prevMessage.from_user.uid !== message.from_user.uid ? "mt-3" : "mt-2"}`}
+                        />
+                      )}
+                    </React.Fragment>
+                  );
+                })}
               </div>
             )}
           </main>
