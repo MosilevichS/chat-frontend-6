@@ -21,9 +21,16 @@ interface IContactItemProps {
   isSelected: boolean;
   isEditing: boolean;
   onSelect: (uid: string) => void;
+  isToggleButtonVisible?: boolean;
 }
 
-const ContactItem = ({ contact, isSelected, isEditing, onSelect }: IContactItemProps) => {
+const ContactItem = ({
+  contact,
+  isSelected,
+  isEditing,
+  onSelect,
+  isToggleButtonVisible,
+}: IContactItemProps) => {
   const pathname = usePathname();
   const isActive = pathname.startsWith(`/contacts/${contact.system_contact.uid}`);
 
@@ -83,7 +90,7 @@ const ContactItem = ({ contact, isSelected, isEditing, onSelect }: IContactItemP
             </p>
           )}
         </div>
-        {isEditing && (
+        {isEditing && isToggleButtonVisible && (
           <button
             className="cursor-pointer"
             onClick={e => {
@@ -101,7 +108,7 @@ const ContactItem = ({ contact, isSelected, isEditing, onSelect }: IContactItemP
               alt={isSelected ? "Выбрано" : "Выбрать"}
               width={24}
               height={24}
-              className="w-[24px] h-[24px]"
+              className="w-[20px] h-[20px] md:w-[24px] md:h-[24px]"
             />
           </button>
         )}

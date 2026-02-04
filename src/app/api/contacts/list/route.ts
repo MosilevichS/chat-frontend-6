@@ -1,38 +1,62 @@
 import { cookies } from "next/headers";
 
 export async function POST(request: Request) {
-  const cookieStore = cookies();
-  const token = (await cookieStore).get("accessToken")?.value;
+  const cookieStore = await cookies();
 
-  if (!token) {
-    return new Response(JSON.stringify({ message: "Unauthorized" }), { status: 401 });
-  }
+  const accessToken = cookieStore.get("accessToken")?.value;
+  const refreshToken = cookieStore.get("refreshToken")?.value;
 
-  try {
-    const body = await request.json();
+  const body = await request.json();
 
-    const res = await fetch(`${process.env.API_URL}/api/v1/contact/check/list/`, {
+  // Первый запрос к защищённому ресурсу
+  let res = await fetch(`${process.env.API_URL}/api/v1/contact/check/list/`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
 
+  // Если токен истёк, обновляем его
+  if (res.status === 401) {
+    const refreshRes = await fetch(`${process.env.API_URL}/api/v1/auth/login/refresh/token/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh: refreshToken }),
+    });
+
+    if (!refreshRes.ok) {
+      return new Response(JSON.stringify({ message: "Unauthorized" }), { status: 401 });
+    }
+
+    const { access, refresh } = await refreshRes.json();
+
+    cookieStore.set("accessToken", access, {
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 60 * 10,
+      path: "/",
+    });
+
+    cookieStore.set("refreshToken", refresh, {
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7,
+      path: "/",
+    });
+
+    // Повторный запрос с новым токеном
+    res = await fetch(`${process.env.API_URL}/api/v1/contact/check/list/`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${access}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
     });
-
-    // Попытка распарсить JSON, если он есть
-    let data: unknown = null;
-    try {
-      data = await res.json();
-    } catch {
-      data = null;
-    }
-
-    // Пробрасываем статус и данные backend напрямую
-    return new Response(JSON.stringify(data), { status: res.status });
-  } catch (err: unknown) {
-    console.error("Server error:", err);
-    return new Response(JSON.stringify({ message: "Internal Server Error" }), { status: 500 });
   }
+
+  const data = await res.json().catch(() => null);
+  return new Response(JSON.stringify(data), { status: res.status });
 }

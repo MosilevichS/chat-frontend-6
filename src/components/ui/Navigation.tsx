@@ -1,10 +1,26 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 const Navigation = () => {
   const pathname = usePathname();
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Проверяем детальный маршрут /contacts/[uid]
+  const pathSegments = pathname?.split("/").filter(Boolean) || [];
+  const isContactsDetail = pathSegments[0] === "contacts" && pathSegments.length > 1;
+
+  if (isMobile && isContactsDetail) return null;
 
   const navActive = "md:bg-(--color-gray-light) text-(--color-violet)";
   const navBaseStyle =
@@ -106,7 +122,7 @@ const Navigation = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 md:relative flex flex-row justify-center md:flex-col md:h-[228px] gap-y-3 gap-x-3 border-t border-(--color-black-light) md:border-0 pt-2  pb-8.5  md:py-0">
+    <nav className="fixed bottom-0 z-10 left-0 right-0 md:relative flex flex-row justify-center md:flex-col md:h-[228px] gap-y-3 gap-x-3 border-t border-(--color-black-light) md:border-0 pt-2  pb-8.5  md:py-0">
       {navLinks.map((item, index) => (
         <Link
           href={item.path}
