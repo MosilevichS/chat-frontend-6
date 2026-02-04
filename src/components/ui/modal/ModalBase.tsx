@@ -5,9 +5,10 @@ import { useEffect } from "react";
 interface IModalBase {
   onClose: () => void;
   children: React.ReactNode;
+  className?: string;
 }
 
-const ModalBase = ({ onClose, children }: IModalBase) => {
+const ModalBase = ({ onClose, children, className }: IModalBase) => {
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -22,7 +23,7 @@ const ModalBase = ({ onClose, children }: IModalBase) => {
 
   return (
     <div
-      className="absolute inset-0 z-50 flex items-center justify-center bg-(--color-overlay)"
+      className={`absolute inset-0 z-50 flex items-center justify-center bg-(--color-overlay) ${className || ""}`}
       onClick={onClose}
     >
       <div onClick={e => e.stopPropagation()}>{children}</div>
