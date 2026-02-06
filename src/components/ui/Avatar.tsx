@@ -1,3 +1,4 @@
+// components/ui/Avatar.tsx
 import { useMemo } from "react";
 import Image from "next/image";
 import { twMerge } from "tailwind-merge";
@@ -10,6 +11,7 @@ interface AvatarProps {
   firstName: string | undefined;
   className?: string;
   alt?: string;
+  shape?: "circle" | "square"; // Добавляем проп для формы
 }
 
 export const Avatar = ({
@@ -20,6 +22,7 @@ export const Avatar = ({
   firstName = "",
   className = "",
   alt = "Аватар пользователя",
+  shape = "circle", // По умолчанию круг
 }: AvatarProps) => {
   const initials = useMemo(() => {
     if (!firstName && !lastName) return "U";
@@ -29,56 +32,27 @@ export const Avatar = ({
 
     return `${firstInitial}${lastInitial}` || "U";
   }, [firstName, lastName]);
-  // const isValidUrl = (url: string | StaticImageData): boolean => {
-  //   if (!url) return false;
-  //
-  //   // Если это StaticImageData из next/image
-  //   if (typeof url === "object" && "src" in url) {
-  //     return true;
-  //   }
-  //
-  //   // Если это строка
-  //   if (typeof url === "string") {
-  //     const trimmed = url.trim();
-  //     if (!trimmed) return false;
-  //
-  //     // Проверяем, является ли валидным URL или относительным путем
-  //     try {
-  //       // Для относительных путей
-  //       if (trimmed.startsWith("/") || trimmed.startsWith("./") || trimmed.startsWith("../")) {
-  //         return true;
-  //       }
-  //
-  //       // Для абсолютных URL
-  //       if (
-  //         trimmed.startsWith("http://") ||
-  //         trimmed.startsWith("https://") ||
-  //         trimmed.startsWith("data:")
-  //       ) {
-  //         new URL(trimmed);
-  //         return true;
-  //       }
-  //
-  //       // Для путей к публичным файлам (без префикса)
-  //       return true; // Допускаем простые имена файлов
-  //     } catch {
-  //       return false;
-  //     }
-  //   }
-  //
-  //   return false;
-  // };
+
+  // Определяем классы для формы
+  const shapeClass = shape === "square" ? "rounded-lg" : "rounded-full";
+  const imageShapeClass = shape === "square" ? "rounded-lg" : "rounded-full";
 
   if (picUrl) {
     return (
-      <div className={twMerge("relative rounded-full overflow-hidden", className)}>
+      <div
+        className={twMerge(`relative overflow-hidden ${shapeClass}`, className)}
+        style={{
+          width: `${width}px`,
+          height: `${height}px`,
+        }}
+      >
         <Image
           src={picUrl}
-          width={width}
-          height={height}
           alt={alt}
-          className="object-cover w-full h-full rounded-full"
-          style={{ width: `${width}px`, height: `${height}px` }}
+          fill
+          className={`object-cover ${imageShapeClass}`}
+          sizes="(max-width: 768px) 100vw, 200px"
+          priority
         />
       </div>
     );
@@ -87,7 +61,7 @@ export const Avatar = ({
   return (
     <div
       className={twMerge(
-        "flex items-center justify-center rounded-full text-white font-semibold  bg-(--color-gray-3)",
+        `flex items-center justify-center text-white font-semibold bg-(--color-gray-3) ${shapeClass}`,
         className,
       )}
       style={{

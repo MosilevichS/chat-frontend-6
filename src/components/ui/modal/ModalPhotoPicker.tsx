@@ -66,7 +66,7 @@ const ModalPhotoPicker = ({
         u8arr[i] = bstr.charCodeAt(i);
       }
 
-      const file = new File([u8arr], "photo.jpg", { type: mime });
+      const file = new File([u8arr], "photo-picker.jpg", { type: mime });
       onPhotoSelected(file, { zoom, position });
     } else {
       onPhotoSelected(null, { zoom, position });
