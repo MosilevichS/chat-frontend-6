@@ -16,10 +16,10 @@
   --color-button-disabled: #e4e4e4;
   --color-overlay: #9587f566;
 
-  --color-violet: #7769e1;
+  --color-violet: #7769e1; 
   --color-violet-1: #615aa399;
   --color-violet-2: #615aa380;
-  --color-violet-ultra-light: #F5F4FF;
+  --color-violet-ultra-light: #f5f4ff;
   --color-violet-light: #cec8ff;
   --color-violet-dark: #615aa3;
   --color-violet-dark-opacity: #615aa399;
@@ -100,4 +100,9 @@ ul {
   to {
     transform: rotate(360deg);
   }
+}
+
+.os-scrollbar-handle {
+  background: var(--color-gray-dark) !important;
+  border-radius: 4px !important;
 }

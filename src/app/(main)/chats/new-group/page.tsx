@@ -1,7 +1,7 @@
 "use client";
 
-import BaseCreationPage from "../_components/BaseCreationPage";
-import GroupTypeSelector from "../_components/GroupTypeSelector";
+import BaseCreationPage from "@/src/components/ui/chats/BaseCreationPage";
+import GroupTypeSelector from "@/src/components/ui/chats/GroupTypeSelector";
 import { useState } from "react";
 
 const NewGroupPage = () => {
