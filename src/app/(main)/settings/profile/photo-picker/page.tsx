@@ -11,9 +11,9 @@ const Page = () => {
       <div className="w-full flex flex-col  md:max-w-[360px] min-h-[calc(100vh-84px)] mx-auto bg-(--color-gray-light) md:rounded-t-lg border border-(--color-gray-1) p-0-4-4-4">
         <div className="w-full">
           <div className="flex-row items-center justify-end gap-4 flex border-b border-[color:var(--color-gray-1)]">
-            <p className="flex justify-center text-(--color-black)  font-medium text-[1.125rem] ">
+            <h2 className="flex justify-center text-(--color-black)  font-medium text-[1.125rem] ">
               Изменить фото профиля
-            </p>
+            </h2>
             <Link href="/settings/profile" className="flex p-4">
               <Image src={close} width={24} height={24} alt="" />
             </Link>

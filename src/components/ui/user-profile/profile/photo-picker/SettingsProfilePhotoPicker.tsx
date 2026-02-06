@@ -1,42 +1,56 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 import Button from "@/components/ui/Button";
 import { avatarsFullSize } from "@/components/ui/user-profile/profile/photo-picker/assets/avatarsFullSize";
-import ModalPhotoPicker from "@/components/ui/modal/ModalPhotoPicker";
+import { ModalPhotoPickerForSettings } from "@/components/ui/modal/ModalPhotoPickerForSettings";
+import { useUpdateAvatarMutation, createAvatarFormData } from "@/src/services/userApi";
 
 interface AvatarType {
   id: number;
   url: string;
 }
+
 export const SettingsProfilePhotoPicker = () => {
   const router = useRouter();
   const [selectedAvatar, setSelectedAvatar] = useState<AvatarType | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalImageUrl, setModalImageUrl] = useState<string>("");
-  const initialPosition = useMemo(() => ({ x: 0, y: 0 }), []);
+  const [editedFile, setEditedFile] = useState<File | null>(null);
+  const [uploadAvatar, { isLoading }] = useUpdateAvatarMutation();
 
-  const handleSelectAvatar = (id: number, url: string) => {
+  const handleAvatarClick = (id: number, url: string) => {
     setSelectedAvatar({ id, url });
-  };
-
-  const handleSelectPhoto = () => {
-    if (!selectedAvatar) return;
-
-    setModalImageUrl(selectedAvatar.url);
+    setModalImageUrl(url);
     setIsModalOpen(true);
+    setEditedFile(null); // Сбрасываем предыдущий файл
   };
+
   const handlePhotoSelected = (file: File | null) => {
-    if (!file) return;
+    if (file) {
+      setEditedFile(file);
+      console.log("✅ Файл получен от ModalPhotoPicker:", file);
+    }
+  };
 
-    // 👉 тут у тебя ГОТОВЫЙ File
-    console.log("FILE:", file);
+  const handleSelectPhoto = async () => {
+    if (!editedFile) return;
 
-    // пример:
-    // uploadAvatar(file)
+    try {
+      // Отправляем файл на сервер
+      const formData = createAvatarFormData(editedFile);
+      const result = await uploadAvatar(formData).unwrap();
+      console.log("✅ Аватар успешно загружен:", result);
+
+      // Возвращаемся на предыдущую страницу
+      router.back();
+    } catch (error) {
+      console.error("❌ Ошибка загрузки аватара:", error);
+      alert("Не удалось загрузить фото. Попробуйте еще раз.");
+    }
   };
 
   const handleCancel = () => {
@@ -51,12 +65,14 @@ export const SettingsProfilePhotoPicker = () => {
           {avatarsFullSize.map(avatar => (
             <button
               key={avatar.id}
-              className="
+              className={`
                 relative flex items-center justify-center p-2 rounded-xl
                 transition-all duration-200
                 active:scale-95
-                focus:outline-none focus:ring-2 focus:ring-[var(--color-violet)]"
-              onClick={() => handleSelectAvatar(avatar.id, avatar.url)}
+                focus:outline-none focus:ring-2 focus:ring-[var(--color-violet)]
+                ${selectedAvatar?.id === avatar.id ? 'ring-2 ring-[var(--color-violet)]' : ''}
+              `}
+              onClick={() => handleAvatarClick(avatar.id, avatar.url)}
             >
               <Image
                 src={avatar.url}
@@ -70,7 +86,7 @@ export const SettingsProfilePhotoPicker = () => {
         </div>
       </div>
 
-      <div className="sticky bottom-20   py-4 px-2 ">
+      <div className="sticky bottom-20 z-100 py-4 px-2 ">
         <div className="flex flex-row gap-3 ">
           <Button variant="secondary1" size="medium" onClick={handleCancel} className="flex-1">
             Отменить
@@ -78,19 +94,25 @@ export const SettingsProfilePhotoPicker = () => {
           <Button
             variant="primary"
             size="medium"
-            onClick={handleSelectPhoto}
-            disabled={!selectedAvatar}
+            onClick={() => {
+              setIsModalOpen(false); // Закрываем модалку
+              handleSelectPhoto(); // Отправляем файл
+            }}
+            disabled={!isModalOpen || isLoading} // Активна когда модалка открыта
             className="flex-1"
           >
-            Выбрать фото
+            {isLoading ? "Загрузка..." : "Выбрать фото"}
           </Button>
         </div>
       </div>
-      <ModalPhotoPicker
-        key={modalImageUrl}
+
+      <ModalPhotoPickerForSettings
         isOpen={isModalOpen}
         currentPhoto={modalImageUrl}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          // Файл уже был отправлен через handlePhotoSelected
+        }}
         onPhotoSelected={handlePhotoSelected}
       />
     </div>

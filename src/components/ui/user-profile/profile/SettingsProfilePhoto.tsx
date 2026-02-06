@@ -42,7 +42,7 @@ const SettingsProfilePhoto = () => {
         const formData = createAvatarFormData(file);
         const result = await uploadAvatar(formData).unwrap();
         console.log("Avatar uploaded successfully:", result);
-        setIsModalOpen(false); // Закрыть модалку после загрузки
+        setIsModalOpen(false);
       } catch (error) {
         console.error("Failed to upload avatar:", error);
         alert("Failed to upload avatar. Please try again.");
@@ -58,7 +58,7 @@ const SettingsProfilePhoto = () => {
 
   return (
     <div className=" relative items-center flex flex-col w-full justify-center ">
-      <div className="hidden md:flex flex-col">
+      <div className="hidden md:flex px-4  flex-col">
         <Avatar
           picUrl={data?.avatar_url}
           width={200}
@@ -73,7 +73,7 @@ const SettingsProfilePhoto = () => {
           Изменить фото
         </button>
       </div>
-      <div className="flex md:hidden px-4">
+      <div className="flex md:hidden px-4 ">
         <Avatar
           picUrl={data?.avatar_url}
           width={361}
@@ -89,10 +89,12 @@ const SettingsProfilePhoto = () => {
           + Изменить фото
         </button>
       </div>
+      <div>
 
+      </div>
       {isModalOpen && (
         <ModalBase
-          className="max-w-[360px] md:max-w-[400px] rounded-md left-4 w-full px-5"
+          className="max-w-[393px] md:max-w-[400px] rounded-md justify-center mx-4 px-5 "
           onClose={() => setIsModalOpen(false)}
         >
           <div ref={modalRef} className="px-4">

@@ -33,7 +33,7 @@ const ModalPhotoPicker = ({
 
   // Сброс состояния при закрытии
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
       setSelectedImage(currentPhoto);
       setZoom(currentZoom);
       setPosition(currentPosition);
