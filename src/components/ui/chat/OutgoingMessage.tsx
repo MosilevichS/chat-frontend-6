@@ -3,6 +3,7 @@ import { timeFormat } from "@/src/utils/timeFormat";
 import type { IMessage } from "@/src/types/message";
 import messageSent from "@/src/assets/icons/message-sent.svg";
 import messageRead from "@/src/assets/icons/message-read.svg";
+// import messageNotSent from "@/src/assets/icons/message-not-sent.svg";
 
 export default function OutgoingMessage({
   message,
@@ -20,6 +21,7 @@ export default function OutgoingMessage({
         <span className="text-sm text-(--color-gray)">
           {timeFormat(message.created_at, "time")}
         </span>
+
         <span>
           {message.new ? (
             <Image src={messageSent} alt="Отправлено" width={18} height={18} />
