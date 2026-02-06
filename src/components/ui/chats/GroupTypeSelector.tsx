@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Radio from "@/src/components/ui/Radio";
-import upDownIcon from "../../../../assets/icons/up-down.svg";
+import upDownIcon from "../../../assets/icons/up-down.svg";
 
 interface IGroupTypeSelector {
   value: "closed" | "open";

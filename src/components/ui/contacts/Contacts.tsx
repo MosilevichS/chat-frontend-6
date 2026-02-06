@@ -22,6 +22,15 @@ import {
 } from "@/src/services/contactApi";
 import { useMediaQuery } from "@/src/hooks/useMediaQuery";
 
+import arrowLeft from "../../../assets/icons/arrow-left.svg";
+import cancel from "../../../assets/icons/cancel.svg";
+import close from "../../../assets/icons/close.svg";
+import deleteGray from "../../../assets/icons/delete-gray.svg";
+import deleteViolet from "../../../assets/icons/delete-violet.svg";
+import forwardMessage from "../../../assets/icons/forward-message.svg";
+import phoneBook from "../../../assets/icons/phone-book.svg";
+import deleteContacts from "../../../assets/icons/delete_outline.svg";
+
 const Contacts = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [editing, setEditing] = useState(false);
@@ -50,6 +59,7 @@ const Contacts = () => {
 
   const filteredContacts = useMemo(() => {
     const allContacts = data?.results || [];
+
     if (!searchQuery) return allContacts;
 
     return allContacts.filter(contact => {
@@ -58,6 +68,8 @@ const Contacts = () => {
       return fullName.includes(searchQuery.toLowerCase());
     });
   }, [data, searchQuery]);
+
+  console.log(filteredContacts);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -172,7 +184,7 @@ const Contacts = () => {
           {searchQuery && (
             <button onClick={() => setSearchQuery("")}>
               <Image
-                src="/assets/icons/contacts/clear-btn.svg"
+                src={close}
                 alt="Очистить"
                 width={24}
                 height={24}
@@ -197,7 +209,7 @@ const Contacts = () => {
                     <p className="text-(--color-violet) font-normal">Выбрать</p>
                   ) : (
                     <Image
-                      src="/assets/icons/contacts/delete-gray.svg"
+                      src={deleteGray}
                       alt="Удалить"
                       width={24}
                       height={24}
@@ -212,7 +224,7 @@ const Contacts = () => {
               <div className="flex gap-x-2">
                 <button className="cursor-pointer" onClick={cancelDeleteContacts}>
                   <Image
-                    src="/assets/icons/contacts/arrow-left.svg"
+                    src={arrowLeft}
                     alt="Отменить"
                     width={24}
                     height={24}
@@ -227,7 +239,7 @@ const Contacts = () => {
                 ) : (
                   <button className="cursor-pointer" onClick={cancelDeletion}>
                     <Image
-                      src="/assets/icons/contacts/cancel.svg"
+                      src={cancel}
                       alt="Отменить"
                       width={24}
                       height={24}
@@ -241,7 +253,7 @@ const Contacts = () => {
                     <p className="text-(--color-violet) font-normal">Выбрать</p>
                   ) : (
                     <Image
-                      src="/assets/icons/contacts/delete-violet.svg"
+                      src={deleteViolet}
                       alt="Удалить"
                       width={24}
                       height={24}
@@ -286,7 +298,7 @@ const Contacts = () => {
               <div className="flex flex-col items-center mt-45 text-center text-(--color-gray) font-normal">
                 <Image
                   className="mb-6"
-                  src="/images/phone-book.svg"
+                  src={phoneBook}
                   alt="Список контактов пока пуст"
                   width={200}
                   height={200}
@@ -340,13 +352,7 @@ const Contacts = () => {
             <div className="fixed bottom-0 z-20 flex justify-between w-full h-[84px]  bg-(--color-gray-1) pb-4 px-4">
               <div className="flex items-center gap-x-5">
                 <button onClick={() => cancelDeletion()}>
-                  <Image
-                    src="/assets/icons/contacts/clear-btn.svg"
-                    alt="Очистить"
-                    width={24}
-                    height={24}
-                    className=" w-[24px]"
-                  />
+                  <Image src={close} alt="Очистить" width={24} height={24} className=" w-[24px]" />
                 </button>
                 <p className="font-medium">
                   {`Выбрано ${selectedContactIds.length} ${declension(selectedContactIds.length, ["контакт", "контакта", "контактов"], 1)}`}
@@ -355,7 +361,7 @@ const Contacts = () => {
               <div className="flex gap-x-7">
                 <button>
                   <Image
-                    src="/assets/icons/contacts/send-message.svg"
+                    src={forwardMessage}
                     alt="Переслать"
                     width={24}
                     height={24}
@@ -364,7 +370,7 @@ const Contacts = () => {
                 </button>
                 <button onClick={() => openModal()}>
                   <Image
-                    src="/assets/icons/chat/delete.svg"
+                    src={deleteContacts}
                     alt="Удалить"
                     width={24}
                     height={24}

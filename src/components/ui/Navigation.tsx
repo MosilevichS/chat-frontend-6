@@ -18,7 +18,8 @@ const Navigation = () => {
 
   // Проверяем детальный маршрут /contacts/[uid]
   const pathSegments = pathname?.split("/").filter(Boolean) || [];
-  const isContactsDetail = pathSegments[0] === "contacts" && pathSegments.length > 1;
+  const isContactsDetail =
+    (pathSegments[0] === "contacts" || pathSegments[0] === "chats") && pathSegments.length > 1;
 
   if (isMobile && isContactsDetail) return null;
 
