@@ -9,13 +9,18 @@ import { Avatar } from "@/components/ui/Avatar";
 import ModalBase from "@/components/ui/modal/ModalBase";
 import Button from "@/components/ui/Button";
 import { useRouter } from "next/navigation";
+import { useClickOutside } from "@/src/hooks/useClickOutside";
 
 const SettingsProfilePhoto = () => {
   const { data } = useGetProfileQuery();
   const [uploadAvatar] = useUpdateAvatarMutation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const router = useRouter()
+  const router = useRouter();
+  const modalRef = useRef<HTMLDivElement>(null);
+  useClickOutside(modalRef, () => {
+    setIsModalOpen(false);
+  });
   const handleAvatarChange = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
@@ -90,7 +95,7 @@ const SettingsProfilePhoto = () => {
           className="max-w-[360px] md:max-w-[400px] rounded-md left-4 w-full px-5"
           onClose={() => setIsModalOpen(false)}
         >
-          <div className="px-4">
+          <div ref={modalRef} className="px-4">
             <input
               ref={fileInputRef}
               type="file"
