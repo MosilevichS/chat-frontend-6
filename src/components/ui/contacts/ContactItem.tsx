@@ -4,6 +4,9 @@ import { usePathname } from "next/navigation";
 
 import { timeFormat } from "@/src/utils/timeFormat";
 
+import checkboxDone from "../../../assets/icons/checkbox-done.svg";
+import checkbox from "../../../assets/icons/checkbox.svg";
+
 interface IUserContact {
   uid: string;
   first_name: string;
@@ -100,11 +103,7 @@ const ContactItem = ({
             }}
           >
             <Image
-              src={
-                isSelected
-                  ? "/assets/icons/contacts/checkbox-true.svg"
-                  : "/assets/icons/contacts/checkbox.svg"
-              }
+              src={isSelected ? checkboxDone : checkbox}
               alt={isSelected ? "Выбрано" : "Выбрать"}
               width={24}
               height={24}

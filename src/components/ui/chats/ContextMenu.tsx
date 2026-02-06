@@ -1,18 +1,29 @@
 import Image from "next/image";
 
+import notifications from "../../../assets/icons/notifications.svg";
+import addContact from "../../../assets/icons/add-contact.svg";
+import toFix from "../../../assets/icons/to-fix.svg";
+import deleteChat from "../../../assets/icons/delete_outline.svg";
+import readOk from "../../../assets/icons/read-ok.svg";
+
 type Chat = {
-  name: string;
+  id: number;
   notifications: boolean;
-  // другие поля
+  is_favorite: boolean;
+  chat: { is_in_contacts: boolean };
 };
 
 type ContextMenuProps = {
   isOpen: boolean;
   ref: React.RefObject<HTMLDivElement | null>;
-  chats: Chat[];
-  chatId: string | null;
+  chats: Chat[] | undefined;
+  chatId: number | null;
   position: { x: number; y: number; placement: "top" | "bottom" };
   onToggleNotifications: () => void;
+  toggleFavorite: () => void;
+  addContacts: () => void;
+  setAllMessagesRead: () => void;
+  handleDeleteChat: () => void;
   menuOffset: number;
 };
 
@@ -23,14 +34,21 @@ const ContextMenu = ({
   chatId,
   position,
   onToggleNotifications,
+  toggleFavorite,
+  addContacts,
+  setAllMessagesRead,
+  handleDeleteChat,
   menuOffset,
 }: ContextMenuProps) => {
-  if (!isOpen) return null;
+  if (!isOpen || !chats) return null;
+
+  const chat = chats.find(c => c.id === chatId);
+  if (!chat) return null;
 
   return (
     <div
       ref={ref}
-      className={`absolute h-[238px] w-[250px] bg-(--color-white) rounded-[10px]`}
+      className={`absolute z-10 max-h-[238px] w-[250px] bg-(--color-white) rounded-[10px]`}
       style={{
         left: `${position.x}px`,
         ...(position.placement === "bottom"
@@ -38,63 +56,67 @@ const ContextMenu = ({
           : { bottom: `${window.innerHeight - position.y + menuOffset}px` }),
       }}
     >
-      <button className="w-full flex justify-between items-center h-[44px] px-4 border-b border-(--color-button-disabled) cursor-pointer hover:bg-(--color-gray-light)">
-        <p>Добавить в контакты</p>
+      {!chat.chat.is_in_contacts && (
+        <button
+          className="w-full flex justify-between items-center h-[44px] px-4 border-b border-(--color-button-disabled) cursor-pointer 
+          hover:bg-(--color-gray-light) hover:rounded-t-[10px]"
+          onClick={addContacts}
+        >
+          <p>Добавить в контакты</p>
+          <Image
+            className="w-6 h-6"
+            src={addContact}
+            alt={chat.chat.is_in_contacts ? "Удалить из контактов" : "Добавить в контакты"}
+            width={24}
+            height={24}
+          />
+        </button>
+      )}
+      <button
+        className={`w-full flex justify-between items-center gap-x-[15px] h-[62px] px-4 border-b border-(--color-button-disabled) cursor-pointer 
+        hover:bg-(--color-gray-light)  
+        ${chat.chat.is_in_contacts ? "hover:rounded-t-[10px]" : ""}`}
+        onClick={onToggleNotifications}
+      >
+        <p className="text-left">
+          {chat.notifications ? "Выключить уведомления" : "Включить уведомления"}
+        </p>
         <Image
           className="w-6 h-6"
-          src="/assets/icons/chat/plus-contact.svg"
-          alt="Добавить в контакты"
+          src={notifications}
+          alt={chat.notifications ? "Выключить уведомления" : "Включить уведомления"}
           width={24}
           height={24}
         />
       </button>
       <button
-        className="w-full flex justify-between items-center gap-x-[15px] h-[62px] px-4 border-b border-(--color-button-disabled) cursor-pointer hover:bg-(--color-gray-light)"
-        onClick={onToggleNotifications}
+        className="w-full flex justify-between items-center h-[44px] px-4 border-b border-(--color-button-disabled) cursor-pointer hover:bg-(--color-gray-light)"
+        onClick={toggleFavorite}
       >
-        <p className="text-left">
-          {chats.find(c => c.name === chatId)?.notifications
-            ? "Выключить уведомления"
-            : "Включить уведомления"}
-        </p>
+        <p className="text-left">{chat.is_favorite ? "Открепить" : "Закрепить"}</p>
         <Image
           className="w-6 h-6"
-          src="/assets/icons/chat/no-sound.svg"
-          alt="Выключить уведомления"
+          src={toFix}
+          alt={chat.is_favorite ? "Открепить" : "Закрепить"}
           width={24}
           height={24}
         />
       </button>
-      <div className="flex justify-between items-center h-[44px] px-4 border-b border-(--color-button-disabled) cursor-pointer hover:bg-(--color-gray-light)">
-        <p>Закрепить</p>
-        <Image
-          className="w-6 h-6"
-          src="/assets/icons/chat/to-fix.svg"
-          alt="Закрепить"
-          width={24}
-          height={24}
-        />
-      </div>
-      <div className="flex justify-between items-center h-[44px] px-4 border-b border-(--color-button-disabled) cursor-pointer hover:bg-(--color-gray-light)">
+      <button
+        className="w-full flex justify-between items-center h-[44px] px-4 border-b border-(--color-button-disabled) cursor-pointer hover:bg-(--color-gray-light)"
+        onClick={setAllMessagesRead}
+      >
         <p>Пометить прочитанным</p>
-        <Image
-          className="w-6 h-6"
-          src="/assets/icons/chat/read-ok.svg"
-          alt="Пометить прочитанным"
-          width={24}
-          height={24}
-        />
-      </div>
-      <div className="flex justify-between items-center h-[44px] px-4 border-b border-(--color-button-disabled) cursor-pointer hover:bg-(--color-gray-light)">
+        <Image className="w-6 h-6" src={readOk} alt="Пометить прочитанным" width={24} height={24} />
+      </button>
+      <button
+        className="w-full flex justify-between items-center h-[44px] px-4 cursor-pointer 
+      hover:bg-(--color-gray-light) hover:rounded-b-[10px]"
+        onClick={handleDeleteChat}
+      >
         <p className="text-(--color-error)">Удалить чат</p>
-        <Image
-          className="w-6 h-6"
-          src="/assets/icons/chat/delete.svg"
-          alt="Удалить чат"
-          width={24}
-          height={24}
-        />
-      </div>
+        <Image className="w-6 h-6" src={deleteChat} alt="Удалить чат" width={24} height={24} />
+      </button>
     </div>
   );
 };

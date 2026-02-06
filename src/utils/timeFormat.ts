@@ -31,7 +31,7 @@ export function timeFormat(time: Date | number, mode: TimeFormatMode = "relative
   if (minutes < 1) return "только что";
 
   if (minutes < 60) {
-    return `${minutes} ${declension(minutes, ["минута", "минуты", "минут"], 2)} назад`;
+    return `${minutes} ${declension(minutes, ["минут", "минуту", "минуты"], 2)} назад`;
   }
 
   if (hours < 24) {

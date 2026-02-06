@@ -6,9 +6,9 @@ import InputWithCounter from "@/src/components/ui/InputWithCounter";
 import Button from "@/src/components/ui/Button";
 import ModalPhotoPicker from "@/src/components/ui/modal/ModalPhotoPicker";
 import Image from "next/image";
-import backDesktop from "../../../../assets/icons/back-desktop.svg";
-import backMobile from "../../../../assets/icons/back-icon.svg";
-import fotoNewGroup from "../../../../assets/icons/foto-new-group.svg";
+import backDesktop from "../../../assets/icons/back-desktop.svg";
+import backMobile from "../../../assets/icons/back-icon.svg";
+import fotoNewGroup from "../../../assets/icons/foto-new-group.svg";
 
 interface IBaseCreationPage {
   title: string;
