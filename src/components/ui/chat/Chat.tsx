@@ -101,6 +101,9 @@ export default function Chat() {
         const message: IMessage = data.object;
 
         if (data.action === "create_text_message") {
+          const isThisChat = message.from_user.uid === user_uid || message.to_user.uid === user_uid;
+
+          if (!isThisChat) return;
           setMessages(prevMessages => [...prevMessages, message]);
           newMessagesBottom.current = true;
         }
