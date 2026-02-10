@@ -38,12 +38,14 @@ import group from "../../../assets/icons/group.svg";
 import close from "../../../assets/icons/close.svg";
 import noChats from "../../../assets/icons/no-chats.svg";
 import ChatsItem from "./ChatsItem";
+import { useMediaQuery } from "@/src/hooks/useMediaQuery";
 
 const Chats = () => {
   const POPUP_HEIGHT = 238;
+  const MENU_WIDTH = 250;
   const MENU_OFFSET = 20;
 
-  const pathname = usePathname();
+  const isMobile = useMediaQuery();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [openContextMenu, setOpenContextMenu] = useState(false);
@@ -61,7 +63,9 @@ const Chats = () => {
 
   const [isCreateButtonActive, setIsCreateButtonActive] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
   const router = useRouter();
+  const pathname = usePathname();
 
   const {
     data,
@@ -102,11 +106,21 @@ const Chats = () => {
 
     const { clientY, clientX } = e;
     const windowHeight = window.innerHeight;
+    const windowWidth = window.innerWidth;
 
-    const hasSpaceBelow = clientY + POPUP_HEIGHT + MENU_OFFSET <= windowHeight;
+    // Вертикаль: достаточно места снизу?
+    let hasSpaceBelow = clientY + POPUP_HEIGHT + MENU_OFFSET <= windowHeight;
+
+    let menuX = clientX;
+
+    if (isMobile) {
+      // На мобильных — центрируем строго по середине экрана
+      menuX = (windowWidth - MENU_WIDTH) / 2;
+      hasSpaceBelow = clientY + POPUP_HEIGHT + MENU_OFFSET + 84 <= windowHeight;
+    }
 
     setMenuPosition({
-      x: clientX,
+      x: menuX,
       y: clientY,
       placement: hasSpaceBelow ? "bottom" : "top",
     });
