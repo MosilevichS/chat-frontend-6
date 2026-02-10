@@ -35,7 +35,7 @@ const ContextMenu = ({
   position,
   onToggleNotifications,
   toggleFavorite,
-  addContacts,
+ addContacts,
   setAllMessagesRead,
   handleDeleteChat,
   menuOffset,

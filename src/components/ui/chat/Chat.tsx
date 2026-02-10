@@ -70,6 +70,8 @@ export default function Chat() {
   const [inputValue, setInputValue] = useState("");
   const [messages, setMessages] = useState<IMessage[]>([]);
 
+
+  
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const readMessagesRef = useRef<Set<string>>(new Set());
