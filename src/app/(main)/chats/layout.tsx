@@ -11,24 +11,38 @@ export default function ContactsLayout({ chat }: { chat: React.ReactNode }) {
 
   const pathname = usePathname();
 
+  const renderMobileContent = () => {
+    if (pathname === "/chats/new-group") {
+      return <NewGroupPage />;
+    }
+    if (pathname === "/chats/new-channel") {
+      return <NewChannelPage />;
+    }
+    return <>{hasChat ? chat : <Chats />}</>;
+  };
+
+  const renderDesktopContent = () => {
+    if (pathname === "/chats/new-group") {
+      return <NewGroupPage />;
+    }
+    if (pathname === "/chats/new-channel") {
+      return <NewChannelPage />;
+    }
+    return (
+      <>
+        <Chats />
+        {chat}
+      </>
+    );
+  };
+
   return (
     <>
       {/* MOBILE */}
-      <div className="block md:hidden h-full">{hasChat ? chat : <Chats />}</div>
+      <div className="block md:hidden h-full">{renderMobileContent()}</div>
 
       {/* DESKTOP */}
-      <div className="hidden md:flex md:gap-x-6 h-full">
-        {pathname === "/chats/new-group" ? (
-          <NewGroupPage />
-        ) : pathname === "/chats/new-channel" ? (
-          <NewChannelPage />
-        ) : (
-          <>
-            <Chats />
-            {chat}
-          </>
-        )}
-      </div>
+      <div className="hidden md:flex md:gap-x-6 h-full">{renderDesktopContent()}</div>
     </>
   );
 }

@@ -13,7 +13,7 @@ export const contactApi = privateApi.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: ["Contacts", "Chats"],
+      invalidatesTags: ["Contacts"],
     }),
     deleteContact: builder.mutation<void, { contact_uids: string[] }>({
       query: body => ({
