@@ -5,6 +5,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import {
+  OverlayScrollbarsComponent,
+  type OverlayScrollbarsComponentRef,
+} from "overlayscrollbars-react";
+import "overlayscrollbars/overlayscrollbars.css";
+
+import {
   useDeleteChatMutation,
   useGetChatsQuery,
   useUpdatedChatsMutation,
@@ -50,7 +56,6 @@ const Chats = () => {
   const [showAddContactModal, setShowAddContactModal] = useState(false);
   const [showDeleleContactModal, setShowDeleleContactModal] = useState(false);
 
-  const containerRef = useRef<HTMLDivElement | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
 
@@ -76,54 +81,6 @@ const Chats = () => {
   const [deleteChat] = useDeleteChatMutation();
 
   console.log(data?.results, error);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    let high;
-
-    // Функция: проверить, превышает ли высота контента 100vh − 165px
-    const isContentTall = () => {
-      const viewportHeight = window.innerHeight;
-      const threshold = viewportHeight - 165; // 100vh − 165px
-      return container.scrollHeight > threshold;
-    };
-
-    if (isContentTall()) {
-      high = true;
-    } else {
-      high = false;
-    }
-
-    if (!high) {
-      container.style.paddingRight = "6px";
-    }
-
-    if (high) {
-      container.style.paddingRight = "0px";
-    }
-
-    const onMouseEnter = () => {
-      if (isContentTall()) {
-        container.style.paddingRight = "0px";
-      }
-    };
-
-    const onMouseLeave = () => {
-      container.style.paddingRight = "6px"; // Сброс
-    };
-
-    // Прикрепим обработчики
-    container.addEventListener("mouseenter", onMouseEnter);
-    container.addEventListener("mouseleave", onMouseLeave);
-
-    // Очистка
-    return () => {
-      container.removeEventListener("mouseenter", onMouseEnter);
-      container.removeEventListener("mouseleave", onMouseLeave);
-    };
-  }, []);
 
   useEffect(() => {
     if (showAddContactModal) {
@@ -297,6 +254,8 @@ const Chats = () => {
     });
   }, [data, searchQuery]);
 
+  const osRef = useRef<OverlayScrollbarsComponentRef | null>(null);
+
   return (
     <div className="w-full md:max-w-[360px] md:min-w-[360px] min-h-[calc(100vh-88px)] bg-(--color-gray-light) md:rounded-lg border border-(--color-gray-1)">
       <div className="relative w-full p-4">
@@ -381,46 +340,55 @@ const Chats = () => {
         </div>
       </div>
 
-      <div
-        ref={containerRef}
-        className="w-full overflow-y-auto h-[calc(100vh-165px)] md:h-[calc(100vh-170px)] scroll-custom px-2"
+      <OverlayScrollbarsComponent
+        ref={osRef}
+        options={{
+          scrollbars: {
+            autoHide: "leave",
+            autoHideDelay: 200,
+          },
+        }}
+        className="h-[calc(100vh-165px)] md:h-[calc(100vh-170px)]"
       >
-        {isLoading ? (
-          <Loader text="сообщений" className="pt-40" />
-        ) : filteredChats.length > 0 ? (
-          filteredChats.map((chat, id) => (
-            <ChatsItem
-              key={id}
-              chat={chat}
-              selectedChatId={selectedChatId}
-              handleRightClick={handleRightClick}
-            />
-          ))
-        ) : filteredChats.length === 0 && !searchQuery ? (
-          <div className="flex flex-col items-center mt-45 text-center text-(--color-gray) font-normal">
-            <Image
-              className="w-50 h-50 mb-6"
-              src={noChats}
-              alt="нет чатов"
-              width={200}
-              height={200}
-              loading="eager"
-            />
-            <p className="font-semibold mb-2">У вас пока нет чатов</p>
-            <p className="text-[14px] font-normal mb-10">Начните общение и здесь всё появится</p>
-            <Button
-              href="/contacts"
-              variant="primary"
-              size="medium"
-              className="md:mt-auto !max-w-[330px] text-white"
-            >
-              Начать чат
-            </Button>
-          </div>
-        ) : (
-          <NotFound />
-        )}
-      </div>
+        <div>
+          {isLoading ? (
+            <Loader text="сообщений" className="pt-40" />
+          ) : filteredChats.length > 0 ? (
+            filteredChats.map((chat, id) => (
+              <ChatsItem
+                key={id}
+                chat={chat}
+                selectedChatId={selectedChatId}
+                handleRightClick={handleRightClick}
+              />
+            ))
+          ) : filteredChats.length === 0 && !searchQuery ? (
+            <div className="flex flex-col items-center mt-45 text-center text-(--color-gray) font-normal">
+              <Image
+                className="w-50 h-50 mb-6"
+                src={noChats}
+                alt="нет чатов"
+                width={200}
+                height={200}
+                loading="eager"
+              />
+              <p className="font-semibold mb-2">У вас пока нет чатов</p>
+              <p className="text-[14px] font-normal mb-10">Начните общение и здесь всё появится</p>
+              <Button
+                href="/contacts"
+                variant="primary"
+                size="medium"
+                className="md:mt-auto !max-w-[330px] text-white"
+              >
+                Начать чат
+              </Button>
+            </div>
+          ) : (
+            <NotFound />
+          )}
+        </div>
+      </OverlayScrollbarsComponent>
+
       <ContextMenu
         isOpen={openContextMenu}
         ref={popupRef}
