@@ -34,7 +34,6 @@ export const SettingsProfilePhotoPicker = () => {
     if (!modalRef.current) return;
 
     const file = await modalRef.current.getFile();
-    console.log(file, file?.size);
     if (!file) return;
 
     const formData = createAvatarFormData(file);

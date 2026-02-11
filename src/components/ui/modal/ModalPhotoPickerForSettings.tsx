@@ -25,17 +25,32 @@ export const ModalPhotoPickerForSettings = forwardRef<ModalPhotoPickerHandle, Pr
       async getFile() {
         if (!photoUrl) return null;
 
-        // ВАЖНО: грузим оригинал
-        const response = await fetch(photoUrl, { cache: "no-store" });
-        if (!response.ok) return null;
+        // 1. Загружаем файл напрямую
+        const res = await fetch(photoUrl);
+        const blob = await res.blob();
 
-        const blob = await response.blob();
+        // 2. Создаём ImageBitmap (НЕ ломает canvas)
+        const bitmap = await createImageBitmap(blob);
 
-        return new File(
-          [blob],
-          "avatar.jpg",
-          { type: blob.type || "image/jpeg" }
-        );
+        const SIZE = 320;
+        const canvas = document.createElement("canvas");
+        canvas.width = SIZE;
+        canvas.height = SIZE;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return null;
+
+        ctx.translate(SIZE / 2, SIZE / 2);
+        ctx.scale(zoom, zoom);
+
+        ctx.drawImage(bitmap, -bitmap.width / 2, -bitmap.height / 2, bitmap.width, bitmap.height);
+
+        return new Promise<File | null>(resolve => {
+          canvas.toBlob(blob => {
+            if (!blob) return resolve(null);
+            resolve(new File([blob], "avatar.png", { type: "image/png" }));
+          });
+        });
       },
     }));
 
@@ -46,6 +61,12 @@ export const ModalPhotoPickerForSettings = forwardRef<ModalPhotoPickerHandle, Pr
         <div className="w-[432px] h-[453px] bg-white rounded-lg overflow-hidden flex flex-col">
           <div className="flex items-center justify-between px-10 pt-6 pb-4">
             <h2 className="text-lg font-semibold text-gray-900">Настроить отображение фото</h2>
+            <button
+              onClick={onClose}
+              className="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-gray-700"
+            >
+              ✕
+            </button>
           </div>
 
           <div className="flex-1 px-6 pb-6 flex flex-col items-center">
