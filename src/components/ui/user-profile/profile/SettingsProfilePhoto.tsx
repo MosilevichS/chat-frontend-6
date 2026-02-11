@@ -79,7 +79,6 @@ export const SettingsProfilePhoto = () => {
       {/* Mobile */}
       <div className="relative flex md:hidden justify-center px-4">
         <Avatar
-          sizes="360px"
           className="w-[360px] h-[391px] rounded-lg"
           picUrl={data?.avatar_url}
           firstName={data?.first_name}
