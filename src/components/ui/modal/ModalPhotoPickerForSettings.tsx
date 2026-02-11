@@ -32,10 +32,10 @@ export const ModalPhotoPickerForSettings = forwardRef<ModalPhotoPickerHandle, Pr
         // 2. Создаём ImageBitmap (НЕ ломает canvas)
         const bitmap = await createImageBitmap(blob);
 
-        const SIZE = 320;
+        const SIZE = 400;
         const canvas = document.createElement("canvas");
-        canvas.width = SIZE;
-        canvas.height = SIZE;
+        canvas.width = 361;
+        canvas.height = 390;
 
         const ctx = canvas.getContext("2d");
         if (!ctx) return null;

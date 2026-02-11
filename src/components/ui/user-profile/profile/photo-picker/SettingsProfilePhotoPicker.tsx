@@ -44,7 +44,7 @@ export const SettingsProfilePhotoPicker = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col flex-1 min-h-screen">
       <div className="grid grid-cols-3 gap-3 p-4 mb-auto">
         {avatarsFullSize.map(avatar => (
           <button
@@ -62,7 +62,7 @@ export const SettingsProfilePhotoPicker = () => {
         ))}
       </div>
 
-      <div className="sticky bottom-20 p-4 flex gap-3">
+      <div className="bottom-20 p-4 flex gap-3 z-100">
         <Button
           variant="secondary1"
           size="medium"

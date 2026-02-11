@@ -1,5 +1,5 @@
 import Image from "next/image";
-import SettingsProfilePhoto from "@/components/ui/user-profile/profile/SettingsProfilePhoto";
+import { SettingsProfilePhoto } from "@/components/ui/user-profile/profile/SettingsProfilePhoto";
 import Link from "next/link";
 import backIcon from "@/assets/icons/back-icon.svg";
 import SettingsProfileChangeForm from "@/components/ui/user-profile/profile/SettingsProfileChangeForm";
@@ -19,7 +19,6 @@ const Page = () => {
           </div>
           <SettingsProfilePhoto />
           <SettingsProfileChangeForm />
-
         </div>
       </div>
       <div className="hidden  md:flex  justify-center items-center w-full max-w-[744px] min-h-[calc(100vh-84px)] bg-(--color-gray-light) rounded-t-lg px-4"></div>

@@ -1,76 +1,54 @@
-// components/ui/Avatar.tsx
 import { useMemo } from "react";
 import Image from "next/image";
 import { twMerge } from "tailwind-merge";
 
 interface AvatarProps {
-  picUrl: undefined | string;
-  height?: number;
-  width?: number;
-  lastName: string | undefined;
-  firstName: string | undefined;
-  className?: string;
+  picUrl?: string;
+  firstName?: string;
+  lastName?: string;
   alt?: string;
-  shape?: "circle" | "square"; // Добавляем проп для формы
+  className?: string;
+  sizes?: string;
+  imageClassName?: string;
 }
 
 export const Avatar = ({
   picUrl,
-  height = 82,
-  width = 82,
-  lastName = "",
   firstName = "",
-  className = "",
+  lastName = "",
   alt = "Аватар пользователя",
-  shape = "circle", // По умолчанию круг
+  className = "",
+  sizes,
+  imageClassName,
 }: AvatarProps) => {
   const initials = useMemo(() => {
     if (!firstName && !lastName) return "U";
-
-    const firstInitial = firstName ? firstName.charAt(0).toUpperCase() : "";
-    const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : "";
-
-    return `${firstInitial}${lastInitial}` || "U";
+    return `${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase();
   }, [firstName, lastName]);
 
-  // Определяем классы для формы
-  const shapeClass = shape === "square" ? "rounded-lg" : "rounded-full";
-  const imageShapeClass = shape === "square" ? "rounded-lg" : "rounded-full";
-
-  if (picUrl) {
-    return (
-      <div
-        className={twMerge(`relative overflow-hidden ${shapeClass}`, className)}
-        style={{
-          width: `${width}px`,
-          height: `${height}px`,
-        }}
-      >
+  return (
+    <div
+      className={twMerge("relative overflow-hidden", className)}
+      style={{
+        width: sizes,
+        height: sizes,
+        ...(sizes && { flexShrink: 0 }),
+      }}
+    >
+      {picUrl ? (
         <Image
           src={picUrl}
           alt={alt}
           fill
-          className={`object-cover ${imageShapeClass}`}
-          sizes="(max-width: 768px) 100vw, 200px"
           priority
+          className={twMerge("object-cover", imageClassName)}
+          sizes={sizes}
         />
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={twMerge(
-        `flex items-center justify-center text-white font-semibold bg-(--color-gray-3) ${shapeClass}`,
-        className,
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-white font-semibold">
+          <span className="text-5xl">{initials}</span>
+        </div>
       )}
-      style={{
-        width: `${width}px`,
-        height: `${height}px`,
-        fontSize: `${Math.min(width, height) / 2.5}px`,
-      }}
-    >
-      {initials}
     </div>
   );
 };

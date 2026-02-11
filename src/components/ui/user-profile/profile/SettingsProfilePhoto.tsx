@@ -11,7 +11,7 @@ import Button from "@/components/ui/Button";
 import { useRouter } from "next/navigation";
 import { useClickOutside } from "@/src/hooks/useClickOutside";
 
-const SettingsProfilePhoto = () => {
+export const SettingsProfilePhoto = () => {
   const { data } = useGetProfileQuery();
   const [uploadAvatar] = useUpdateAvatarMutation();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -57,40 +57,41 @@ const SettingsProfilePhoto = () => {
   };
 
   return (
-    <div className=" relative items-center flex flex-col w-full justify-center ">
-      <div className="hidden md:flex px-4  flex-col">
+    <div className="flex flex-col items-center justify-center w-full relative">
+      {/* Desktop */}
+      <div className="hidden md:flex flex-col items-center px-4">
         <Avatar
+          sizes="200px"
+          className="w-[200px] h-[200px] rounded-full"
           picUrl={data?.avatar_url}
-          width={200}
-          height={200}
-          lastName={data?.last_name}
           firstName={data?.first_name}
+          lastName={data?.last_name}
         />
+
         <button
           onClick={() => setIsModalOpen(true)}
-          className="text-[color:var(--color-violet)] text-[1.125rem] font-medium hover:opacity-60 transition-opacity"
+          className="mt-4 text-[color:var(--color-violet)] text-[1.125rem] font-medium hover:opacity-60 transition-opacity"
         >
           Изменить фото
         </button>
       </div>
-      <div className="flex md:hidden px-4 ">
+
+      {/* Mobile */}
+      <div className="relative flex md:hidden justify-center px-4">
         <Avatar
+          sizes="360px"
+          className="w-[360px] h-[391px] rounded-lg"
           picUrl={data?.avatar_url}
-          width={361}
-          height={390}
-          lastName={data?.last_name}
           firstName={data?.first_name}
-          shape="square"
+          lastName={data?.last_name}
         />
+
         <button
           onClick={() => setIsModalOpen(true)}
           className="absolute bottom-3 left-7 bg-[var(--color-violet)] text-white text-[1rem] px-3 py-2 rounded-md hover:bg-[var(--color-violet-dark)] active:scale-95 transition-all"
         >
-          + Изменить фото
+          Изменить фото
         </button>
-      </div>
-      <div>
-
       </div>
       {isModalOpen && (
         <ModalBase
@@ -128,5 +129,3 @@ const SettingsProfilePhoto = () => {
     </div>
   );
 };
-
-export default SettingsProfilePhoto;
