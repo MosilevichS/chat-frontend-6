@@ -106,7 +106,7 @@ const ChatsItem = ({ chat, selectedChatId, handleRightClick }: ChatItemProps) =>
                   className={`text-sm font-normal text-(--color-gray) leading-[1.2] tracking-[1%] 
                               ${isActive ? "text-white" : ""}`}
                 >
-                  {formatChatsDate(chat.last_message.created_at * 1000)}
+                  {formatChatsDate(chat.last_message?.created_at * 1000)}
                 </p>
               </div>
             </div>
@@ -119,7 +119,7 @@ const ChatsItem = ({ chat, selectedChatId, handleRightClick }: ChatItemProps) =>
                              leading-[1.2] tracking-[1%] line-clamp-2
                                  ${isActive ? "text-white" : ""}`}
             >
-              {chat.last_message.content}
+              {chat.last_message?.content}
             </p>
             {chat.is_favorite && chat.new_message_count < 2 && (
               <div className="flex items-center">

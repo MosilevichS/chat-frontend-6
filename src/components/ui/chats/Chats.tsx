@@ -18,6 +18,7 @@ import {
 import { useAddContactByPhoneMutation } from "@/src/services/contactApi";
 import type { Chat } from "@/src/types/chat";
 import { useClickOutside } from "@/src/hooks/useClickOutside";
+import { useMediaQuery } from "@/src/hooks/useMediaQuery";
 
 import Input from "@/src/components/ui/Input";
 import ContextMenu from "./ContextMenu";
@@ -38,7 +39,6 @@ import group from "../../../assets/icons/group.svg";
 import close from "../../../assets/icons/close.svg";
 import noChats from "../../../assets/icons/no-chats.svg";
 import ChatsItem from "./ChatsItem";
-import { useMediaQuery } from "@/src/hooks/useMediaQuery";
 
 const Chats = () => {
   const POPUP_HEIGHT = 238;
@@ -366,7 +366,7 @@ const Chats = () => {
       >
         <div>
           {isLoading ? (
-            <Loader text="сообщений" className="pt-40" />
+            <Loader className="pt-40" />
           ) : filteredChats.length > 0 ? (
             filteredChats.map((chat, id) => (
               <ChatsItem
