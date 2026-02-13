@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Input from "@/src/components/ui/Input";
 import Button from "@/src/components/ui/Button";
@@ -8,7 +8,6 @@ import Image from "next/image";
 import backDesktop from "../../../../assets/icons/back-desktop.svg";
 import backMobile from "../../../../assets/icons/back-icon.svg";
 import search from "../../../../assets/icons/search.svg";
-import { chatsList } from "@/src/data/chats";
 import Checkbox from "@/src/components/ui/Checkbox";
 import {
   useCreateGroupMutation,
@@ -16,6 +15,8 @@ import {
   chatCreationUtils,
 } from "@/src/services/groupOrChannelCreationApi";
 import { useDynamicHeight } from "@/src/hooks/useDynamicHeight";
+import { useGetContactsQuery } from "@/src/services/contactApi";
+import type { IContact } from "@/src/types/contact";
 
 const AddSubscribersPage = () => {
   const router = useRouter();
@@ -26,11 +27,15 @@ const AddSubscribersPage = () => {
   const description = searchParams.get("description") || "";
   const photo = searchParams.get("photo") || "";
   const chatType = searchParams.get("chatType") || "private-group";
+  const groupType = searchParams.get("groupType") || "closed";
+  const channelType = searchParams.get("channelType") || "public";
 
   const [createGroup, { isLoading: isCreatingGroup }] = useCreateGroupMutation();
   const [createChannel, { isLoading: isCreatingChannel }] = useCreateChannelMutation();
 
-  const [contacts] = useState(chatsList);
+  const { data: contactsData, isLoading: isLoadingContacts } = useGetContactsQuery();
+  const contacts = contactsData?.results || [];
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
   const [creationError, setCreationError] = useState<string | null>(null);
@@ -51,43 +56,34 @@ const AddSubscribersPage = () => {
       const avatarBase64 = photo ? chatCreationUtils.extractBase64FromDataUrl(photo) : "";
       const avatar = chatCreationUtils.createAvatarObject(avatarBase64);
 
-      const decodedName = decodeURIComponent(name);
-      const decodedDescription = decodeURIComponent(description);
-
       if (type === "group") {
         const groupData = {
-          name: decodedName,
-          description: decodedDescription,
+          name: name,
+          description: description,
           avatar,
           chat_type: chatType as "public-group" | "private-group",
           uid_users_list: selectedContactIds,
         };
 
-        console.log("Создание группы с данными:", groupData);
-
         const result = await createGroup(groupData).unwrap();
 
         if (result.status === "OK" && result.object) {
-          console.log("Группа успешно создана:", result.object);
           router.push("/chats");
         } else {
           setCreationError(result.error || "Неизвестная ошибка при создании группы");
         }
       } else if (type === "channel") {
         const channelData = {
-          name: decodedName,
-          description: decodedDescription,
+          name: name,
+          description: description,
           avatar,
           chat_type: chatType as "public-channel" | "private-channel",
           uid_users_list: selectedContactIds,
         };
 
-        console.log("Создание канала с данными:", channelData);
-
         const result = await createChannel(channelData).unwrap();
 
         if (result.status === "OK" && result.object) {
-          console.log("Канал успешно создан:", result.object);
           router.push("/chats");
         } else {
           setCreationError(result.error || "Неизвестная ошибка при создании канала");
@@ -95,36 +91,7 @@ const AddSubscribersPage = () => {
       }
     } catch (err: unknown) {
       console.error("Ошибка при создании чата:", err);
-
-      if (err && typeof err === "object" && "data" in err) {
-        const errorData = err as { data?: { error?: string } };
-        if (errorData.data?.error) {
-          setCreationError(errorData.data.error);
-        } else if (
-          errorData.data &&
-          typeof errorData.data === "object" &&
-          "message" in errorData.data
-        ) {
-          const errorObj = errorData.data as { message?: string };
-          if (errorObj.message) {
-            setCreationError(errorObj.message);
-          }
-        }
-      } else if (err && typeof err === "object" && "error" in err) {
-        const errorObj = err as { error?: string };
-        if (errorObj.error) {
-          setCreationError(errorObj.error);
-        }
-      } else if (err && typeof err === "object" && "message" in err) {
-        const errorObj = err as { message?: string };
-        if (errorObj.message) {
-          setCreationError(errorObj.message);
-        }
-      } else if (typeof err === "string") {
-        setCreationError(err);
-      } else {
-        setCreationError("Произошла ошибка при создании. Попробуйте еще раз.");
-      }
+      setCreationError("Произошла ошибка при создании чата");
     }
   };
 
@@ -138,8 +105,10 @@ const AddSubscribersPage = () => {
     );
   };
 
-  const filteredContacts = contacts.filter(contact =>
-    contact.name.toLowerCase().includes(searchQuery.trim().toLowerCase()),
+  const filteredContacts = contacts.filter((contact: IContact) =>
+    `${contact.first_name} ${contact.last_name}`
+      .toLowerCase()
+      .includes(searchQuery.trim().toLowerCase()),
   );
 
   const isCreating = isCreatingGroup || isCreatingChannel;
@@ -151,6 +120,16 @@ const AddSubscribersPage = () => {
       : "Создать группу";
 
   const errorMessage = creationError;
+
+  if (isLoadingContacts) {
+    return (
+      <div className="flex flex-row gap-x-6 w-full justify-center md:mb-1">
+        <div className="w-full md:max-w-[360px] md:min-w-[360px] min-h-[calc(100vh-88px)] bg-(--color-gray-light) md:rounded-lg border border-(--color-gray-1) flex items-center justify-center">
+          <p>Загрузка контактов...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-row gap-x-6 w-full justify-center md:mb-1">
@@ -212,35 +191,37 @@ const AddSubscribersPage = () => {
           className="w-full overflow-y-auto px-2 overflow-x-hidden scroll-custom"
         >
           {filteredContacts.length > 0 ? (
-            filteredContacts.map(contact => (
+            filteredContacts.map((contact: IContact) => (
               <div
-                key={contact.id}
+                key={contact.uid}
                 className={`flex items-center py-1.5 gap-x-2.5 h-[72px] rounded-lg px-2 mt-2 mb-1 cursor-pointer
                   ${
-                    selectedContactIds.includes(contact.id)
+                    selectedContactIds.includes(contact.uid)
                       ? "bg-(--color-overlay)"
                       : "hover:bg-(--color-gray-2)"
                   }`}
               >
-                <div className="relative" onClick={() => toggleContactSelection(contact.id)}>
-                  {contact.avatar ? (
+                <div className="relative" onClick={() => toggleContactSelection(contact.uid)}>
+                  {contact.avatar_url ? (
                     <Image
                       className="h-10 w-10 rounded-full"
-                      src={contact.avatar}
+                      src={contact.avatar_url}
                       width={40}
                       height={40}
                       alt="Аватар"
                     />
                   ) : (
                     <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                      <span className="text-white font-medium">{contact.name.charAt(0)}</span>
+                      <span className="text-white font-medium">
+                        {contact.first_name?.charAt(0) || "?"}
+                      </span>
                     </div>
                   )}
                 </div>
 
-                <div className="flex-1 min-w-0" onClick={() => toggleContactSelection(contact.id)}>
+                <div className="flex-1 min-w-0" onClick={() => toggleContactSelection(contact.uid)}>
                   <p className="font-medium text‑lg leading-[1.2] truncate mb-0.5">
-                    {contact.name}
+                    {contact.first_name} {contact.last_name}
                   </p>
                   {contact.is_online ? (
                     <p className="text-sm font-normal text-(--color-violet) leading-[1.2]">
@@ -249,17 +230,17 @@ const AddSubscribersPage = () => {
                   ) : (
                     contact.was_online_at && (
                       <p className="text-sm font-normal text-(--color-gray) leading-[1.2]">
-                        был(а) {contact.was_online_at}
+                        был(а) {new Date(contact.was_online_at * 1000).toLocaleString()}
                       </p>
                     )
                   )}
                 </div>
 
                 <Checkbox
-                  checked={selectedContactIds.includes(contact.id)}
-                  onChange={() => toggleContactSelection(contact.id)}
+                  checked={selectedContactIds.includes(contact.uid)}
+                  onChange={() => toggleContactSelection(contact.uid)}
                   name="contact-selection"
-                  value={contact.id}
+                  value={contact.uid}
                 />
               </div>
             ))

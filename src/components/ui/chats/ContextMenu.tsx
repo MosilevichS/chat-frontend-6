@@ -1,17 +1,11 @@
 import Image from "next/image";
+import { type Chat } from "@/src/types/chat";
 
 import notifications from "../../../assets/icons/notifications.svg";
 import addContact from "../../../assets/icons/add-contact.svg";
 import toFix from "../../../assets/icons/to-fix.svg";
 import deleteChat from "../../../assets/icons/delete_outline.svg";
 import readOk from "../../../assets/icons/read-ok.svg";
-
-type Chat = {
-  id: number;
-  notifications: boolean;
-  is_favorite: boolean;
-  chat: { is_in_contacts: boolean };
-};
 
 type ContextMenuProps = {
   isOpen: boolean;
@@ -45,6 +39,9 @@ const ContextMenu = ({
   const chat = chats.find(c => c.id === chatId);
   if (!chat) return null;
 
+  // Проверяем, можно ли добавить в контакты (только для личных чатов)
+  const canAddToContacts = chat.chat && "is_in_contacts" in chat.chat;
+
   return (
     <div
       ref={ref}
@@ -56,7 +53,7 @@ const ContextMenu = ({
           : { bottom: `${window.innerHeight - position.y + menuOffset}px` }),
       }}
     >
-      {!chat.chat.is_in_contacts && (
+      {canAddToContacts && !chat.chat?.is_in_contacts && (
         <button
           className="w-full flex justify-between items-center h-[44px] px-4 border-b border-(--color-button-disabled) cursor-pointer 
           hover:bg-(--color-gray-light) hover:rounded-t-[10px]"
@@ -66,7 +63,7 @@ const ContextMenu = ({
           <Image
             className="w-6 h-6"
             src={addContact}
-            alt={chat.chat.is_in_contacts ? "Удалить из контактов" : "Добавить в контакты"}
+            alt="Добавить в контакты"
             width={24}
             height={24}
           />
@@ -75,7 +72,7 @@ const ContextMenu = ({
       <button
         className={`w-full flex justify-between items-center gap-x-[15px] h-[62px] px-4 border-b border-(--color-button-disabled) cursor-pointer 
         hover:bg-(--color-gray-light)  
-        ${chat.chat.is_in_contacts ? "hover:rounded-t-[10px]" : ""}`}
+        ${canAddToContacts && !chat.chat?.is_in_contacts ? "" : "hover:rounded-t-[10px]"}`}
         onClick={onToggleNotifications}
       >
         <p className="text-left">
