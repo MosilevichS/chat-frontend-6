@@ -12,22 +12,86 @@ interface ChatItemProps {
 }
 
 const ChatsItem = ({ chat, selectedChatId, handleRightClick }: ChatItemProps) => {
+  
+  // Вспомогательные функции для безопасного доступа к данным
+  // const getChatName = (chat: Chat): string => {
+  //   // Приоритет 1: Если есть name (группы/каналы)
+  //   if (chat?.name) {
+  //     return chat.name;
+  //   }
+
+  //   // Приоритет 2: Если есть chat с именем (личные чаты)
+  //   if (chat?.chat) {
+  //     const firstName = chat.chat.first_name || "";
+  //     const lastName = chat.chat.last_name || "";
+  //     return `${firstName} ${lastName}`.trim() || "Чат";
+  //   }
+
+  //   // Приоритет 3: Запасной вариант
+  //   return "Без названия";
+  // };
+
+  // const getChatLink = (chat: Chat): string => {
+  //   if (chat?.chat?.uid) {
+  //     return `/chats/${chat.chat.uid}`;
+  //   }
+  //   // Для групп/каналов пока нет страницы
+  //   return "#";
+  // };
+
+  // const getChatAvatar = (chat: Chat): string => {
+  //   if (chat?.chat?.avatar_url) {
+  //     return chat.chat.avatar_url;
+  //   }
+  //   return "/avatar/avatar-8.png";
+  // };
+
+  // const isActiveChat = (chat: Chat): boolean => {
+  //   if (chat?.chat?.uid && pathname === `/chats/${chat.chat.uid}`) {
+  //     return true;
+  //   }
+  //   return false;
+  // };
+
+  // const getLastMessageContent = (chat: Chat): string => {
+  //   if (!chat?.last_message) return "Нет сообщений";
+  //   return chat.last_message.content || "";
+  // };
+
+  // const getLastMessageTime = (chat: Chat): number | null => {
+  //   if (!chat?.last_message) return null;
+  //   return chat.last_message.created_at || null;
+  // };
+
+  // const getNewMessageCount = (chat: Chat): number => {
+  //   return chat?.new_message_count || 0;
+  // };
+
+  // const isFavorite = (chat: Chat): boolean => {
+  //   return chat?.is_favorite || false;
+  // };
+
+  // const hasNotifications = (chat: Chat): boolean => {
+  //   return chat?.notifications !== false;
+  // };
+
   const pathname = usePathname();
-  const isActive = pathname.startsWith(`/chats/${chat.chat.uid}`);
+  const isActive = pathname.startsWith(`/chats/${chat.chat?.uid}`);
+
   return (
     <div className={`h-[80px] px-2 py-1  ${chat.is_favorite ? "bg-white" : ""} `}>
       <Link
-        href={`/chats/${chat.chat.uid}`}
+        href={`/chats/${chat.chat?.uid}`}
         onContextMenu={e => handleRightClick(e, chat)}
         className={`
                     flex  gap-x-2 min-w-[342px] h-[72px] cursor-pointer hover:bg-(--color-gray-2)
                     rounded-lg px-2 py-1.5
                     ${selectedChatId === chat.id ? "bg-(--color-gray-2)" : ""}
                 
-                   ${pathname.startsWith(`/chats/${chat.chat.uid}`) ? "bg-(--color-violet-dark-opacity) hover:bg-(--color-violet-dark-opacity)" : ""}
+                   ${pathname.startsWith(`/chats/${chat.chat?.uid}`) ? "bg-(--color-violet-dark-opacity) hover:bg-(--color-violet-dark-opacity)" : ""}
                    ${!isActive && chat.is_favorite ? "" : ""} `}
       >
-        {chat.chat.avatar_url ? (
+        {chat.chat?.avatar_url ? (
           <div className="min-w-15 min-h-15 w-15! h-15!  rounded-full overflow-hidden">
             <Image
               src={chat.chat.avatar_url}
@@ -58,7 +122,7 @@ const ChatsItem = ({ chat, selectedChatId, handleRightClick }: ChatItemProps) =>
                 className={`font-medium text‑lg leading-[1.2] truncate max-w-[165px]
                              ${isActive ? "text-white" : ""}`}
               >
-                {chat.chat.first_name} {chat.chat.last_name}
+                {chat.chat?.first_name} {chat.chat?.last_name}
               </p>
               {!chat.notifications && (
                 <div className="flex items-center">
