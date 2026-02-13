@@ -16,6 +16,7 @@ export const chatsApi = privateApi.injectEndpoints({
           notifications?: boolean;
           index?: number;
           last_seen_message?: number;
+          new_message_count?: number;
           last_seen_message_uid?: string;
         };
       }

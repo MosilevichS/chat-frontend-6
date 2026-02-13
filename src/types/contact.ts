@@ -10,6 +10,7 @@ interface ISystemContact {
 
 export interface IContact {
   username: string;
+  nickname: string;
   was_online_at: number;
   is_online: boolean;
   avatar_url: string;
