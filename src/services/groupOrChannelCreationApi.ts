@@ -1,4 +1,4 @@
-import { createApi } from "@reduxjs/toolkit/query/react";
+import { privateApi } from "./baseApi";
 
 export interface CreateGroupData {
   name: string;
@@ -65,60 +65,166 @@ function generateUUID(): string {
   });
 }
 
-export const groupOrChannelCreationApi = createApi({
-  reducerPath: "groupOrChannelCreationApi",
-  baseQuery: async ({ action, object }) => {
-    console.log("WebSocket заглушка:", { action, object });
+// Глобальный менеджер WebSocket соединений
+class WebSocketManager {
+  private static instance: WebSocketManager;
+  private ws: WebSocket | null = null;
+  private pendingPromises: Map<string, { resolve: Function; reject: Function }> = new Map();
+  private messageListeners: Array<(data: any) => void> = [];
+  private connectionPromise: Promise<WebSocket> | null = null;
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+  private constructor() {}
 
-    return {
-      data: {
+  static getInstance(): WebSocketManager {
+    if (!WebSocketManager.instance) {
+      WebSocketManager.instance = new WebSocketManager();
+    }
+    return WebSocketManager.instance;
+  }
+
+  async getConnection(): Promise<WebSocket> {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      return this.ws;
+    }
+
+    if (this.connectionPromise) {
+      return this.connectionPromise;
+    }
+
+    this.connectionPromise = new Promise((resolve, reject) => {
+      fetch("/api/get-token")
+        .then(res => res.json())
+        .then(data => {
+          if (!data.token) {
+            reject(new Error("No token available"));
+            return;
+          }
+
+          const ws = new WebSocket(
+            `wss://api.dev.chat.ktsf.ru/ws/chat?authorization=${data.token}`,
+          );
+
+          ws.onopen = () => {
+            this.ws = ws;
+            this.connectionPromise = null;
+            resolve(ws);
+          };
+
+          ws.onmessage = event => {
+            const data = JSON.parse(event.data);
+
+            // Уведомляем всех слушателей
+            this.messageListeners.forEach(listener => listener(data));
+
+            // Если это ответ на наш запрос
+            if (data.request_uid && this.pendingPromises.has(data.request_uid)) {
+              const { resolve, reject } = this.pendingPromises.get(data.request_uid)!;
+              if (data.status === "OK") {
+                resolve(data);
+              } else {
+                reject(new Error(data.error || "Unknown error"));
+              }
+              this.pendingPromises.delete(data.request_uid);
+            }
+          };
+
+          ws.onerror = error => {
+            this.connectionPromise = null;
+            reject(error);
+          };
+
+          ws.onclose = () => {
+            this.ws = null;
+            this.connectionPromise = null;
+          };
+        })
+        .catch(err => {
+          this.connectionPromise = null;
+          reject(err);
+        });
+    });
+
+    return this.connectionPromise;
+  }
+
+  async sendRequest(action: string, object: any): Promise<any> {
+    const ws = await this.getConnection();
+    const requestUid = generateUUID();
+
+    return new Promise((resolve, reject) => {
+      this.pendingPromises.set(requestUid, { resolve, reject });
+
+      const request = {
         action,
-        request_uid: generateUUID(),
-        status: "OK",
-        object: {
-          created_by: "current-user",
-          owner_full_name: "Текущий Пользователь",
-          chat_key: `chat-${Date.now()}`,
-          chat_id: `chat-${Date.now()}`,
-          name: object.name,
-          description: object.description,
-          chat_type: object.chat_type,
-          added_users: (object.uid_users_list || []).map((uid: string) => ({
-            uid,
-            full_name: `Пользователь ${uid}`,
-          })),
-        },
-      },
-    };
-  },
-  tagTypes: ["ChatList", "GroupOrChannelCreation"],
+        request_uid: requestUid,
+        object,
+      };
+
+      ws.send(JSON.stringify(request));
+
+      // Таймаут
+      setTimeout(() => {
+        if (this.pendingPromises.has(requestUid)) {
+          this.pendingPromises.delete(requestUid);
+          reject(new Error("Request timeout"));
+        }
+      }, 10000);
+    });
+  }
+
+  addMessageListener(listener: (data: any) => void) {
+    this.messageListeners.push(listener);
+  }
+
+  removeMessageListener(listener: (data: any) => void) {
+    const index = this.messageListeners.indexOf(listener);
+    if (index > -1) {
+      this.messageListeners.splice(index, 1);
+    }
+  }
+}
+
+const wsManager = WebSocketManager.getInstance();
+
+export const groupOrChannelCreationApi = privateApi.injectEndpoints({
   endpoints: builder => ({
     createGroup: builder.mutation<ChatCreationResponse, CreateGroupData>({
-      query: groupData => ({
-        action: "create_chat",
-        object: groupData,
-      }),
-      invalidatesTags: ["ChatList", "GroupOrChannelCreation"],
+      queryFn: async groupData => {
+        try {
+          const response = await wsManager.sendRequest("create_chat", groupData);
+          return { data: response };
+        } catch (error) {
+          return { error: { status: "CUSTOM_ERROR", error: String(error) } };
+        }
+      },
+      invalidatesTags: ["Chats"],
     }),
 
     createChannel: builder.mutation<ChatCreationResponse, CreateChannelData>({
-      query: channelData => ({
-        action: "create_chat",
-        object: channelData,
-      }),
-      invalidatesTags: ["ChatList", "GroupOrChannelCreation"],
+      queryFn: async channelData => {
+        try {
+          const response = await wsManager.sendRequest("create_chat", channelData);
+          return { data: response };
+        } catch (error) {
+          return { error: { status: "CUSTOM_ERROR", error: String(error) } };
+        }
+      },
+      invalidatesTags: ["Chats"],
     }),
 
     editChat: builder.mutation<ChatCreationResponse, EditChatData>({
-      query: chatData => ({
-        action: "edit_chat",
-        object: chatData,
-      }),
-      invalidatesTags: ["GroupOrChannelCreation"],
+      queryFn: async chatData => {
+        try {
+          const response = await wsManager.sendRequest("edit_chat", chatData);
+          return { data: response };
+        } catch (error) {
+          return { error: { status: "CUSTOM_ERROR", error: String(error) } };
+        }
+      },
+      invalidatesTags: ["Chats"],
     }),
   }),
+  overrideExisting: false,
 });
 
 export const { useCreateGroupMutation, useCreateChannelMutation, useEditChatMutation } =
