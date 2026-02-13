@@ -15,6 +15,7 @@ export const SettingsProfilePhoto = () => {
   const { data } = useGetProfileQuery();
   const [uploadAvatar] = useUpdateAvatarMutation();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalDeleteOpen, setIsModalDeleteOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const modalRef = useRef<HTMLDivElement>(null);
@@ -52,14 +53,66 @@ export const SettingsProfilePhoto = () => {
   );
 
   const handleButtonClick = () => {
-    // fileInputRef.current?.click();
     router.push("/settings/profile/photo-picker");
+  };
+  const handleButtonDeleteModalOpen = () => {
+    setIsModalOpen(false);
+    setIsModalDeleteOpen(true);
+  };
+  const handleButtonDeleteClick = async () => {
+    try {
+      const emptyPixel =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+      const response = await fetch(emptyPixel);
+      const blob = await response.blob();
+      const file = new File([blob], "empty.png", { type: "image/png" });
+
+      const formData = createAvatarFormData(file);
+      const result = await uploadAvatar(formData).unwrap();
+
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error("Failed to delete avatar:", error);
+      alert("Не удалось удалить фото. Пожалуйста, попробуйте снова.");
+    }
   };
 
   return (
     <div className="flex flex-col items-center justify-center w-full relative">
       {/* Desktop */}
       <div className="hidden md:flex flex-col items-center px-4">
+        {isModalDeleteOpen && (
+          <ModalBase
+            className="max-w-[329px] absolute top-1/4  mx-3 md:max-w-[400px] max-h-[172] justify-center rounded-md bg-[var(--color-white)]
+           "
+            onClose={() => setIsModalOpen(false)}
+          >
+            <div className="px-4 flex flex-col gap-4">
+              <h3 className="font-medium text-lg mx-auto leading-5">Удалить фото профиля</h3>
+              <p className="pl-5 text-(--color-gray) leading-5">
+                Вы уверены, что хотите удалить текущее фото?
+              </p>
+              <div className="flex flex-row gap-3">
+                <Button
+                  size="medium"
+                  variant="secondary1"
+                  className="max-h-[44px] min-w-[140px] mb-2"
+                  onClick={() => setIsModalDeleteOpen(false)}
+                >
+                  Отмена
+                </Button>
+                <Button
+                  onClick={handleButtonDeleteClick}
+                  size="medium"
+                  variant="primary"
+                  className="max-h-[44px] min-w-[140px]  text-white"
+                >
+                  Удалить
+                </Button>
+              </div>
+            </div>
+          </ModalBase>
+        )}
         <Avatar
           sizes="200px"
           className="w-[200px] h-[200px] rounded-full"
@@ -78,6 +131,33 @@ export const SettingsProfilePhoto = () => {
 
       {/* Mobile */}
       <div className="relative flex md:hidden justify-center px-4">
+        {isModalDeleteOpen && (
+          <ModalBase
+            className="max-w-[329px] absolute top-1/3  mx-auto md:max-w-[400px] max-h-[172] justify-center rounded-md bg-[var(--color-gray-light)]
+           "
+            onClose={() => setIsModalOpen(false)}
+          >
+            <div className="px-4 flex flex-row gap-4">
+              <Button
+                size="medium"
+                variant="secondary1"
+                className="w-full min-w-[140px] mb-2"
+                onClick={() => setIsModalDeleteOpen(false)}
+              >
+                Отмена
+              </Button>
+
+              <Button
+                // onClick={}
+                size="medium"
+                variant="primary"
+                className="w-full min-w-[140px]  text-white"
+              >
+                Удалить
+              </Button>
+            </div>
+          </ModalBase>
+        )}
         <Avatar
           className="w-[360px] h-[391px] rounded-lg"
           picUrl={data?.avatar_url}
@@ -116,6 +196,7 @@ export const SettingsProfilePhoto = () => {
             </Button>
 
             <Button
+              onClick={handleButtonDeleteModalOpen}
               size="medium"
               variant="secondary1"
               className="w-full justify-center text-red-400 hover:text-red-500"

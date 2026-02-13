@@ -4,10 +4,11 @@ import { useEffect } from "react";
 
 import DateSelect from "@/components/ui/user-profile/profile/DateSelect";
 import Button from "@/components/ui/Button";
+import { arrayOfInputs } from "@/components/ui/user-profile/profile/modal/arrayOfInputs";
 
 import { useGetProfileQuery, useUpdateProfileMutation } from "@/src/services/userApi";
 import { dateToUnixTimestamp, unixTimestampToDateParts } from "@/src/hooks/useDateUtils";
-import { arrayOfInputs } from "@/components/ui/user-profile/profile/modal/arrayOfInputs";
+import { useRouter } from "next/navigation";
 
 type FormValues = {
   first_name?: string;
@@ -22,6 +23,7 @@ type FormValues = {
 };
 
 const SettingsProfileChangeForm = () => {
+  const router = useRouter();
   const [updateProfile, { isLoading }] = useUpdateProfileMutation();
   const { data, isLoading: isProfileLoading } = useGetProfileQuery();
   const { control, handleSubmit, register, reset, setValue } = useForm<FormValues>({
@@ -50,7 +52,6 @@ const SettingsProfileChangeForm = () => {
   }, [data, reset, setValue]);
 
   const onSubmit = async (formData: FormValues) => {
-    console.log("formData", formData);
     try {
       const dateBirthday = dateToUnixTimestamp(formData.birthDate);
       if (dateBirthday === null) {
@@ -69,6 +70,7 @@ const SettingsProfileChangeForm = () => {
     } catch (error) {
       console.error("Ошибка при обновлении профиля:", error);
     }
+    router.push("/settings");
   };
 
   if (isProfileLoading) {
