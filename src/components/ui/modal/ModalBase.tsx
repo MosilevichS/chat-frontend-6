@@ -23,7 +23,7 @@ const ModalBase = ({ onClose, children, className }: IModalBase) => {
 
   return (
     <div
-      className={`absolute inset-0 z-50 flex items-center justify-center bg-(--color-overlay) ${className}`}
+      className={`absolute inset-0 z-50 flex items-center justify-center bg-(--color-overlay) ${className || ""}`}
       onClick={onClose}
     >
       <div onClick={e => e.stopPropagation()}>{children}</div>

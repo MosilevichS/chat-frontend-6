@@ -5,7 +5,7 @@ export const arrayOfInputs = [
   },
   {
     name: "last_name",
-    label: "Изменить никнейм",
+    label: "Изменить фамилию",
   },
   {
     name: "nickname",
