@@ -15,7 +15,7 @@ import search from "@/src/assets/icons/search-messages.svg";
 import noMessages from "@/src/assets/icons/no-messages.svg";
 import clip from "@/src/assets/icons/clip.svg";
 import close from "@/src/assets/icons/close.svg";
-import closePurple from "@/src/assets/icons/close-purple.svg";
+
 import microphone from "@/src/assets/icons/microphone.svg";
 import sendMessageIcon from "@/src/assets/icons/send-message.svg";
 import scrollDownIcon from "@/src/assets/icons/scroll-down.svg";
@@ -37,6 +37,7 @@ import { useGetContactByIdQuery } from "@/src/services/contactApi";
 import { useGetContactsQuery, useAddContactByPhoneMutation } from "@/src/services/contactApi";
 import { useGetProfileQuery } from "@/src/services/userApi";
 import React from "react";
+import ProfileInfo from "./ProfileInfo";
 
 export default function Chat() {
   // Контакт и профиль
@@ -63,8 +64,12 @@ export default function Chat() {
   const { data: profileData } = useGetProfileQuery();
   const profile = profileData;
 
+  console.log("profile:", profile);
+
   // Получение контакта по uid
   const { data, isLoading, isError } = useGetContactByIdQuery(user_uid);
+
+  console.log(data);
 
   // WebSocket и сообщения
   const [inputValue, setInputValue] = useState("");
@@ -542,20 +547,11 @@ export default function Chat() {
         </div>
 
         <aside
-          className={`h-full bg-(--color-gray-light-opacity) rounded-lg border-1 border-(--color-gray-1) transition-all duration-500 ease-in-out
-            ${isProfileOpen ? "w-full max-w-[360px] ml-6 opacity-100" : "w-0 opacity-0"}
+          className={`h-full bg-(--color-gray-light-opacity) rounded-lg border border-(--color-gray-1) transition-all duration-500 ease-in-out overflow-hidden
+            ${isProfileOpen ? "w-full max-w-[360px] ml-6 opacity-100" : "w-0 opacity-0 ml-0"}
             `}
         >
-          {isProfileOpen && (
-            <div className="w-full max-w-[360px] h-full">
-              <header className="px-4 w-full flex items-center h-[60px] bg-(--color-gray-light) rounded-t-lg border-b border-(--color-gray-3)">
-                <button onClick={() => setProfileOpen(false)} aria-label="Закрыть">
-                  <Image src={closePurple} alt="Закрыть" width={24} height={24} className="mr-3" />
-                </button>
-                <h2 className="text-lg font-medium leading-[120%]">Информация</h2>
-              </header>
-            </div>
-          )}
+          {isProfileOpen && <ProfileInfo data={data} setProfileOpen={setProfileOpen} />}
         </aside>
       </div>
 
