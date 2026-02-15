@@ -69,8 +69,6 @@ const Contacts = () => {
     });
   }, [data, searchQuery]);
 
-  console.log(filteredContacts);
-
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;

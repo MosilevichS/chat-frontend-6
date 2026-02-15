@@ -27,7 +27,7 @@ import group from "../../../assets/icons/group.svg";
 import close from "../../../assets/icons/close.svg";
 import noChats from "../../../assets/icons/no-chats.svg";
 
-import type { Chat } from "@/src/types/chat";
+import type { IChat } from "@/src/types/chat";
 import { useClickOutside } from "@/src/hooks/useClickOutside";
 import { formatChatsDate } from "@/src/utils/formatChatsDate";
 import Button from "../Button";
@@ -58,7 +58,7 @@ const Chats = () => {
     isLoading,
     error,
   }: {
-    data?: { results: Chat[] };
+    data?: { results: IChat[] };
     isLoading: boolean;
     error?: unknown;
   } = useGetChatsQuery(undefined, {
@@ -120,7 +120,7 @@ const Chats = () => {
     };
   }, []);
 
-  const handleRightClick = (e: React.MouseEvent, chat: Chat) => {
+  const handleRightClick = (e: React.MouseEvent, chat: IChat) => {
     e.preventDefault();
     const chatId = chat.id;
 
@@ -452,7 +452,7 @@ const Chats = () => {
                         className={`text-sm font-normal text-(--color-gray) leading-[1.2] tracking-[1%] 
                           ${pathname.startsWith(`/chats/${chat.chat.uid}`) ? "text-white" : ""}`}
                       >
-                        {formatChatsDate(chat.last_message.created_at * 1000)}
+                        {formatChatsDate(chat.last_message?.created_at * 1000)}
                       </p>
                     </div>
                   </div>
@@ -464,7 +464,7 @@ const Chats = () => {
                          leading-[1.2] tracking-[1%] line-clamp-2
                              ${pathname.startsWith(`/chats/${chat.chat.uid}`) ? "text-white" : ""}`}
                   >
-                    {chat.last_message.content}
+                    {chat.last_message?.content}
                   </p>
                   {chat.is_favorite && chat.new_message_count < 2 && (
                     <div className="flex items-center">

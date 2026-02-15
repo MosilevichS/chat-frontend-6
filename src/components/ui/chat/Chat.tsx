@@ -1,8 +1,22 @@
 "use client";
 
+import React from "react";
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
+import { useDispatch } from "react-redux";
 import Image from "next/image";
+
+import { useTypedSelector } from "@/src/hooks/useTypedSelector";
+import type { AppDispatch } from "@/src/store/store";
+import {
+  setCurrentChatId,
+  initializeChat,
+  addMessages,
+  addMessage,
+  setPagination,
+  updateMessage,
+} from "@/src/store/slices/chatSlice";
+import { selectMessagesByChat, selectPaginationByChat } from "@/src/store/slices/chatSelectors";
 
 import {
   OverlayScrollbarsComponent,
@@ -22,6 +36,7 @@ import scrollDownIcon from "@/src/assets/icons/scroll-down.svg";
 
 import type { IContact } from "@/src/types/contact";
 import type { IMessage } from "@/src/types/message";
+import type { IChat } from "@/src/types/chat";
 
 import Loader from "@/src/components/ui/Loader";
 import ModalBase from "@/src/components/ui/modal/ModalBase";
@@ -36,11 +51,14 @@ import formatChatDate from "@/src/utils/formatChatDate";
 import { useGetContactByIdQuery } from "@/src/services/contactApi";
 import { useGetContactsQuery, useAddContactByPhoneMutation } from "@/src/services/contactApi";
 import { useGetProfileQuery } from "@/src/services/userApi";
-import React from "react";
+import { useGetChatsQuery, useUpdatedChatsMutation } from "@/src/services/chatsApi";
 
 export default function Chat() {
+  const dispatch = useDispatch<AppDispatch>();
+
   // Контакт и профиль
   const { user_uid } = useParams<{ user_uid: string }>();
+  const [updatedChats] = useUpdatedChatsMutation();
   const [addContactByPhone] = useAddContactByPhoneMutation();
 
   const [isBannerHidden, setBannerHidden] = useState(false);
@@ -68,11 +86,92 @@ export default function Chat() {
 
   // WebSocket и сообщения
   const [inputValue, setInputValue] = useState("");
-  const [messages, setMessages] = useState<IMessage[]>([]);
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const readMessagesRef = useRef<Set<string>>(new Set());
+
+  const messagesSelector = React.useMemo(() => selectMessagesByChat(user_uid), [user_uid]);
+  const messages = useTypedSelector(messagesSelector);
+
+  const paginationSelector = React.useMemo(() => selectPaginationByChat(user_uid), [user_uid]);
+  const pagination = useTypedSelector(paginationSelector);
+
+  const prevLengthRef = useRef(0);
+
+  // Получение текущего чата и последнего просмотренного сообщения
+  const { data: chatsList }: { data?: { results: IChat[] } } = useGetChatsQuery();
+  const currentChat = chatsList?.results.find(c => c.chat.uid === user_uid);
+
+  const lastSeenMessageUid = currentChat?.last_seen_message?.uid ?? null;
+  const chatId = currentChat?.id;
+
+  // Находим индекс первого непрочитанного сообщения
+
+  const firstUnreadIndex = React.useMemo(() => {
+    if (!messages.length || !lastSeenMessageUid) return -1;
+
+    const index = messages.findIndex(m => m.uid === lastSeenMessageUid);
+    if (index === -1) return -1;
+
+    return index + 1 < messages.length ? index + 1 : -1;
+  }, [messages, lastSeenMessageUid]);
+
+  // Инициализация текущего чата в Redux
+  useEffect(() => {
+    if (!data) return;
+
+    dispatch(initializeChat({ chatId: user_uid }));
+    dispatch(setCurrentChatId(user_uid));
+  }, [user_uid, data, dispatch]);
+
+  // Загрузка истории сообщений
+  const PAGE_SIZE = 100;
+
+  useEffect(() => {
+    const fetchMessages = async () => {
+      const res = await fetch(`/api/get-messages-list/${user_uid}?page=1&page_size=${PAGE_SIZE}`);
+      const data = await res.json();
+
+      dispatch(addMessages({ chatId: user_uid, messages: data.results }));
+      dispatch(
+        setPagination({
+          chatId: user_uid,
+          page: 1,
+          hasMore: data.next !== null,
+        }),
+      );
+    };
+
+    fetchMessages();
+  }, [dispatch, user_uid]);
+
+  // Загрузка дополнительных сообщений при скролле вверх
+
+  const loadMoreMessages = async () => {
+    const instance = osRef.current?.osInstance();
+    const viewport = instance?.elements().viewport;
+    if (!viewport) return;
+
+    isFetchingMoreRef.current = true;
+
+    // сохраняем высоту ДО запроса
+    prevScrollHeightRef.current = viewport.scrollHeight;
+
+    const nextPage = pagination.page + 1;
+
+    const res = await fetch(`/api/get-messages-list/${user_uid}?page=${nextPage}&page_size=50`);
+    const data = await res.json();
+
+    dispatch(addMessages({ chatId: user_uid, messages: data.results }));
+    dispatch(
+      setPagination({
+        chatId: user_uid,
+        page: nextPage,
+        hasMore: data.next !== null,
+      }),
+    );
+  };
 
   // Инициализация WebSocket
   useEffect(() => {
@@ -104,18 +203,14 @@ export default function Chat() {
           const isThisChat = message.from_user.uid === user_uid || message.to_user.uid === user_uid;
 
           if (!isThisChat) return;
-          setMessages(prevMessages => [...prevMessages, message]);
-          newMessagesBottom.current = true;
+
+          dispatch(addMessage({ chatId: user_uid, message }));
         }
 
         if (data.action === "change_status_read_message") {
           const updatedMessage = data.object;
 
-          setMessages(prevMessages =>
-            prevMessages.map(msg =>
-              msg.uid === updatedMessage.uid ? { ...msg, new: false } : msg,
-            ),
-          );
+          dispatch(updateMessage({ chatId: user_uid, message: updatedMessage }));
         }
       };
 
@@ -125,7 +220,7 @@ export default function Chat() {
       };
 
       ws.onerror = error => {
-        console.error("WebSocket error:", error);
+        console.log("WebSocket error:", error);
         ws?.close();
       };
     }
@@ -137,7 +232,7 @@ export default function Chat() {
         ws.close();
       }
     };
-  }, []);
+  }, [dispatch, user_uid]);
 
   // Пинг WebSocket каждые 30 секунд
   useEffect(() => {
@@ -192,111 +287,70 @@ export default function Chat() {
         },
       }),
     );
-  };
 
-  // Загрузка истории сообщений
-  const PAGE_SIZE = 50;
-
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [, setLoadingMore] = useState(false);
-  const isLoadingHistory = useRef(false);
-
-  // Начальная загрузка сообщений
-  useEffect(() => {
-    const fetchMessages = async () => {
-      const res = await fetch(`/api/get-messages-list/${user_uid}?page=1&page_size=${PAGE_SIZE}`);
-      const data = await res.json();
-
-      setMessages(data.results.reverse());
-      setPage(2);
-      setHasMore(data.results.length === PAGE_SIZE);
-    };
-
-    fetchMessages();
-  }, [user_uid]);
-
-  // Загрузка дополнительных сообщений при скролле вверх
-  const loadMoreMessages = async () => {
-    if (isLoadingHistory.current || !hasMore) return;
-
-    isLoadingHistory.current = true;
-    setLoadingMore(true);
-
-    const osInstance = osRef.current?.osInstance();
-    const { viewport } = osInstance?.elements() || {};
-    const prevScrollHeight = viewport?.scrollHeight || 0;
-
-    const res = await fetch(
-      `/api/get-messages-list/${user_uid}?page=${page}&page_size=${PAGE_SIZE}`,
-    );
-    const data = await res.json();
-
-    if (data.results.length < PAGE_SIZE) setHasMore(false);
-
-    setMessages(prev => [...data.results.reverse(), ...prev]);
-    setPage(prev => prev + 1);
-    setLoadingMore(false);
-    isLoadingHistory.current = false;
-
-    requestAnimationFrame(() => {
-      if (viewport) {
-        viewport.scrollTop = viewport.scrollHeight - prevScrollHeight;
-      }
+    updatedChats({
+      id: chatId!,
+      data: { last_seen_message: message.id },
     });
   };
 
   // Обработка скролла чата
   const osRef = useRef<OverlayScrollbarsComponentRef | null>(null);
-  const wasAtBottom = useRef(true);
-  const newMessagesBottom = useRef(false);
-  const firstLoadRef = useRef(true);
+  const wasAtBottomRef = useRef(true);
+  const isFetchingMoreRef = useRef(false);
+  const prevScrollHeightRef = useRef(0);
 
-  // Скролл вниз при первом рендере и при добавлении новых сообщений
   useEffect(() => {
-    if (messages.length === 0) return;
+    const instance = osRef.current?.osInstance();
+    const viewport = instance?.elements().viewport;
+    if (!viewport) return;
 
-    const osInstance = osRef.current?.osInstance();
-    if (!osInstance) return;
-    const { viewport } = osInstance.elements();
+    const currentLength = messages.length;
+    const prevLength = prevLengthRef.current;
+
+    // новые сообщения вниз
+    if (currentLength > prevLength && !isFetchingMoreRef.current) {
+      if (wasAtBottomRef.current) {
+        requestAnimationFrame(() => {
+          viewport.scrollTop = viewport.scrollHeight;
+        });
+      }
+    }
+
+    // подгрузка старых вверх
+    if (isFetchingMoreRef.current) {
+      requestAnimationFrame(() => {
+        const newScrollHeight = viewport.scrollHeight;
+        const diff = newScrollHeight - prevScrollHeightRef.current;
+
+        viewport.scrollTop = diff;
+
+        isFetchingMoreRef.current = false;
+      });
+    }
+
+    prevLengthRef.current = currentLength;
+  }, [messages.length]);
+
+  const firstUnreadRef = useRef<HTMLDivElement | null>(null);
+  const didInitialScrollRef = useRef(false);
+
+  useEffect(() => {
+    if (didInitialScrollRef.current || firstUnreadIndex === -1 || !firstUnreadRef.current) return;
+
+    const instance = osRef.current?.osInstance();
+    const viewport = instance?.elements().viewport;
     if (!viewport) return;
 
     requestAnimationFrame(() => {
-      // При первой загрузке всегда скроллим вниз
-      if (firstLoadRef.current) {
-        viewport.scrollTop = viewport.scrollHeight;
-        firstLoadRef.current = false;
-        return;
-      }
-
-      // Дальше скроллим вниз только при новых сообщениях WebSocket
-      if (newMessagesBottom.current) {
-        viewport.scrollTop = viewport.scrollHeight;
-        newMessagesBottom.current = false;
-      }
+      firstUnreadRef.current?.scrollIntoView({
+        behavior: "auto",
+        block: "start",
+      });
     });
-  }, [messages]);
 
-  // Обработчик скролла вверх для загрузки истории
-  useEffect(() => {
-    const osInstance = osRef.current?.osInstance();
-    if (!osInstance) return;
-
-    const { viewport } = osInstance.elements();
-    if (!viewport) return;
-
-    const handleScroll = () => {
-      const isBottom = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 50;
-      wasAtBottom.current = isBottom;
-
-      if (viewport.scrollTop === 0 && hasMore) {
-        loadMoreMessages();
-      }
-    };
-
-    viewport.addEventListener("scroll", handleScroll);
-    return () => viewport.removeEventListener("scroll", handleScroll);
-  }, [hasMore, page]);
+    didInitialScrollRef.current = true;
+  }, [firstUnreadIndex]);
 
   // Кнопка для скролла вниз
   const [showScrollDown, setShowScrollDown] = useState(false);
@@ -425,7 +479,7 @@ export default function Chat() {
           )}
 
           <main className="relative flex flex-col flex-1 overflow-hidden">
-            {messages.length === 0 && !isLoadingHistory ? (
+            {messages.length === 0 ? (
               <div className="flex flex-1 flex-col items-center justify-center">
                 <Image
                   src={noMessages}
@@ -449,14 +503,15 @@ export default function Chat() {
                 }}
                 events={{
                   scroll: instance => {
-                    const { viewport } = instance.elements();
+                    const viewport = instance.elements().viewport;
                     if (!viewport) return;
 
-                    const hasScroll = viewport.scrollHeight > viewport.clientHeight;
                     const isAtBottom =
-                      viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 20;
+                      viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 40;
+                    wasAtBottomRef.current = isAtBottom;
 
-                    setShowScrollDown(hasScroll && !isAtBottom);
+                    if (viewport.scrollTop < 20 && pagination.hasMore) loadMoreMessages();
+                    setShowScrollDown(viewport.scrollHeight > viewport.clientHeight && !isAtBottom);
                   },
                 }}
                 className="h-full"
@@ -464,6 +519,7 @@ export default function Chat() {
                 <div className="flex flex-col justify-end px-4 pb-2 min-h-full">
                   {messages.map((message, index) => {
                     const prevMessage = messages[index - 1];
+                    const isFirstUnread = index === firstUnreadIndex;
 
                     const showDateDivider =
                       !prevMessage ||
@@ -471,23 +527,25 @@ export default function Chat() {
                         new Date(message.created_at * 1000).toDateString();
 
                     return (
-                      <React.Fragment key={index}>
+                      <React.Fragment key={message.uid}>
                         {showDateDivider && (
                           <DateDivider date={formatChatDate(message.created_at)} />
                         )}
 
-                        {message.from_user.uid !== data.uid ? (
-                          <OutgoingMessage
-                            message={message}
-                            className={`${prevMessage && prevMessage.from_user.uid !== message.from_user.uid ? "mt-3" : "mt-2"}`}
-                          />
-                        ) : (
-                          <IncomingMessage
-                            message={message}
-                            markAsRead={markedAsRead}
-                            className={`${prevMessage && prevMessage.from_user.uid !== message.from_user.uid ? "mt-3" : "mt-2"}`}
-                          />
-                        )}
+                        <div className="flex" ref={isFirstUnread ? firstUnreadRef : null}>
+                          {message.from_user.uid !== data.uid ? (
+                            <OutgoingMessage
+                              message={message}
+                              className={`${prevMessage && prevMessage.from_user.uid !== message.from_user.uid ? "mt-3" : "mt-2"}`}
+                            />
+                          ) : (
+                            <IncomingMessage
+                              message={message}
+                              markAsRead={markedAsRead}
+                              className={`${prevMessage && prevMessage.from_user.uid !== message.from_user.uid ? "mt-3" : "mt-2"}`}
+                            />
+                          )}
+                        </div>
                       </React.Fragment>
                     );
                   })}
@@ -503,7 +561,7 @@ export default function Chat() {
               aria-label="Прокрутить вниз"
               onClick={scrollToBottom}
             >
-              <Image src={scrollDownIcon} alt="Прокрутить вниз" width={24} height={24} />
+              <Image src={scrollDownIcon} alt="Прокрутить вниз" />
             </button>
           </main>
 

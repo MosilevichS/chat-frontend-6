@@ -35,7 +35,7 @@ interface LastMessage {
   updated_at: number;
 }
 
-export interface Chat {
+export interface IChat {
   chat: User;
   chat_key: string;
   chat_type: string; // например, 'chat', 'group'
