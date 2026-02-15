@@ -63,18 +63,31 @@ const BaseCreationPage = ({
       }
     }
 
-    const params = new URLSearchParams({
+    // Создаем объект с параметрами
+    const params = {
       type,
-      name: encodeURIComponent(name),
-      description: encodeURIComponent(description),
+      name: name,
+      description: description,
       chatType,
+      ...(type === "group" && { groupType }),
+      ...(type === "channel" && { channelType }),
+    };
+
+    // Используем URLSearchParams для правильного кодирования
+    const searchParams = new URLSearchParams();
+
+    // Добавляем каждый параметр отдельно
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        searchParams.append(key, value);
+      }
     });
 
     if (photoBase64) {
-      params.append("photo", photoBase64);
+      searchParams.append("photo", photoBase64);
     }
 
-    router.push(`/chats/add-subscribers?${params.toString()}`);
+    router.push(`/chats/add-subscribers?${searchParams.toString()}`);
   };
 
   const handlePhotoSelected = (

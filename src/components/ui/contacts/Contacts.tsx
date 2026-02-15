@@ -1,7 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Image from "next/image";
+
+import {
+  OverlayScrollbarsComponent,
+  type OverlayScrollbarsComponentRef,
+} from "overlayscrollbars-react";
+import "overlayscrollbars/overlayscrollbars.css";
 
 import type { IContact } from "@/src/types/contact";
 
@@ -36,7 +42,6 @@ const Contacts = () => {
   const [editing, setEditing] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
-  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const isMobile = useMediaQuery();
 
@@ -68,59 +73,6 @@ const Contacts = () => {
       return fullName.includes(searchQuery.toLowerCase());
     });
   }, [data, searchQuery]);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    let high;
-
-    // проверяет, превышает ли высота контента контейнер прокрутки
-    const isContentTall = () => {
-      const viewportHeight = window.innerHeight;
-      // высота контейнера прокрутки
-      const threshold = isMobile
-        ? viewportHeight - 200
-        : viewportHeight - 204 - (selectedContactIds.length > 0 ? 76 : 0);
-
-      return container.scrollHeight > threshold;
-    };
-
-    if (isContentTall()) {
-      high = true;
-    } else {
-      high = false;
-    }
-
-    if (!high) {
-      container.style.paddingRight = "6px";
-    }
-
-    if (high) {
-      container.style.paddingRight = "0px";
-    }
-
-    // Обработчик ховера
-    const onMouseEnter = () => {
-      if (isContentTall()) {
-        container.style.paddingRight = "0px";
-      }
-    };
-
-    const onMouseLeave = () => {
-      container.style.paddingRight = "6px"; // Сброс
-    };
-
-    // Прикрепим обработчики
-    container.addEventListener("mouseenter", onMouseEnter);
-    container.addEventListener("mouseleave", onMouseLeave);
-
-    // Очистка
-    return () => {
-      container.removeEventListener("mouseenter", onMouseEnter);
-      container.removeEventListener("mouseleave", onMouseLeave);
-    };
-  }, [selectedContactIds.length]);
 
   const handleDeleteContacts = () => {
     setEditing(true);
@@ -162,6 +114,8 @@ const Contacts = () => {
     setEditing(false);
     setIsModalOpen(false);
   };
+
+  const osRef = useRef<OverlayScrollbarsComponentRef | null>(null);
 
   return (
     <>
@@ -269,81 +223,89 @@ const Contacts = () => {
           </div>
         )}
 
-        <div
-          ref={containerRef}
-          className={`w-full overflow-y-auto h-[calc(100vh-200px)] 
-           ${selectedContactIds.length > 0 ? "md:h-[calc(100vh-206px-76px)]" : "md:h-[calc(100vh-206px)]"} scroll-custom pl-2 pr-1.5`}
+        <OverlayScrollbarsComponent
+          ref={osRef}
+          options={{
+            scrollbars: {
+              autoHide: "leave",
+              autoHideDelay: 200,
+            },
+          }}
+          className={`h-[calc(100vh-200px)] 
+            ${selectedContactIds.length > 0 ? "md:h-[calc(100vh-206px-76px)]" : "md:h-[calc(100vh-206px)]"}`}
         >
-          {isLoading && <Loader text="контактов" className="pt-40" />}
+          <div>
+            {isLoading && <Loader text="контактов" className="pt-40" />}
 
-          {filteredContacts.length > 0 &&
-            filteredContacts.map(contact => (
-              <ContactItem
-                key={contact.uid}
-                contact={contact}
-                isSelected={selectedContactIds.includes(contact.uid)}
-                isEditing={editing}
-                onSelect={toggleContactSelection}
-                isToggleButtonVisible
-              />
-            ))}
-
-          {!isLoading &&
-            !searchQuery &&
-            filteredContacts.length === 0 &&
-            users !== undefined &&
-            users.length === 0 && (
-              <div className="flex flex-col items-center mt-45 text-center text-(--color-gray) font-normal">
-                <Image
-                  className="mb-6"
-                  src={phoneBook}
-                  alt="Список контактов пока пуст"
-                  width={200}
-                  height={200}
-                  loading="eager"
-                />
-                <p className="text-lg">Список контактов пока пуст</p>
-              </div>
-            )}
-
-          {searchQuery &&
-            filteredContacts.length > 0 &&
-            users !== undefined &&
-            users.length > 0 && (
-              <div className="flex justify-between items-center h-[36px] bg-(--color-gray-2) -mx-1.5 px-4">
-                <p className="text-sm font-normal leading-[1.2]">Пользователи А-Чата</p>
-              </div>
-            )}
-
-          {searchQuery && users !== undefined && users.length > 0 && (
-            <div>
-              {users.map(user => (
+            {filteredContacts.length > 0 &&
+              filteredContacts.map(contact => (
                 <ContactItem
-                  key={user.uid}
-                  contact={{
-                    uid: user.uid,
-                    first_name: user.first_name || "",
-                    last_name: user.last_name || "",
-                    system_contact: {
-                      uid: user.uid,
-                      avatar_url: user.avatar_url,
-                      is_online: user.is_online,
-                      was_online_at: user.was_online_at,
-                    },
-                  }}
-                  isSelected={selectedContactIds.includes(user.uid)}
+                  key={contact.uid}
+                  contact={contact}
+                  isSelected={selectedContactIds.includes(contact.uid)}
                   isEditing={editing}
                   onSelect={toggleContactSelection}
-                  isToggleButtonVisible={false}
+                  isToggleButtonVisible
                 />
               ))}
-            </div>
-          )}
-          {searchQuery &&
-            filteredContacts.length === 0 &&
-            users !== undefined &&
-            users.length === 0 && <NotFound />}
-        </div>
+
+            {!isLoading &&
+              !searchQuery &&
+              filteredContacts.length === 0 &&
+              users !== undefined &&
+              users.length === 0 && (
+                <div className="flex flex-col items-center mt-45 text-center text-(--color-gray) font-normal">
+                  <Image
+                    className="mb-6"
+                    src={phoneBook}
+                    alt="Список контактов пока пуст"
+                    width={200}
+                    height={200}
+                    loading="eager"
+                  />
+                  <p className="text-lg">Список контактов пока пуст</p>
+                </div>
+              )}
+
+            {searchQuery &&
+              filteredContacts.length > 0 &&
+              users !== undefined &&
+              users.length > 0 && (
+                <div className="flex justify-between items-center h-[36px] bg-(--color-gray-2) px-4">
+                  <p className="text-sm font-normal leading-[1.2]">Пользователи А-Чата</p>
+                </div>
+              )}
+
+            {searchQuery && users !== undefined && users.length > 0 && (
+              <div>
+                {users.map(user => (
+                  <ContactItem
+                    key={user.uid}
+                    contact={{
+                      uid: user.uid,
+                      first_name: user.first_name || "",
+                      last_name: user.last_name || "",
+                      system_contact: {
+                        uid: user.uid,
+                        avatar_url: user.avatar_url,
+                        is_online: user.is_online,
+                        was_online_at: user.was_online_at,
+                      },
+                    }}
+                    isSelected={selectedContactIds.includes(user.uid)}
+                    isEditing={editing}
+                    onSelect={toggleContactSelection}
+                    isToggleButtonVisible={false}
+                  />
+                ))}
+              </div>
+            )}
+            {searchQuery &&
+              filteredContacts.length === 0 &&
+              users !== undefined &&
+              users.length === 0 && <NotFound />}
+          </div>
+        </OverlayScrollbarsComponent>
 
         {selectedContactIds.length > 0 &&
           (isMobile ? (

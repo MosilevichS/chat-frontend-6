@@ -11,6 +11,8 @@ export const UseProfileInfo = () => {
   return (
     <div className="flex flex-row items-center gap-x-2 p-3 w-full md:max-w-[360px]  bg-(--color-white) rounded-lg">
       <Avatar
+        imageClassName="rounded-full"
+        sizes="64px"
         picUrl={profileData?.avatar_url}
         lastName={profileData?.last_name}
         firstName={profileData?.first_name}
