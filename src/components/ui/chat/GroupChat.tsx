@@ -38,21 +38,21 @@ import GroupInfo from "./GroupInfo";
 export default function GroupChat() {
   const params = useParams();
   const searchParams = useSearchParams();
-  
+
   const id = params?.user_uid as string;
   const type = searchParams.get("type");
-  
+
   console.log("GroupChat params:", { id, type });
-  
+
   const [isProfileOpen, setProfileOpen] = useState(false);
 
   const { data: profileData } = useGetProfileQuery();
   const profile = profileData;
 
   const { data: chatsData, isLoading } = useGetChatsQuery();
-  
+
   const chat = chatsData?.results?.find((c: Chat) => c.chat_key === id || c.id.toString() === id);
-  
+
   console.log("GroupChat found chat:", chat);
 
   const [inputValue, setInputValue] = useState("");
@@ -85,14 +85,14 @@ export default function GroupChat() {
 
         ws.onmessage = (event: MessageEvent) => {
           const data = JSON.parse(event.data);
-          
+
           if (!data.object) return;
-          
+
           const message: IMessage = data.object;
 
           if (data.action === "create_text_message") {
             if (!message || message.chat_key !== id) return;
-            
+
             console.log("New group message:", message);
             setMessages(prev => [...prev, message]);
             newMessagesBottom.current = true;
@@ -100,12 +100,10 @@ export default function GroupChat() {
 
           if (data.action === "change_status_read_message") {
             if (!message || !message.uid) return;
-            
+
             const updatedMessage = data.object;
             setMessages(prev =>
-              prev.map(msg =>
-                msg.uid === updatedMessage.uid ? { ...msg, new: false } : msg,
-              ),
+              prev.map(msg => (msg.uid === updatedMessage.uid ? { ...msg, new: false } : msg)),
             );
           }
         };
@@ -163,7 +161,12 @@ export default function GroupChat() {
   };
 
   const markedAsRead = (message: IMessage) => {
-    if (readMessagesRef.current.has(message.uid) || wsRef.current?.readyState !== WebSocket.OPEN || !chat) return;
+    if (
+      readMessagesRef.current.has(message.uid) ||
+      wsRef.current?.readyState !== WebSocket.OPEN ||
+      !chat
+    )
+      return;
 
     readMessagesRef.current.add(message.uid);
 
@@ -193,19 +196,21 @@ export default function GroupChat() {
   useEffect(() => {
     const fetchMessages = async () => {
       if (!chat) return;
-      
+
       setIsLoadingMessages(true);
       try {
-        const res = await fetch(`/api/chat/messages/group/${chat.chat_key}?page=1&page_size=${PAGE_SIZE}`);
-        
+        const res = await fetch(
+          `/api/chat/messages/group/${chat.chat_key}?page=1&page_size=${PAGE_SIZE}`,
+        );
+
         if (!res.ok) {
-          console.error('Failed to fetch messages:', res.status, res.statusText);
+          console.error("Failed to fetch messages:", res.status, res.statusText);
           return;
         }
-        
+
         const data = await res.json();
         console.log("Group messages data:", data);
-        
+
         if (data.results) {
           setMessages(data.results.reverse());
           setPage(2);
@@ -221,7 +226,7 @@ export default function GroupChat() {
         setIsLoadingMessages(false);
       }
     };
-    
+
     fetchMessages();
   }, [chat]);
 
@@ -234,22 +239,24 @@ export default function GroupChat() {
     const prevScrollHeight = viewport?.scrollHeight || 0;
 
     try {
-      const res = await fetch(`/api/chat/messages/${chat.chat_key}?page=${page}&page_size=${PAGE_SIZE}`);
-      
+      const res = await fetch(
+        `/api/chat/messages/${chat.chat_key}?page=${page}&page_size=${PAGE_SIZE}`,
+      );
+
       if (!res.ok) {
-        console.error('Failed to load more messages:', res.status);
+        console.error("Failed to load more messages:", res.status);
         return;
       }
-      
+
       const data = await res.json();
-      
+
       let newMessages = [];
       if (data.results) {
         newMessages = data.results;
       } else if (Array.isArray(data)) {
         newMessages = data;
       }
-      
+
       if (newMessages.length < PAGE_SIZE) setHasMore(false);
       setMessages(prev => [...newMessages.reverse(), ...prev]);
       setPage(prev => prev + 1);
@@ -341,7 +348,13 @@ export default function GroupChat() {
         >
           <div className="flex gap-3">
             <div className="min-w-10 min-h-10 w-10 h-10 rounded-full overflow-hidden bg-(--color-gray-2) flex items-center justify-center">
-              <Image src={chatAvatar} alt="Аватар" width={40} height={40} className="object-cover" />
+              <Image
+                src={chatAvatar}
+                alt="Аватар"
+                width={40}
+                height={40}
+                className="object-cover"
+              />
             </div>
 
             <div>
@@ -373,10 +386,19 @@ export default function GroupChat() {
             </div>
           ) : messages.length === 0 ? (
             <div className="flex flex-1 flex-col items-center justify-center">
-              <Image src={noMessages} alt="Нет сообщений" width={200} height={200} className="mb-6" loading="eager" />
+              <Image
+                src={noMessages}
+                alt="Нет сообщений"
+                width={200}
+                height={200}
+                className="mb-6"
+                loading="eager"
+              />
               <p className="text-(--color-gray) text-lg leading-[130%]">Сообщений пока нет</p>
               <p className="text-(--color-gray) text-sm leading-[120%]">
-                {isChannel ? "Напишите первое сообщение в канал" : "Напишите первое сообщение в группу"}
+                {isChannel
+                  ? "Напишите первое сообщение в канал"
+                  : "Напишите первое сообщение в группу"}
               </p>
             </div>
           ) : (
@@ -388,9 +410,10 @@ export default function GroupChat() {
               <div className="flex flex-col justify-end px-4 pb-2 min-h-full">
                 {messages.map((message, index) => {
                   const prevMessage = messages[index - 1];
-                  const showDateDivider = !prevMessage ||
+                  const showDateDivider =
+                    !prevMessage ||
                     new Date(prevMessage.created_at * 1000).toDateString() !==
-                    new Date(message.created_at * 1000).toDateString();
+                      new Date(message.created_at * 1000).toDateString();
 
                   return (
                     <React.Fragment key={message.uid || index}>
@@ -421,12 +444,24 @@ export default function GroupChat() {
             aria-label="Прокрутить вниз"
             onClick={scrollToBottom}
           >
-            <Image src={scrollDownIcon} alt="Прокрутить вниз" width={24} height={24} style={{ width: 'auto', height: 'auto' }} />
+            <Image
+              src={scrollDownIcon}
+              alt="Прокрутить вниз"
+              width={24}
+              height={24}
+              style={{ width: "auto", height: "auto" }}
+            />
           </button>
         </main>
 
         <footer className="flex items-center px-4 w-full min-h-[60px] bg-(--color-gray-light) rounded-b-lg border-t border-(--color-gray-3)">
-          <form className="flex justify-between items-center gap-2 w-full" onSubmit={e => { e.preventDefault(); sendMessage(); }}>
+          <form
+            className="flex justify-between items-center gap-2 w-full"
+            onSubmit={e => {
+              e.preventDefault();
+              sendMessage();
+            }}
+          >
             <button type="button">
               <Image src={clip} alt="Прикрепить файл" width={36} height={36} />
             </button>

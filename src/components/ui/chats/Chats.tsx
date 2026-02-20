@@ -372,7 +372,7 @@ const Chats = () => {
           {isLoading ? (
             <Loader className="pt-40" />
           ) : filteredChats.length > 0 ? (
-            filteredChats.map((chat) => (
+            filteredChats.map(chat => (
               <ChatsItem
                 key={chat.id}
                 chat={chat}

@@ -12,30 +12,39 @@ interface ChatItemProps {
 }
 
 const ChatsItem = ({ chat, selectedChatId, handleRightClick }: ChatItemProps) => {
-  
   const pathname = usePathname();
-  
+
   // Определяем правильный путь в зависимости от типа чата
   const getChatPath = () => {
     // Для групп/каналов добавляем параметр type=group
     if (chat.chat_type === "private-group" || chat.chat_type === "public-channel" || chat.name) {
-      console.log("Group chat:", chat.name, "path:", `/chats/${chat.chat_key || chat.id}?type=group`);
+      console.log(
+        "Group chat:",
+        chat.name,
+        "path:",
+        `/chats/${chat.chat_key || chat.id}?type=group`,
+      );
       return `/chats/${chat.chat_key || chat.id}?type=group`;
     }
     // Для личных чатов
-    console.log("Personal chat:", chat.chat?.first_name, "path:", `/chats/${chat.chat?.uid || chat.chat_key || chat.id}`);
+    console.log(
+      "Personal chat:",
+      chat.chat?.first_name,
+      "path:",
+      `/chats/${chat.chat?.uid || chat.chat_key || chat.id}`,
+    );
     return `/chats/${chat.chat?.uid || chat.chat_key || chat.id}`;
   };
 
   const chatPath = getChatPath();
-  
+
   // Для определения активного состояния нужно учитывать pathname без query параметров
-  const basePath = chatPath.split('?')[0];
-  const isActive = pathname === basePath || pathname.startsWith(basePath + '/');
+  const basePath = chatPath.split("?")[0];
+  const isActive = pathname === basePath || pathname.startsWith(basePath + "/");
 
   const getChatName = (): string => {
     if (chat.chat?.first_name || chat.chat?.last_name) {
-      return `${chat.chat.first_name || ''} ${chat.chat.last_name || ''}`.trim();
+      return `${chat.chat.first_name || ""} ${chat.chat.last_name || ""}`.trim();
     }
     if (chat.name) {
       return chat.name;
@@ -102,56 +111,78 @@ const ChatsItem = ({ chat, selectedChatId, handleRightClick }: ChatItemProps) =>
         <div className="relative after:absolute after:left-0 after:right-0 after:bottom-[-11px] after:border-b after:border-1 after:border-(--color-button-disabled) after:z--1 w-full">
           <div className="flex justify-between mb-1">
             <div className="flex gap-x-1 h-[22px]">
-              <p className={`font-medium text-lg leading-[1.2] truncate max-w-[165px] ${isActive ? "text-white" : ""}`}>
+              <p
+                className={`font-medium text-lg leading-[1.2] truncate max-w-[165px] ${isActive ? "text-white" : ""}`}
+              >
                 {getChatName()}
               </p>
               {!hasNotifications() && (
                 <div className="flex items-center">
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                    <path d="M3.25672 2.20312L2.19922 3.26063L5.46922 6.53062L5.25172 6.75562H2.25172V11.2556H5.25172L9.00172 15.0056V10.0631L12.1367 13.1981C11.6492 13.5656 11.1017 13.8581 10.5017 14.0306V15.5756C11.5067 15.3506 12.4292 14.8856 13.2092 14.2631L14.7467 15.8006L15.8042 14.7431L3.25672 2.20312ZM7.50172 11.3831L5.87422 9.75562H3.75172V8.25562H5.87422L6.53422 7.59562L7.50172 8.56312V11.3831ZM14.2517 9.00562C14.2517 9.62062 14.1392 10.2131 13.9442 10.7606L15.0917 11.9081C15.5117 11.0306 15.7517 10.0481 15.7517 9.00562C15.7517 5.79562 13.5092 3.11062 10.5017 2.42812V3.97312C12.6692 4.61812 14.2517 6.62812 14.2517 9.00562ZM9.00172 3.00562L7.59172 4.41563L9.00172 5.82562V3.00562ZM12.3767 9.00562C12.3767 7.67812 11.6117 6.53813 10.5017 5.98312V7.32562L12.3617 9.18562C12.3692 9.12562 12.3767 9.06562 12.3767 9.00562Z" fill={`${isActive ? "var(--color-white)" : "var(--color-gray)"}`} />
+                    <path
+                      d="M3.25672 2.20312L2.19922 3.26063L5.46922 6.53062L5.25172 6.75562H2.25172V11.2556H5.25172L9.00172 15.0056V10.0631L12.1367 13.1981C11.6492 13.5656 11.1017 13.8581 10.5017 14.0306V15.5756C11.5067 15.3506 12.4292 14.8856 13.2092 14.2631L14.7467 15.8006L15.8042 14.7431L3.25672 2.20312ZM7.50172 11.3831L5.87422 9.75562H3.75172V8.25562H5.87422L6.53422 7.59562L7.50172 8.56312V11.3831ZM14.2517 9.00562C14.2517 9.62062 14.1392 10.2131 13.9442 10.7606L15.0917 11.9081C15.5117 11.0306 15.7517 10.0481 15.7517 9.00562C15.7517 5.79562 13.5092 3.11062 10.5017 2.42812V3.97312C12.6692 4.61812 14.2517 6.62812 14.2517 9.00562ZM9.00172 3.00562L7.59172 4.41563L9.00172 5.82562V3.00562ZM12.3767 9.00562C12.3767 7.67812 11.6117 6.53813 10.5017 5.98312V7.32562L12.3617 9.18562C12.3692 9.12562 12.3767 9.06562 12.3767 9.00562Z"
+                      fill={`${isActive ? "var(--color-white)" : "var(--color-gray)"}`}
+                    />
                   </svg>
                 </div>
               )}
             </div>
-            
+
             <div className="flex gap-x-0.5 h-[22px]">
               <div className="flex items-center">
                 {isMessageNew() ? (
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                    <path d="M14.7101 3.80859L6.51915 11.9996L3.28302 8.77117L2.19141 9.86279L6.51915 14.1905L15.8095 4.90021L14.7101 3.80859Z" fill={`${isActive ? "var(--color-white)" : "var(--color-gray)"}`} />
+                    <path
+                      d="M14.7101 3.80859L6.51915 11.9996L3.28302 8.77117L2.19141 9.86279L6.51915 14.1905L15.8095 4.90021L14.7101 3.80859Z"
+                      fill={`${isActive ? "var(--color-white)" : "var(--color-gray)"}`}
+                    />
                   </svg>
                 ) : (
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                    <path d="M13.6181 4.90021L12.5265 3.80859L7.61806 8.71698L8.70968 9.80859L13.6181 4.90021ZM16.9006 3.80859L8.70968 11.9996L5.47355 8.77117L4.38194 9.86279L8.70968 14.1905L18 4.90021L16.9006 3.80859ZM0 9.86279L4.32774 14.1905L5.41935 13.0989L1.09935 8.77117L0 9.86279Z" fill={`${isActive ? "var(--color-white)" : "var(--color-violet)"}`} />
+                    <path
+                      d="M13.6181 4.90021L12.5265 3.80859L7.61806 8.71698L8.70968 9.80859L13.6181 4.90021ZM16.9006 3.80859L8.70968 11.9996L5.47355 8.77117L4.38194 9.86279L8.70968 14.1905L18 4.90021L16.9006 3.80859ZM0 9.86279L4.32774 14.1905L5.41935 13.0989L1.09935 8.77117L0 9.86279Z"
+                      fill={`${isActive ? "var(--color-white)" : "var(--color-violet)"}`}
+                    />
                   </svg>
                 )}
               </div>
 
               <div className="flex items-center">
-                <p className={`text-sm font-normal text-(--color-gray) leading-[1.2] tracking-[1%] ${isActive ? "text-white" : ""}`}>
-                  {getLastMessageTime() ? formatChatsDate(getLastMessageTime()! * 1000) : ''}
+                <p
+                  className={`text-sm font-normal text-(--color-gray) leading-[1.2] tracking-[1%] ${isActive ? "text-white" : ""}`}
+                >
+                  {getLastMessageTime() ? formatChatsDate(getLastMessageTime()! * 1000) : ""}
                 </p>
               </div>
             </div>
           </div>
 
           <div className="flex justify-between w-full h-[34px]">
-            <p className={`text-sm font-normal text-(--color-gray) ${isFavorite() || getNewMessageCount() > 1 ? "w-[231px]" : "w-[260px]"} leading-[1.2] tracking-[1%] line-clamp-2 ${isActive ? "text-white" : ""}`}>
+            <p
+              className={`text-sm font-normal text-(--color-gray) ${isFavorite() || getNewMessageCount() > 1 ? "w-[231px]" : "w-[260px]"} leading-[1.2] tracking-[1%] line-clamp-2 ${isActive ? "text-white" : ""}`}
+            >
               {getLastMessageContent()}
             </p>
-            
+
             {isFavorite() && getNewMessageCount() < 2 && (
               <div className="flex items-center">
                 <svg width="21" height="21" viewBox="0 0 21 21" fill="none">
-                  <path d="M12.25 3.5V7.875C12.25 8.855 12.5737 9.765 13.125 10.5H7.875C8.44375 9.7475 8.75 8.8375 8.75 7.875V3.5H12.25ZM14.875 1.75H6.125C5.64375 1.75 5.25 2.14375 5.25 2.625C5.25 3.10625 5.64375 3.5 6.125 3.5H7V7.875C7 9.3275 5.8275 10.5 4.375 10.5V12.25H9.59875V18.375L10.4738 19.25L11.3488 18.375V12.25H16.625V10.5C15.1725 10.5 14 9.3275 14 7.875V3.5H14.875C15.3562 3.5 15.75 3.10625 15.75 2.625C15.75 2.14375 15.3562 1.75 14.875 1.75Z" fill={`${isActive ? "var(--color-white)" : "var(--color-gray)"}`} />
+                  <path
+                    d="M12.25 3.5V7.875C12.25 8.855 12.5737 9.765 13.125 10.5H7.875C8.44375 9.7475 8.75 8.8375 8.75 7.875V3.5H12.25ZM14.875 1.75H6.125C5.64375 1.75 5.25 2.14375 5.25 2.625C5.25 3.10625 5.64375 3.5 6.125 3.5H7V7.875C7 9.3275 5.8275 10.5 4.375 10.5V12.25H9.59875V18.375L10.4738 19.25L11.3488 18.375V12.25H16.625V10.5C15.1725 10.5 14 9.3275 14 7.875V3.5H14.875C15.3562 3.5 15.75 3.10625 15.75 2.625C15.75 2.14375 15.3562 1.75 14.875 1.75Z"
+                    fill={`${isActive ? "var(--color-white)" : "var(--color-gray)"}`}
+                  />
                 </svg>
               </div>
             )}
 
             {!isMessageNew() && getNewMessageCount() > 1 && (
               <div className="flex items-center">
-                <span className={`flex items-center px-1.5 h-[21px] rounded-[10px] bg-(--color-violet) ${isActive ? "bg-(--color-white) text-(--color-violet) font-semibold" : "text-white font-normal"}`}>
-                  {getNewMessageCount() < 1000 ? getNewMessageCount() : `${(getNewMessageCount() / 1000).toFixed(1).replace(".", ",")}K`}
+                <span
+                  className={`flex items-center px-1.5 h-[21px] rounded-[10px] bg-(--color-violet) ${isActive ? "bg-(--color-white) text-(--color-violet) font-semibold" : "text-white font-normal"}`}
+                >
+                  {getNewMessageCount() < 1000
+                    ? getNewMessageCount()
+                    : `${(getNewMessageCount() / 1000).toFixed(1).replace(".", ",")}K`}
                 </span>
               </div>
             )}

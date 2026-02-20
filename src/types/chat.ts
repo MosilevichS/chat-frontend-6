@@ -36,10 +36,11 @@ interface LastMessage {
 }
 
 export interface Chat {
-  chat: User | null; // ТОЛЬКО ЭТО ИЗМЕНЕНИЕ - может быть null для групп/каналов
+  chat: User | null; // может быть null для групп/каналов
   chat_key: string;
   chat_type: string; // например, 'chat', 'group'
   created_by: string; // uid создателя чата
+  description?: string; // описание группы/канала (может отсутствовать)
   first_new_message: MessageSummary;
   id: number; // внутренний ID чата
   is_favorite: boolean;
