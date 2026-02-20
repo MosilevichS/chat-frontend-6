@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
@@ -29,15 +30,24 @@ import ModalSuccess from "@/src/components/ui/modal/ModalSuccess";
 import OutgoingMessage from "@/src/components/ui/chat/OutgoingMessage";
 import IncomingMessage from "@/src/components/ui/chat/IncomingMessage";
 import DateDivider from "@/src/components/ui/chat/DateDivider";
+import Button from "../Button";
+import ClearChat from "./ClearChat";
+import ModalConfirm from "../modal/ModalConfirm";
+import ProfileInfo from "./ProfileInfo";
 
 import { timeFormat } from "@/src/utils/timeFormat";
 import formatChatDate from "@/src/utils/formatChatDate";
 
-import { useGetContactByIdQuery } from "@/src/services/contactApi";
+import {
+  useAddBlackListMutation,
+  useDeleteBlackListMutation,
+  useGetContactByIdQuery,
+} from "@/src/services/contactApi";
 import { useGetContactsQuery, useAddContactByPhoneMutation } from "@/src/services/contactApi";
 import { useGetProfileQuery } from "@/src/services/userApi";
-import React from "react";
-import ProfileInfo from "./ProfileInfo";
+import { useGetChatsQuery } from "@/src/services/chatsApi";
+import type { IChat } from "@/src/types/chat";
+import CopyInfo from "./CopyInfo";
 
 export default function Chat() {
   // Контакт и профиль
@@ -51,6 +61,12 @@ export default function Chat() {
 
   const [isModalSuccessOpen, setModalSuccessOpen] = useState(false);
 
+  const [isAddToBlacklistModalOpen, setIsAddToBlacklistModalOpen] = useState(false);
+  const [isDeleteToBlacklistModalOpen, setIsDeleteToBlacklistModalOpen] = useState(false);
+  const [showClearChatModal, setShowClearChatModal] = useState(false);
+  const [showCopyModal, setShowCopyModal] = useState(false);
+  const [selectedCopyInfo, setSelectedCopyInfo] = useState({ text: "", name: "" });
+
   // Проверка есть ли пользователь в списке контактов
   const { data: contactsData } = useGetContactsQuery();
 
@@ -60,16 +76,41 @@ export default function Chat() {
     (contact: IContact) => contact.system_contact.uid === user_uid,
   );
 
+  // Получение данных открытого чата
+  const { data: chatsData } = useGetChatsQuery();
+  const chats = chatsData?.results;
+  const chat = chats?.find((chat: IChat) => chat.chat?.uid === user_uid);
+
   // Получение данных профиля
   const { data: profileData } = useGetProfileQuery();
   const profile = profileData;
 
-  console.log("profile:", profile);
-
   // Получение контакта по uid
   const { data, isLoading, isError } = useGetContactByIdQuery(user_uid);
 
-  console.log(data);
+  // Удаление и добавление в черный список
+  const [addBlackList] = useAddBlackListMutation();
+  const [deleteBlackList] = useDeleteBlackListMutation();
+
+  const handleAddBlackList = async () => {
+    if (!data) return;
+
+    try {
+      await addBlackList({ id: data.uid }).unwrap();
+    } catch (error) {
+      console.error("Ошибка:", error);
+    }
+  };
+
+  const handleDeleteBlackList = async () => {
+    if (!data) return;
+
+    try {
+      await deleteBlackList({ id: data.uid }).unwrap();
+    } catch (error) {
+      console.error("Ошибка:", error);
+    }
+  };
 
   // WebSocket и сообщения
   const [inputValue, setInputValue] = useState("");
@@ -317,6 +358,23 @@ export default function Chat() {
     });
   };
 
+  // логика закрытия модалки через секунды при добавлении в друзья
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (isModalSuccessOpen) {
+      timeoutRef.current = setTimeout(() => {
+        setModalSuccessOpen(false);
+      }, 3000);
+    }
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [isModalSuccessOpen]);
+
   // Добавление контакта по номеру телефона
   const handleAddContact = async (phone_number: string) => {
     try {
@@ -368,42 +426,59 @@ export default function Chat() {
                 />
               )}
 
-              <div>
+              <div className={`${chat?.chat?.is_blocked && isProfileOpen ? "w-[55px]" : ""}`}>
                 <p className="font-medium text-lg leading-[1.2] truncate max-w-[165px] mb-0.5">
                   {data.first_name} {data.last_name}
                 </p>
                 {data.is_online ? (
-                  <p className="text-sm font-normal text-(--color-violet) leading-[1.2] tracking-[1%] line-clamp-2">
+                  <p className="text-sm font-normal text-(--color-violet) leading-[1.2] tracking-[1%] line-clamp-2 truncate">
                     в сети
                   </p>
                 ) : (
-                  <p className="text-sm font-normal text-(--color-gray) leading-[1.2] tracking-[1%] line-clamp-2">
+                  <p className="text-sm font-normal text-(--color-gray) leading-[1.2] tracking-[1%] line-clamp-2 truncate">
                     был(а) {timeFormat(data.was_online_at * 1000)}
                   </p>
                 )}
               </div>
             </div>
-
             <div className="flex gap-x-3">
+              {chat?.chat?.is_blocked && (
+                <Button
+                  variant="primary"
+                  className="!w-[161px]"
+                  size="small"
+                  type="button"
+                  onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsDeleteToBlacklistModalOpen(true);
+                  }}
+                >
+                  Разблокировать
+                </Button>
+              )}
               <button aria-label="Поиск">
-                <Image src={search} alt="Поиск" width={36} height={36} />
+                <Image className="min-w-[36px]" src={search} alt="Поиск" width={36} height={36} />
               </button>
-              <button aria-label="Звонок">
-                <Image src={call} alt="Звонок" width={36} height={36} />
-              </button>
+              {!chat?.chat?.is_blocked && (
+                <button aria-label="Звонок">
+                  <Image src={call} alt="Звонок" width={36} height={36} />
+                </button>
+              )}
             </div>
           </header>
 
-          {!isInContacts && !isBannerHidden && (
+          {!isInContacts && !isBannerHidden && !isProfileOpen && !chat?.chat?.is_blocked && (
             <div
               className={`h-[44px] w-full px-4 flex items-center bg-(--color-gray-light) border-b border-(--color-gray-3) 
                 absolute top-[60px] left-0 right-0 z-20
-                transition-transform duration-300 ease-in-out ${isBannerClosing ? "translate-y-[-100%]" : "translate-y-0"}`}
+                transition-transform duration-300 ease-in-out 
+                ${isBannerClosing ? "translate-y-[-100%]" : "translate-y-0"}`}
             >
               <div className="flex gap-1 w-full">
                 <div className="flex justify-center w-full max-w-[340px]">
                   <button
-                    className="text-(--color-violet) active:text-(--color-violet-light)"
+                    className="text-(--color-violet) active:text-(--color-violet-light) truncate"
                     onClick={() => {
                       setBannerClosing(true);
                       setTimeout(() => setBannerHidden(true), 300);
@@ -414,7 +489,12 @@ export default function Chat() {
                   </button>
                 </div>
                 <div className="flex justify-center w-full max-w-[340px]">
-                  <button className="text-(--color-error) active:opacity-20">Заблокировать</button>
+                  <button
+                    className="text-(--color-error) active:opacity-20"
+                    onClick={() => setIsAddToBlacklistModalOpen(true)}
+                  >
+                    Заблокировать
+                  </button>
                 </div>
               </div>
               <button
@@ -427,6 +507,14 @@ export default function Chat() {
                 <Image src={close} alt="Закрыть" width={24} height={24} />
               </button>
             </div>
+          )}
+
+          {showClearChatModal && (
+            <ClearChat setShowClearChatModal={setShowClearChatModal} chatId={chat?.id!} />
+          )}
+
+          {showCopyModal && (
+            <CopyInfo setShowCopyModal={setShowCopyModal} copyInfo={selectedCopyInfo} />
           )}
 
           <main className="relative flex flex-col flex-1 overflow-hidden">
@@ -551,7 +639,22 @@ export default function Chat() {
             ${isProfileOpen ? "w-full max-w-[360px] ml-6 opacity-100" : "w-0 opacity-0 ml-0"}
             `}
         >
-          {isProfileOpen && <ProfileInfo data={data} setProfileOpen={setProfileOpen} />}
+          {isProfileOpen && (
+            <ProfileInfo
+              data={data}
+              setProfileOpen={setProfileOpen}
+              chat={chat!}
+              isInContacts={isInContacts!}
+              handleAddContact={() => handleAddContact(data.username)}
+              handleAddBlackList={handleAddBlackList}
+              handleDeleteBlackList={handleDeleteBlackList}
+              setIsAddToBlacklistModalOpen={setIsAddToBlacklistModalOpen}
+              setIsDeleteToBlacklistModalOpen={setIsDeleteToBlacklistModalOpen}
+              setShowClearChatModal={setShowClearChatModal}
+              setShowCopyModal={setShowCopyModal}
+              setSelectedCopyInfo={setSelectedCopyInfo}
+            />
+          )}
         </aside>
       </div>
 
@@ -560,6 +663,40 @@ export default function Chat() {
           <ModalSuccess
             name={`${data.first_name} ${data.last_name}`}
             text="теперь в списке ваших контактов"
+          />
+        </ModalBase>
+      )}
+
+      {isAddToBlacklistModalOpen && (
+        <ModalBase onClose={() => setIsAddToBlacklistModalOpen(false)}>
+          <ModalConfirm
+            onClose={() => {
+              setIsAddToBlacklistModalOpen(false);
+              handleAddBlackList();
+            }}
+            onConfirm={() => setIsAddToBlacklistModalOpen(false)}
+            title={`Заблокировать ${chat?.chat?.first_name}${chat?.chat?.last_name ? ` ${chat.chat.last_name}` : ""}?`}
+            message="Пользователь не сможет писать Вам личные сообщения, звонить и приглашать Вас в группы и каналы"
+            confirmText="Отмена"
+            cancelText="Заблокировать"
+            className="text-red-500 w-50!"
+          />
+        </ModalBase>
+      )}
+
+      {isDeleteToBlacklistModalOpen && (
+        <ModalBase onClose={() => setIsDeleteToBlacklistModalOpen(false)}>
+          <ModalConfirm
+            onClose={() => {
+              setIsDeleteToBlacklistModalOpen(false);
+            }}
+            onConfirm={() => {
+              setIsDeleteToBlacklistModalOpen(false);
+              handleDeleteBlackList();
+            }}
+            title={`Разблокировать ${chat?.chat?.first_name}${chat?.chat?.last_name ? ` ${chat?.chat.last_name}` : ""}?`}
+            confirmText="Да"
+            cancelText="Нет"
           />
         </ModalBase>
       )}

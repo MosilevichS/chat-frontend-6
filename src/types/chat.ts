@@ -35,7 +35,7 @@ interface LastMessage {
   updated_at: number;
 }
 
-export interface Chat {
+export interface IChat {
   chat: User | null; // ТОЛЬКО ЭТО ИЗМЕНЕНИЕ - может быть null для групп/каналов
   chat_key: string;
   chat_type: string; // например, 'chat', 'group'

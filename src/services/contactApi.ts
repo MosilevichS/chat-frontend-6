@@ -15,6 +15,20 @@ export const contactApi = privateApi.injectEndpoints({
       }),
       invalidatesTags: ["Contacts", "Chats"],
     }),
+    addBlackList: builder.mutation<IContact, { id: string }>({
+      query: ({ id }) => ({
+        url: `/contacts/add-blacklist/${id}`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Chats"],
+    }),
+    deleteBlackList: builder.mutation<IContact, { id: string }>({
+      query: ({ id }) => ({
+        url: `/contacts/delete-blacklist/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Chats"],
+    }),
     deleteContact: builder.mutation<void, { contact_uids: string[] }>({
       query: body => ({
         url: "/contacts/delete",
@@ -41,6 +55,8 @@ export const contactApi = privateApi.injectEndpoints({
 export const {
   useGetContactsQuery,
   useAddContactByPhoneMutation,
+  useAddBlackListMutation,
+  useDeleteBlackListMutation,
   useDeleteContactMutation,
   useGetUsersListQuery,
   useGetContactByIdQuery,

@@ -16,7 +16,7 @@ import {
   useUpdatedChatsMutation,
 } from "@/src/services/chatsApi";
 import { useAddContactByPhoneMutation } from "@/src/services/contactApi";
-import type { Chat } from "@/src/types/chat";
+import type { IChat } from "@/src/types/chat";
 import { useClickOutside } from "@/src/hooks/useClickOutside";
 import { useMediaQuery } from "@/src/hooks/useMediaQuery";
 
@@ -70,13 +70,16 @@ const Chats = () => {
     data,
     isLoading,
   }: {
-    data?: { results: Chat[] };
+    data?: { results: IChat[] };
     isLoading: boolean;
     error?: unknown;
   } = useGetChatsQuery(undefined, {
     skip: !pathname,
     refetchOnMountOrArgChange: true,
   });
+
+  console.log(data?.results);
+  
 
   const [updatedChats] = useUpdatedChatsMutation();
   const [addContactByPhone] = useAddContactByPhoneMutation();
@@ -96,7 +99,7 @@ const Chats = () => {
     };
   }, [showAddContactModal]);
 
-  const handleRightClick = (e: React.MouseEvent, chat: Chat) => {
+  const handleRightClick = (e: React.MouseEvent, chat: IChat) => {
     e.preventDefault();
     const chatId = chat.id;
 
@@ -278,7 +281,7 @@ const Chats = () => {
 
       return false;
     });
-  }, [data, searchQuery]);
+  }, [data?.results, searchQuery]);
 
   const osRef = useRef<OverlayScrollbarsComponentRef | null>(null);
 

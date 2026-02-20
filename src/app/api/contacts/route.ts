@@ -9,7 +9,7 @@ export async function GET() {
 
   try {
     const res = await fetch(
-      `${process.env.API_URL}/api/v1/contact/messenger-list/?page_size=15
+      `${process.env.API_URL}/api/v1/contact/messenger-list/?page_size=100
 `,
       {
         method: "GET",
