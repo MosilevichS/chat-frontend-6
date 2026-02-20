@@ -27,7 +27,6 @@ export default function ContactsLayout({ chat }: { chat: React.ReactNode }) {
     }
 
     // Для всех остальных страниц показываем список чатов и параллельный маршрут
-
     return (
       <>
         <Chats />
