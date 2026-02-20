@@ -509,8 +509,8 @@ export default function Chat() {
             </div>
           )}
 
-          {showClearChatModal && (
-            <ClearChat setShowClearChatModal={setShowClearChatModal} chatId={chat?.id!} />
+          {showClearChatModal && chat && (
+            <ClearChat setShowClearChatModal={setShowClearChatModal} chatId={chat.id!} />
           )}
 
           {showCopyModal && (
