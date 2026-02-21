@@ -32,7 +32,7 @@ export default function IncomingMessage({
     observer.observe(ref.current);
 
     return () => observer.disconnect();
-  }, [message]);
+  }, [message, markAsRead]);
 
   return (
     <div

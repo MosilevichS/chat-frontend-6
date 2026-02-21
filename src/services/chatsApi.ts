@@ -2,6 +2,7 @@ import { privateApi } from "@/src/services/baseApi";
 import type { IChat } from "../types/chat";
 
 export const chatsApi = privateApi.injectEndpoints({
+  overrideExisting: true,
   endpoints: builder => ({
     getChats: builder.query<{ results: IChat[] }, void>({
       query: () => "/chats",

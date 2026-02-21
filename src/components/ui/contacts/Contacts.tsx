@@ -74,6 +74,8 @@ const Contacts = () => {
     });
   }, [data, searchQuery]);
 
+  console.log(filteredContacts);
+
   const handleDeleteContacts = () => {
     setEditing(true);
   };

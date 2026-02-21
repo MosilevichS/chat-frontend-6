@@ -6,18 +6,6 @@ import { useParams } from "next/navigation";
 import { useDispatch } from "react-redux";
 import Image from "next/image";
 
-import { useTypedSelector } from "@/src/hooks/useTypedSelector";
-import type { AppDispatch } from "@/src/store/store";
-import {
-  setCurrentChatId,
-  initializeChat,
-  addMessages,
-  addMessage,
-  setPagination,
-  updateMessage,
-} from "@/src/store/slices/chatSlice";
-import { selectMessagesByChat, selectPaginationByChat } from "@/src/store/slices/chatSelectors";
-
 import {
   OverlayScrollbarsComponent,
   type OverlayScrollbarsComponentRef,
@@ -36,7 +24,6 @@ import scrollDownIcon from "@/src/assets/icons/scroll-down.svg";
 
 import type { IContact } from "@/src/types/contact";
 import type { IMessage } from "@/src/types/message";
-import type { IChat } from "@/src/types/chat";
 
 import Loader from "@/src/components/ui/Loader";
 import ModalBase from "@/src/components/ui/modal/ModalBase";
@@ -44,23 +31,24 @@ import ModalSuccess from "@/src/components/ui/modal/ModalSuccess";
 import OutgoingMessage from "@/src/components/ui/chat/OutgoingMessage";
 import IncomingMessage from "@/src/components/ui/chat/IncomingMessage";
 import DateDivider from "@/src/components/ui/chat/DateDivider";
+import ProfileInfo from "./ProfileInfo";
 
 import { timeFormat } from "@/src/utils/timeFormat";
 import formatChatDate from "@/src/utils/formatChatDate";
 
+import type { AppDispatch } from "@/src/store/store";
+import { chatsApi } from "@/src/services/chatsApi";
 import { useGetContactByIdQuery } from "@/src/services/contactApi";
 import { useGetContactsQuery, useAddContactByPhoneMutation } from "@/src/services/contactApi";
 import { useGetProfileQuery } from "@/src/services/userApi";
-import { useGetChatsQuery, useUpdatedChatsMutation } from "@/src/services/chatsApi";
-import React from "react";
-import ProfileInfo from "./ProfileInfo";
+import { useGetMessagesQuery } from "@/src/services/messagesApi";
+import { getSocket } from "@/src/services/socketService";
 
 export default function Chat() {
   const dispatch = useDispatch<AppDispatch>();
 
   // Контакт и профиль
   const { user_uid } = useParams<{ user_uid: string }>();
-  const [updatedChats] = useUpdatedChatsMutation();
   const [addContactByPhone] = useAddContactByPhoneMutation();
 
   const [isBannerHidden, setBannerHidden] = useState(false);
@@ -83,184 +71,43 @@ export default function Chat() {
   const { data: profileData } = useGetProfileQuery();
   const profile = profileData;
 
-  console.log("profile:", profile);
-
   // Получение контакта по uid
   const { data, isLoading, isError } = useGetContactByIdQuery(user_uid);
 
-  console.log(data);
+  // Получение сообщений
+  const [page, setPage] = useState(1);
+
+  const { data: messagesData } = useGetMessagesQuery({
+    user_uid,
+    page,
+    page_size: 50,
+    ordering: "-created_at",
+  });
+
+  const messages = React.useMemo(() => {
+    return messagesData?.results ? [...messagesData.results].reverse() : [];
+  }, [messagesData]);
+  const hasMore = messagesData?.next !== null;
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPage(1);
+  }, [user_uid]);
 
   // WebSocket и сообщения
   const [inputValue, setInputValue] = useState("");
-
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const readMessagesRef = useRef<Set<string>>(new Set());
-
-  const messagesSelector = React.useMemo(() => selectMessagesByChat(user_uid), [user_uid]);
-  const messages = useTypedSelector(messagesSelector);
-
-  const paginationSelector = React.useMemo(() => selectPaginationByChat(user_uid), [user_uid]);
-  const pagination = useTypedSelector(paginationSelector);
-
   const prevLengthRef = useRef(0);
-
-  // Получение текущего чата и последнего просмотренного сообщения
-  const { data: chatsList }: { data?: { results: IChat[] } } = useGetChatsQuery();
-  const currentChat = chatsList?.results.find(c => c.chat.uid === user_uid);
-
-  const lastSeenMessageUid = currentChat?.last_seen_message?.uid ?? null;
-  const chatId = currentChat?.id;
-
-  // Находим индекс первого непрочитанного сообщения
-
-  const firstUnreadIndex = React.useMemo(() => {
-    if (!messages.length || !lastSeenMessageUid) return -1;
-
-    const index = messages.findIndex(m => m.uid === lastSeenMessageUid);
-    if (index === -1) return -1;
-
-    return index + 1 < messages.length ? index + 1 : -1;
-  }, [messages, lastSeenMessageUid]);
-
-  // Инициализация текущего чата в Redux
-  useEffect(() => {
-    if (!data) return;
-
-    dispatch(initializeChat({ chatId: user_uid }));
-    dispatch(setCurrentChatId(user_uid));
-  }, [user_uid, data, dispatch]);
-
-  // Загрузка истории сообщений
-  const PAGE_SIZE = 100;
-
-  useEffect(() => {
-    const fetchMessages = async () => {
-      const res = await fetch(`/api/get-messages-list/${user_uid}?page=1&page_size=${PAGE_SIZE}`);
-      const data = await res.json();
-
-      dispatch(addMessages({ chatId: user_uid, messages: data.results }));
-      dispatch(
-        setPagination({
-          chatId: user_uid,
-          page: 1,
-          hasMore: data.next !== null,
-        }),
-      );
-    };
-
-    fetchMessages();
-  }, [dispatch, user_uid]);
-
-  // Загрузка дополнительных сообщений при скролле вверх
-
-  const loadMoreMessages = async () => {
-    const instance = osRef.current?.osInstance();
-    const viewport = instance?.elements().viewport;
-    if (!viewport) return;
-
-    isFetchingMoreRef.current = true;
-
-    // сохраняем высоту ДО запроса
-    prevScrollHeightRef.current = viewport.scrollHeight;
-
-    const nextPage = pagination.page + 1;
-
-    const res = await fetch(`/api/get-messages-list/${user_uid}?page=${nextPage}&page_size=50`);
-    const data = await res.json();
-
-    dispatch(addMessages({ chatId: user_uid, messages: data.results }));
-    dispatch(
-      setPagination({
-        chatId: user_uid,
-        page: nextPage,
-        hasMore: data.next !== null,
-      }),
-    );
-  };
-
-  // Инициализация WebSocket
-  useEffect(() => {
-    if (wsRef.current) return;
-
-    let ws: WebSocket | null = null;
-
-    async function connectWebSocket() {
-      const accessToken = await fetch("/api/get-token")
-        .then(res => res.json())
-        .then(data => data.token);
-
-      ws = new WebSocket(`wss://api.dev.chat.ktsf.ru/ws/chat?authorization=${accessToken}`);
-      wsRef.current = ws;
-
-      ws.onopen = () => {
-        console.log("WebSocket connected");
-        if (reconnectIntervalRef.current) {
-          clearTimeout(reconnectIntervalRef.current);
-          reconnectIntervalRef.current = null;
-        }
-      };
-
-      ws.onmessage = (event: MessageEvent) => {
-        const data = JSON.parse(event.data);
-        const message: IMessage = data.object;
-
-        if (data.action === "create_text_message") {
-          const isThisChat = message.from_user.uid === user_uid || message.to_user.uid === user_uid;
-
-          if (!isThisChat) return;
-
-          dispatch(addMessage({ chatId: user_uid, message }));
-        }
-
-        if (data.action === "change_status_read_message") {
-          const updatedMessage = data.object;
-
-          dispatch(updateMessage({ chatId: user_uid, message: updatedMessage }));
-        }
-      };
-
-      ws.onclose = () => {
-        console.log("WebSocket disconnected , attempting to reconnect...");
-        reconnectIntervalRef.current = setTimeout(connectWebSocket, 5000);
-      };
-
-      ws.onerror = error => {
-        console.log("WebSocket error:", error);
-        ws?.close();
-      };
-    }
-
-    connectWebSocket();
-
-    return () => {
-      if (ws) {
-        ws.close();
-      }
-    };
-  }, [dispatch, user_uid]);
-
-  // Пинг WebSocket каждые 30 секунд
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(
-          JSON.stringify({
-            action: "ping",
-          }),
-        );
-      }
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, []);
 
   // Отправка сообщения
   const sendMessage = () => {
-    if (!inputValue.trim()) return;
-    if (wsRef.current?.readyState !== WebSocket.OPEN) return;
+    const ws = getSocket();
 
-    wsRef.current?.send(
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      console.log("WS not ready");
+      return;
+    }
+
+    ws.send(
       JSON.stringify({
         action: "create_text_message",
         request_uid: profile?.uid,
@@ -275,13 +122,15 @@ export default function Chat() {
   };
 
   // Отметка сообщения как прочитанного
-  const markedAsRead = (message: IMessage) => {
-    if (readMessagesRef.current.has(message.uid)) return;
-    if (wsRef.current?.readyState !== WebSocket.OPEN) return;
+  const markAsRead = (message: IMessage) => {
+    const ws = getSocket();
 
-    readMessagesRef.current.add(message.uid);
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      console.log("WS not ready");
+      return;
+    }
 
-    wsRef.current?.send(
+    ws.send(
       JSON.stringify({
         action: "change_status_read_message",
         request_uid: profile?.uid,
@@ -294,10 +143,20 @@ export default function Chat() {
       }),
     );
 
-    updatedChats({
-      id: chatId!,
-      data: { last_seen_message: message.id },
-    });
+    dispatch(
+      chatsApi.util.updateQueryData("getChats", undefined, draft => {
+        const chatItem = draft.results.find(
+          c => c.chat?.uid === message.from_user.uid || c.chat?.uid === message.to_user.uid,
+        );
+        if (!chatItem) return;
+
+        // Только если это входящее сообщение и оно было непрочитано
+        if (message.from_user.uid !== profile?.uid && message.new) {
+          chatItem.new_message_count =
+            chatItem.new_message_count > 0 ? chatItem.new_message_count - 1 : 0;
+        }
+      }),
+    );
   };
 
   // Обработка скролла чата
@@ -305,17 +164,41 @@ export default function Chat() {
   const wasAtBottomRef = useRef(true);
   const isFetchingMoreRef = useRef(false);
   const prevScrollHeightRef = useRef(0);
+  const prevScrollTopRef = useRef(0);
+  const didInitialPositioningRef = useRef(false);
+
+  useEffect(() => {
+    const osInstance = osRef.current?.osInstance();
+    const viewport = osInstance?.elements().viewport;
+    if (!viewport || !profile) return;
+
+    const scrollTop = viewport.scrollTop;
+    const viewportHeight = viewport.clientHeight;
+
+    messages.forEach(msg => {
+      if (msg.from_user.uid === profile.uid || !msg.new) return;
+
+      const el = document.getElementById(`msg-${msg.uid}`);
+      if (!el) return;
+
+      // Используем offsetTop относительно родителя (OverlayScrollbars viewport)
+      const offsetTop = el.offsetTop;
+      const offsetBottom = offsetTop + el.offsetHeight;
+
+      if (offsetBottom >= scrollTop && offsetTop <= scrollTop + viewportHeight) {
+        markAsRead(msg);
+      }
+    });
+  }, [messages, user_uid]);
 
   useEffect(() => {
     const instance = osRef.current?.osInstance();
     const viewport = instance?.elements().viewport;
     if (!viewport) return;
-
-    const currentLength = messages.length;
-    const prevLength = prevLengthRef.current;
+    if (!messages.length) return;
 
     // новые сообщения вниз
-    if (currentLength > prevLength && !isFetchingMoreRef.current) {
+    if (messages.length > prevLengthRef.current && !isFetchingMoreRef.current) {
       if (wasAtBottomRef.current) {
         requestAnimationFrame(() => {
           viewport.scrollTop = viewport.scrollHeight;
@@ -323,40 +206,24 @@ export default function Chat() {
       }
     }
 
-    // подгрузка старых вверх
+    // подгрузка вверх
     if (isFetchingMoreRef.current) {
       requestAnimationFrame(() => {
         const newScrollHeight = viewport.scrollHeight;
-        const diff = newScrollHeight - prevScrollHeightRef.current;
+        const heightDiff = newScrollHeight - prevScrollHeightRef.current;
 
-        viewport.scrollTop = diff;
+        viewport.scrollTop = prevScrollTopRef.current + heightDiff;
 
         isFetchingMoreRef.current = false;
       });
     }
 
-    prevLengthRef.current = currentLength;
-  }, [messages.length]);
-
-  const firstUnreadRef = useRef<HTMLDivElement | null>(null);
-  const didInitialScrollRef = useRef(false);
+    prevLengthRef.current = messages.length;
+  }, [messages, user_uid]);
 
   useEffect(() => {
-    if (didInitialScrollRef.current || firstUnreadIndex === -1 || !firstUnreadRef.current) return;
-
-    const instance = osRef.current?.osInstance();
-    const viewport = instance?.elements().viewport;
-    if (!viewport) return;
-
-    requestAnimationFrame(() => {
-      firstUnreadRef.current?.scrollIntoView({
-        behavior: "auto",
-        block: "start",
-      });
-    });
-
-    didInitialScrollRef.current = true;
-  }, [firstUnreadIndex]);
+    didInitialPositioningRef.current = false;
+  }, [user_uid]);
 
   // Кнопка для скролла вниз
   const [showScrollDown, setShowScrollDown] = useState(false);
@@ -500,6 +367,7 @@ export default function Chat() {
               </div>
             ) : (
               <OverlayScrollbarsComponent
+                key={user_uid}
                 ref={osRef}
                 options={{
                   scrollbars: {
@@ -516,16 +384,23 @@ export default function Chat() {
                       viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 40;
                     wasAtBottomRef.current = isAtBottom;
 
-                    if (viewport.scrollTop < 20 && pagination.hasMore) loadMoreMessages();
+                    if (viewport.scrollTop < 20 && hasMore && !isFetchingMoreRef.current) {
+                      isFetchingMoreRef.current = true;
+
+                      prevScrollHeightRef.current = viewport.scrollHeight;
+                      prevScrollTopRef.current = viewport.scrollTop;
+
+                      setPage(prev => prev + 1);
+                    }
+
                     setShowScrollDown(viewport.scrollHeight > viewport.clientHeight && !isAtBottom);
                   },
                 }}
                 className="h-full"
               >
-                <div className="flex flex-col justify-end px-4 pb-2 min-h-full">
+                <div className="flex flex-col px-4 pb-2 min-h-full justify-end">
                   {messages.map((message, index) => {
                     const prevMessage = messages[index - 1];
-                    const isFirstUnread = index === firstUnreadIndex;
 
                     const showDateDivider =
                       !prevMessage ||
@@ -538,7 +413,7 @@ export default function Chat() {
                           <DateDivider date={formatChatDate(message.created_at)} />
                         )}
 
-                        <div className="flex" ref={isFirstUnread ? firstUnreadRef : null}>
+                        <div className="flex" id={`msg-${message.uid}`}>
                           {message.from_user.uid !== data.uid ? (
                             <OutgoingMessage
                               message={message}
@@ -547,7 +422,7 @@ export default function Chat() {
                           ) : (
                             <IncomingMessage
                               message={message}
-                              markAsRead={markedAsRead}
+                              markAsRead={markAsRead}
                               className={`${prevMessage && prevMessage.from_user.uid !== message.from_user.uid ? "mt-3" : "mt-2"}`}
                             />
                           )}
@@ -589,12 +464,7 @@ export default function Chat() {
                 onChange={e => setInputValue(e.target.value)}
                 value={inputValue}
               />
-              <button
-                type="submit"
-                onClick={sendMessage}
-                aria-label="Отправить сообщение"
-                className="active:opacity-50"
-              >
+              <button type="submit" aria-label="Отправить сообщение" className="active:opacity-50">
                 {inputValue.trim() ? (
                   <Image src={sendMessageIcon} alt="Отправить сообщение" width={36} height={36} />
                 ) : (

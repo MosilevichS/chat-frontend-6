@@ -16,7 +16,7 @@ import {
   useUpdatedChatsMutation,
 } from "@/src/services/chatsApi";
 import { useAddContactByPhoneMutation } from "@/src/services/contactApi";
-import type { Chat } from "@/src/types/chat";
+import type { IChat } from "@/src/types/chat";
 import { useClickOutside } from "@/src/hooks/useClickOutside";
 import { useMediaQuery } from "@/src/hooks/useMediaQuery";
 
@@ -77,7 +77,7 @@ const Chats = () => {
     skip: !pathname,
     refetchOnMountOrArgChange: true,
   });
-
+  console.log(data);
   const [updatedChats] = useUpdatedChatsMutation();
   const [addContactByPhone] = useAddContactByPhoneMutation();
   const [deleteChat] = useDeleteChatMutation();
