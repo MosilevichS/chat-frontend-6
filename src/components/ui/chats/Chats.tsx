@@ -79,7 +79,6 @@ const Chats = () => {
   });
 
   console.log(data?.results);
-  
 
   const [updatedChats] = useUpdatedChatsMutation();
   const [addContactByPhone] = useAddContactByPhoneMutation();
