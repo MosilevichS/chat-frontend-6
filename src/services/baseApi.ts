@@ -16,7 +16,7 @@ export const privateApi = createApi({
     credentials: "include",
   }),
 
-  tagTypes: ["User", "Contacts", "ChatList", "GroupOrChannelCreation", "Chats"],
+  tagTypes: ["User", "Contacts", "ChatList", "GroupOrChannelCreation", "Chats", "Messages"],
 
   endpoints: () => ({}),
 });

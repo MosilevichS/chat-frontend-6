@@ -3,12 +3,12 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 import { formatChatsDate } from "@/src/utils/formatChatsDate";
-import type { Chat } from "@/src/types/chat";
+import type { IChat } from "@/src/types/chat";
 
 interface ChatItemProps {
-  chat: Chat;
+  chat: IChat;
   selectedChatId: number | null;
-  handleRightClick: (e: React.MouseEvent, chat: Chat) => void;
+  handleRightClick: (e: React.MouseEvent, chat: IChat) => void;
 }
 
 const ChatsItem = ({ chat, selectedChatId, handleRightClick }: ChatItemProps) => {

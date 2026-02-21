@@ -1,14 +1,15 @@
 import { privateApi } from "@/src/services/baseApi";
-import type { Chat } from "../types/chat";
+import type { IChat } from "../types/chat";
 
 export const chatsApi = privateApi.injectEndpoints({
+  overrideExisting: true,
   endpoints: builder => ({
-    getChats: builder.query<{ results: Chat[] }, void>({
+    getChats: builder.query<{ results: IChat[] }, void>({
       query: () => "/chats",
       providesTags: ["Chats"],
     }),
     updatedChats: builder.mutation<
-      Chat,
+      IChat,
       {
         id: number;
         data: {
@@ -30,7 +31,7 @@ export const chatsApi = privateApi.injectEndpoints({
     }),
 
     deleteChat: builder.mutation<
-      Chat,
+      IChat,
       {
         id: number;
       }

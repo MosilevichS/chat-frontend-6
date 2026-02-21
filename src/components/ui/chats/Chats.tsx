@@ -16,7 +16,7 @@ import {
   useUpdatedChatsMutation,
 } from "@/src/services/chatsApi";
 import { useAddContactByPhoneMutation } from "@/src/services/contactApi";
-import type { Chat } from "@/src/types/chat";
+import type { IChat } from "@/src/types/chat";
 import { useClickOutside } from "@/src/hooks/useClickOutside";
 import { useMediaQuery } from "@/src/hooks/useMediaQuery";
 
@@ -70,14 +70,14 @@ const Chats = () => {
     data,
     isLoading,
   }: {
-    data?: { results: Chat[] };
+    data?: { results: IChat[] };
     isLoading: boolean;
     error?: unknown;
   } = useGetChatsQuery(undefined, {
     skip: !pathname,
     refetchOnMountOrArgChange: true,
   });
-
+  console.log(data);
   const [updatedChats] = useUpdatedChatsMutation();
   const [addContactByPhone] = useAddContactByPhoneMutation();
   const [deleteChat] = useDeleteChatMutation();
@@ -96,7 +96,7 @@ const Chats = () => {
     };
   }, [showAddContactModal]);
 
-  const handleRightClick = (e: React.MouseEvent, chat: Chat) => {
+  const handleRightClick = (e: React.MouseEvent, chat: IChat) => {
     e.preventDefault();
     const chatId = chat.id;
 
