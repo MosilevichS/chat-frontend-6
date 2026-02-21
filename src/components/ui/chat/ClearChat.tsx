@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 
 import { useDelayedAction } from "@/src/hooks/useDelayedAction ";
-import { CounterWithCircle } from "../../CounterWithCircle ";
+import { CounterWithCircle } from "../CounterWithCircle ";
 import { useClearChatMutation } from "@/src/services/chatsApi";
 
 interface ClearChatProps {
@@ -33,7 +33,7 @@ const ClearChat = ({ setShowClearChatModal, chatId }: ClearChatProps) => {
 
   return (
     <div
-      className="absolute top-20 left-0 h-[50px] w-[358px] bg-(--color-black-light) text-white rounded-lg
+      className="absolute top-20 left-0 z-1 h-[50px] w-[358px] bg-(--color-black-light) text-white rounded-lg
             flex justify-between items-center px-4 text-[14px]"
     >
       <div className="flex gap-x-2">

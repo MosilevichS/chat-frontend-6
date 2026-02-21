@@ -23,7 +23,7 @@ const CopyInfo = ({ setShowCopyModal, copyInfo }: CopyInfoModal) => {
 
   return (
     <div
-      className="absolute top-20 left-0 h-[50px] w-[358px] bg-(--color-black-light) text-white rounded-lg
+      className="absolute top-20 left-0 z-1 h-[50px] w-[358px] bg-(--color-black-light) text-white rounded-lg
                           flex gap-x-2 items-center px-4 text-[14px]"
     >
       <Image src={copyGreen} alt="Закрыть" width={24} height={24} />
