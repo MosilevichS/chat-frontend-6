@@ -8,7 +8,7 @@ interface IButton {
   size: "small" | "medium";
   disabled?: boolean;
   href?: string;
-  onClick?: () => void;
+  onClick?: (() => void) | ((e: React.MouseEvent<HTMLButtonElement>) => void);
   type?: "button" | "submit" | "reset";
 }
 

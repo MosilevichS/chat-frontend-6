@@ -77,7 +77,9 @@ const Chats = () => {
     skip: !pathname,
     refetchOnMountOrArgChange: true,
   });
-  console.log(data);
+
+  console.log(data?.results);
+
   const [updatedChats] = useUpdatedChatsMutation();
   const [addContactByPhone] = useAddContactByPhoneMutation();
   const [deleteChat] = useDeleteChatMutation();
@@ -271,7 +273,7 @@ const Chats = () => {
 
       return false;
     });
-  }, [data, searchQuery]);
+  }, [data?.results, searchQuery]);
 
   const osRef = useRef<OverlayScrollbarsComponentRef | null>(null);
 
