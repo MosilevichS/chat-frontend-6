@@ -10,6 +10,6 @@ interface userProfileAction {
 }
 export const userProfileActions: userProfileAction[] = [
   { picture: edit, name: "Редактирование профиля", href: "/settings/profile" },
-  { picture: black_list, name: "Чёрный список", href: "/settings/blacklist" },
+  { picture: black_list, name: "Чёрный список", href: "/settings/black-list" },
   { picture: mail, name: "Поддержка", href: "/settings/support" },
 ] as const;
