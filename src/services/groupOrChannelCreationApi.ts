@@ -184,7 +184,9 @@ class WebSocketManager {
   }
 }
 
+// Создаем и экспортируем экземпляр WebSocketManager
 const wsManager = WebSocketManager.getInstance();
+export { wsManager }; // 👈 ЭКСПОРТ ДОБАВЛЕН
 
 export const groupOrChannelCreationApi = privateApi.injectEndpoints({
   endpoints: builder => ({

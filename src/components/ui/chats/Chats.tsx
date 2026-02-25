@@ -16,7 +16,7 @@ import {
   useUpdatedChatsMutation,
 } from "@/src/services/chatsApi";
 import { useAddContactByPhoneMutation } from "@/src/services/contactApi";
-import type { Chat } from "@/src/types/chat";
+import type { IChat } from "@/src/types/chat";
 import { useClickOutside } from "@/src/hooks/useClickOutside";
 import { useMediaQuery } from "@/src/hooks/useMediaQuery";
 
@@ -70,13 +70,15 @@ const Chats = () => {
     data,
     isLoading,
   }: {
-    data?: { results: Chat[] };
+    data?: { results: IChat[] };
     isLoading: boolean;
     error?: unknown;
   } = useGetChatsQuery(undefined, {
     skip: !pathname,
     refetchOnMountOrArgChange: true,
   });
+
+  console.log(data?.results);
 
   const [updatedChats] = useUpdatedChatsMutation();
   const [addContactByPhone] = useAddContactByPhoneMutation();
@@ -96,7 +98,7 @@ const Chats = () => {
     };
   }, [showAddContactModal]);
 
-  const handleRightClick = (e: React.MouseEvent, chat: Chat) => {
+  const handleRightClick = (e: React.MouseEvent, chat: IChat) => {
     e.preventDefault();
     const chatId = chat.id;
 
@@ -104,13 +106,10 @@ const Chats = () => {
     const windowHeight = window.innerHeight;
     const windowWidth = window.innerWidth;
 
-    // Вертикаль: достаточно места снизу?
     let hasSpaceBelow = clientY + POPUP_HEIGHT + MENU_OFFSET <= windowHeight;
-
     let menuX = clientX;
 
     if (isMobile) {
-      // На мобильных — центрируем строго по середине экрана
       menuX = (windowWidth - MENU_WIDTH) / 2;
       hasSpaceBelow = clientY + POPUP_HEIGHT + MENU_OFFSET + 84 <= windowHeight;
     }
@@ -214,8 +213,6 @@ const Chats = () => {
   };
 
   const handleConfirmDeleteChat = async () => {
-    // удаление чата только у себя, у собеседника чат остается
-
     if (!selectedChatId) return;
 
     try {
@@ -263,12 +260,10 @@ const Chats = () => {
     return allChats.filter(chat => {
       const searchLower = searchQuery.toLowerCase();
 
-      // Для групп/каналов ищем по name
       if (chat.name) {
         return chat.name.toLowerCase().includes(searchLower);
       }
 
-      // Для личных чатов - имя и фамилия
       if (chat.chat) {
         const firstName = chat.chat.first_name || "";
         const lastName = chat.chat.last_name || "";
@@ -278,7 +273,7 @@ const Chats = () => {
 
       return false;
     });
-  }, [data, searchQuery]);
+  }, [data?.results, searchQuery]);
 
   const osRef = useRef<OverlayScrollbarsComponentRef | null>(null);
 
@@ -379,9 +374,9 @@ const Chats = () => {
           {isLoading ? (
             <Loader className="pt-40" />
           ) : filteredChats.length > 0 ? (
-            filteredChats.map((chat, id) => (
+            filteredChats.map(chat => (
               <ChatsItem
-                key={id}
+                key={chat.id}
                 chat={chat}
                 selectedChatId={selectedChatId}
                 handleRightClick={handleRightClick}
