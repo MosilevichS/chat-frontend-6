@@ -16,22 +16,29 @@ import {
 } from "@/src/services/groupOrChannelCreationApi";
 import { useDynamicHeight } from "@/src/hooks/useDynamicHeight";
 import { useGetContactsQuery } from "@/src/services/contactApi";
+import { useGetChatsQuery } from "@/src/services/chatsApi";
 import type { IContact } from "@/src/types/contact";
 
 const AddSubscribersPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Параметры для создания новой группы
   const type = searchParams.get("type") || "group";
   const name = searchParams.get("name") || "";
   const description = searchParams.get("description") || "";
   const photo = searchParams.get("photo") || "";
   const chatType = searchParams.get("chatType") || "private-group";
-  const groupType = searchParams.get("groupType") || "closed";
-  const channelType = searchParams.get("channelType") || "public";
+
+  // Параметры для добавления в существующую группу
+  const chatKey = searchParams.get("chat_key");
+  const existingChatName = searchParams.get("name") || "";
+  const existingChatDescription = searchParams.get("description") || "";
+  const existingChatType = searchParams.get("chatType") || "private-group";
 
   const [createGroup, { isLoading: isCreatingGroup }] = useCreateGroupMutation();
   const [createChannel, { isLoading: isCreatingChannel }] = useCreateChannelMutation();
+  const { refetch: refetchChats } = useGetChatsQuery();
 
   const { data: contactsData, isLoading: isLoadingContacts } = useGetContactsQuery();
   const contacts = contactsData?.results || [];
@@ -39,6 +46,7 @@ const AddSubscribersPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
   const [creationError, setCreationError] = useState<string | null>(null);
+  const [isAddingToExisting, setIsAddingToExisting] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -49,7 +57,31 @@ const AddSubscribersPage = () => {
     extraOffset: 72,
   });
 
-  const handleCreate = async () => {
+  // Определяем режим: добавление в существующую группу или создание новой
+  useEffect(() => {
+    setIsAddingToExisting(!!chatKey);
+  }, [chatKey]);
+
+  const handleAddToGroup = async () => {
+    setCreationError(null);
+
+    try {
+      // Здесь будет логика добавления участников в существующую группу через WebSocket
+      // Нужно использовать wsManager.sendRequest("add_members_to_chat", {...})
+      console.log("Adding members to existing group:", {
+        chat_key: chatKey,
+        uid_users_list: selectedContactIds,
+      });
+
+      // После успешного добавления возвращаемся в группу
+      router.push(`/chats/${chatKey}?type=group`);
+    } catch (err: unknown) {
+      console.error("Ошибка при добавлении участников:", err);
+      setCreationError("Произошла ошибка при добавлении участников");
+    }
+  };
+
+  const handleCreateGroup = async () => {
     setCreationError(null);
 
     try {
@@ -65,10 +97,13 @@ const AddSubscribersPage = () => {
           uid_users_list: selectedContactIds,
         };
 
+        console.log("Creating group with data:", groupData);
         const result = await createGroup(groupData).unwrap();
+        console.log("Group creation result:", result);
 
         if (result.status === "OK" && result.object) {
-          router.push("/chats");
+          await refetchChats();
+          router.push(`/chats/${result.object.chat_key}?type=group`);
         } else {
           setCreationError(result.error || "Неизвестная ошибка при создании группы");
         }
@@ -81,10 +116,13 @@ const AddSubscribersPage = () => {
           uid_users_list: selectedContactIds,
         };
 
+        console.log("Creating channel with data:", channelData);
         const result = await createChannel(channelData).unwrap();
+        console.log("Channel creation result:", result);
 
         if (result.status === "OK" && result.object) {
-          router.push("/chats");
+          await refetchChats();
+          router.push(`/chats/${result.object.chat_key}?type=group`);
         } else {
           setCreationError(result.error || "Неизвестная ошибка при создании канала");
         }
@@ -112,12 +150,21 @@ const AddSubscribersPage = () => {
   );
 
   const isCreating = isCreatingGroup || isCreatingChannel;
-  const title = type === "channel" ? "Добавить подписчиков" : "Пригласить участников";
-  const buttonText = isCreating
-    ? "Создание..."
+
+  // Динамические тексты в зависимости от режима
+  const title = isAddingToExisting
+    ? "Добавить участников"
     : type === "channel"
-      ? "Создать канал"
-      : "Создать группу";
+      ? "Добавить подписчиков"
+      : "Пригласить участников";
+
+  const buttonText = isCreating
+    ? "Добавление..."
+    : isAddingToExisting
+      ? "Пригласить в группу"
+      : type === "channel"
+        ? "Создать канал"
+        : "Создать группу";
 
   const errorMessage = creationError;
 
@@ -263,7 +310,7 @@ const AddSubscribersPage = () => {
           <Button
             variant="primary"
             size="medium"
-            onClick={handleCreate}
+            onClick={isAddingToExisting ? handleAddToGroup : handleCreateGroup}
             disabled={isCreating}
             className="w-full"
           >
@@ -272,6 +319,7 @@ const AddSubscribersPage = () => {
         </div>
       </div>
 
+      {/* Пустая панель справа (только для десктопа) */}
       <div className="hidden md:flex justify-center items-center w-full max-w-[744px] min-h-[calc(100vh-88px)] bg-(--color-gray-light) rounded-lg border border-(--color-gray-1)" />
     </div>
   );

@@ -6,6 +6,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ chat
   const { searchParams } = new URL(request.url);
   const page = searchParams.get("page") || "1";
   const pageSize = searchParams.get("page_size") || "50";
+  const ordering = searchParams.get("ordering") || "-created_at";
 
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("accessToken")?.value;
@@ -15,12 +16,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ chat
   }
 
   try {
-    console.log(
-      `Fetching group messages for chat ${chat_key}, page ${page}, pageSize ${pageSize}`,
-    );
+    console.log(`Fetching messages for chat ${chat_key}`);
 
-    // Сначала нужно получить информацию о чате, чтобы узнать virtual_user_uid
-    const chatInfoResponse = await fetch(
+    // Сначала получаем информацию о группе, чтобы узнать virtual_user_uid
+    const groupInfoResponse = await fetch(
       `${process.env.API_URL}/api/v1/chat/list/groups_or_channels/${chat_key}/`,
       {
         headers: {
@@ -30,24 +29,27 @@ export async function GET(request: Request, { params }: { params: Promise<{ chat
       },
     );
 
-    if (!chatInfoResponse.ok) {
-      console.error("Failed to fetch chat info:", chatInfoResponse.status);
+    if (!groupInfoResponse.ok) {
+      console.error("Failed to fetch group info:", groupInfoResponse.status);
       return NextResponse.json({ results: [] }, { status: 200 });
     }
 
-    const chatInfo = await chatInfoResponse.json();
-    const virtualUserUid = chatInfo.chat?.uid; // UID виртуального пользователя группы/канала
+    const groupInfo = await groupInfoResponse.json();
+    console.log("Group info:", groupInfo);
+
+    // Получаем virtual_user_uid из chat.uid (это UID виртуального пользователя)
+    const virtualUserUid = groupInfo.chat?.uid;
 
     if (!virtualUserUid) {
-      console.error("No virtual user UID found for chat:", chat_key);
+      console.error("No virtual user UID found for group");
       return NextResponse.json({ results: [] }, { status: 200 });
     }
 
     console.log("Using virtual user UID:", virtualUserUid);
 
-    // Используем эндпоинт с virtual_user_uid
-    const response = await fetch(
-      `${process.env.API_URL}/api/v1/chat/message/text/${virtualUserUid}/?page=${page}&page_size=${pageSize}`,
+    // Получаем сообщения используя virtual_user_uid
+    const messagesResponse = await fetch(
+      `${process.env.API_URL}/api/v1/chat/message/text/${virtualUserUid}/?page=${page}&page_size=${pageSize}&ordering=${ordering}`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -56,16 +58,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ chat
       },
     );
 
-    if (!response.ok) {
-      console.error("API response not OK:", response.status, response.statusText);
-      const errorText = await response.text();
-      console.error("Error response:", errorText);
-
+    if (!messagesResponse.ok) {
+      console.error("Failed to fetch messages:", messagesResponse.status);
       return NextResponse.json({ results: [] }, { status: 200 });
     }
 
-    const data = await response.json();
-    console.log("Messages fetched successfully, count:", data.results?.length || 0);
+    const data = await messagesResponse.json();
+    console.log(`Fetched ${data.results?.length || 0} messages`);
+
     return NextResponse.json(data);
   } catch (error) {
     console.error("Error fetching group messages:", error);
