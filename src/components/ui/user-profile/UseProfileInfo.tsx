@@ -20,7 +20,7 @@ export const UseProfileInfo = () => {
       <div className="h-full">
         <p>{profileData?.first_name}</p>
         <p>{profileData?.username}</p>
-        <p>{profileData?.phone}</p>
+        <p>{profileData?.email}</p>
       </div>
     </div>
   );

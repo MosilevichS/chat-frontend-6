@@ -9,9 +9,9 @@ export async function DELETE(request: NextRequest, { params }: { params: { uid: 
       return NextResponse.json({ message: "Не авторизован" }, { status: 401 });
     }
 
-    const { uid } = params;
+    // const { uid } = params;
 
-    const res = await fetch(`${process.env.API_URL}/api/v1/auth/messenger/profile/${uid}/`, {
+    const res = await fetch(`${process.env.API_URL}/api/v1/auth/messenger/profile/`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`,

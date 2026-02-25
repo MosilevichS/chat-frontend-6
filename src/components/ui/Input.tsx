@@ -17,6 +17,7 @@ interface IInput {
   className?: string;
   value?: string;
   pattern?: string;
+  required?: boolean;
 }
 
 const Input = ({
