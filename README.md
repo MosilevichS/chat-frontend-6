@@ -38,4 +38,6 @@
 
 - **types** - типы и интерфейсы
 
+<img width="1212" height="497" alt="image" src="https://github.com/user-attachments/assets/5c14a9c6-e11e-43a5-b018-38bb648efa4d" />
+
 
