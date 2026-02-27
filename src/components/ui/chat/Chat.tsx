@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useCallback } from "react";
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { useDispatch } from "react-redux";
@@ -37,6 +37,7 @@ import ClearChat from "./ClearChat";
 import ModalConfirm from "../modal/ModalConfirm";
 import ProfileInfo from "./ProfileInfo";
 import CopyInfo from "./CopyInfo";
+import CallBlock from "./CallBlock";
 
 import { timeFormat } from "@/src/utils/timeFormat";
 import formatChatDate from "@/src/utils/formatChatDate";
@@ -53,7 +54,8 @@ import { useGetContactsQuery, useAddContactByPhoneMutation } from "@/src/service
 import { useGetProfileQuery } from "@/src/services/userApi";
 import { useGetMessagesQuery } from "@/src/services/messagesApi";
 import { getSocket } from "@/src/services/socketService";
-
+import { useGetCallQuery } from "@/src/services/callApi";
+import { v4 as uuidv4 } from "uuid";
 
 export default function Chat() {
   const dispatch = useDispatch<AppDispatch>();
@@ -61,6 +63,9 @@ export default function Chat() {
   // Контакт и профиль
   const { user_uid } = useParams<{ user_uid: string }>();
   const [addContactByPhone] = useAddContactByPhoneMutation();
+
+  const { data: profileData } = useGetProfileQuery();
+  const profile = profileData;
 
   const [isBannerHidden, setBannerHidden] = useState(false);
   const [isBannerClosing, setBannerClosing] = useState(false);
@@ -74,6 +79,285 @@ export default function Chat() {
   const [showClearChatModal, setShowClearChatModal] = useState(false);
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [selectedCopyInfo, setSelectedCopyInfo] = useState({ text: "", name: "" });
+  const [isCallModalOpen, setIsCallModalOpen] = useState(false);
+
+  // звонки
+  const [incomingCall, setIncomingCall] = useState(null);
+  const [callName, setCallName] = useState(null);
+
+  const [callState, setCallState] = useState("");
+  const peerConnectionRef = useRef(null);
+  const iceCandidateBuffer = useRef<RTCIceCandidate[]>([]);
+  const { data: stunAndTurnServers } = useGetCallQuery();
+
+  // обоаботка взодящего запроса
+  const handleIncomingOffer = async (
+    pc: RTCPeerConnection,
+    message: Extract<SignalingMessage, { action: "offer_call" }>,
+    sendToSignalingServer: (message: SignalingMessage) => void,
+  ) => {
+    try {
+      console.log("Получен входящий звонок от:", message.object.message_rtc.from_user.first_name);
+
+      // Устанавливаем удалённое описание из offer
+      await pc.setRemoteDescription({
+        type: "offer",
+        sdp: message.object.offer_sdp,
+      });
+
+      console.log(message);
+      setIncomingCall(true);
+      // Создаём ответ (answer)
+      const answer = await pc.createAnswer();
+
+      await pc.setLocalDescription(answer);
+      console.log("answer", pc);
+      // Отправляем ответ звонящему
+      sendToSignalingServer({
+        action: "answer_call",
+        request_uid: uuidv4(),
+        object: {
+          from_user_uid: message.object.from_user,
+          to_user_uid: message.object.to_user,
+          answer_sdp: answer.sdp,
+        },
+      });
+
+      // setCallState("connected");
+      console.log("Ответ на звонок отправлен");
+    } catch (error) {
+      console.error("Ошибка при обработке входящего звонка:", error);
+      setCallState("error");
+    }
+  };
+
+  const sendToSignalingServer = (message: SignalingMessage) => {
+    const ws = getSocket();
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      console.log("WS not ready");
+      return;
+    }
+    ws.send(JSON.stringify(message));
+    console.log("Отправка через сигнальный сервер:", message);
+  };
+
+  // Эффект для обработки буфера при обновлении callName
+  useEffect(() => {
+    console.log("Сработало", callName, iceCandidateBuffer.current);
+
+    console.log("Сработало 1");
+    const buffered = [...iceCandidateBuffer.current];
+    iceCandidateBuffer.current = [];
+    buffered.forEach(candidate => {
+      sendToSignalingServer({
+        action: "ice_candidate",
+        request_uid: uuidv4(),
+        object: {
+          from_user_uid: callName.from_user,
+          to_user_uid: callName.to_user,
+          ice_candidate: candidate.candidate,
+        },
+      });
+    });
+  }, [callName]);
+
+  const handleIceCandidate = async (pc: RTCPeerConnection, candidateStr: string) => {
+    try {
+      //  Создаём кандидата
+      const iceCandidate = new RTCIceCandidate({
+        candidate: candidateStr,
+        sdpMid: "0", // Явно указываем медиалинию (обычно '0' для аудио)
+        sdpMLineIndex: 0,
+      });
+
+      await pc.addIceCandidate(iceCandidate);
+      console.log("ICE‑кандидат успешно добавлен:", {
+        hasRemoteDescription: true,
+        sdpMid: iceCandidate.sdpMid,
+        sdpMLineIndex: iceCandidate.sdpMLineIndex,
+        candidate: iceCandidate.candidate.substring(0, 50) + "...",
+      });
+    } catch (error) {
+      console.error("Критическая ошибка добавления ICE‑кандидата:", {
+        candidateStr,
+        hasRemoteDescription: !!pc.remoteDescription,
+        error: error.message,
+      });
+    }
+  };
+
+  const checkPermissions = async () => {
+    try {
+      const cameraPermission = await navigator.permissions.query({
+        name: "camera",
+      });
+      const microphonePermission = await navigator.permissions.query({
+        name: "microphone",
+      });
+
+      if (cameraPermission.state === "denied" || microphonePermission.state === "denied") {
+        alert("Для звонка нужно разрешить доступ к камере и микрофону в настройках браузера");
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.warn("Не удалось проверить разрешения:", error);
+      return false;
+    }
+  };
+
+  const getMediaAccess = async (constraints: MediaStreamConstraints) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log("Доступ к устройствам получен");
+      return stream;
+    } catch (error) {
+      console.log("Ошибка доступа к устройствам:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (!stunAndTurnServers?.ice_servers?.length) {
+      console.log("ICE‑серверы ещё не загружены");
+      return;
+    }
+
+    console.log("Получены ICE‑серверы:", stunAndTurnServers);
+    let localStream: MediaStream | null = null;
+
+    const initCall = async () => {
+      try {
+        const hasPermissions = await checkPermissions();
+        if (!hasPermissions) return;
+
+        const pc = new RTCPeerConnection({
+          iceServers: stunAndTurnServers.ice_servers,
+        });
+        peerConnectionRef.current = pc;
+        console.log("RTCPeerConnection создан успешно");
+
+        pc.ontrack = event => {
+          console.log("Получен удалённый медиапоток");
+          const remoteVideo = document.getElementById("remote-video");
+          if (remoteVideo) remoteVideo.srcObject = event.streams[0];
+        };
+
+        pc.onicecandidate = event => {
+          if (event.candidate) {
+            console.log("Найден ICE‑кандидат:", event.candidate);
+            pc.onicecandidate = event => {
+              if (event.candidate) {
+                const fromUserUid = callName?.from_user;
+                const toUserUid = callName?.to_user;
+
+                if (fromUserUid && toUserUid) {
+                  // Если все данные есть — отправляем сразу
+                  sendToSignalingServer({
+                    action: "ice_candidate",
+                    request_uid: uuidv4(),
+                    object: {
+                      from_user_uid: fromUserUid,
+                      to_user_uid: toUserUid,
+                      ice_candidate: event.candidate.candidate,
+                    },
+                  });
+                } else {
+                  // // Иначе буферизуем
+                  iceCandidateBuffer.current.push(event.candidate);
+                  console.log("Буферизуем ICE‑кандидат (callName не готов)");
+                }
+              } else {
+                console.log("Сбор ICE‑кандидатов завершён");
+              }
+            };
+          }
+        };
+
+        pc.onconnectionstatechange = () => {
+          const state = pc.connectionState;
+          console.log("Состояние соединения изменилось:", state);
+
+          switch (state) {
+            case "connected":
+              setCallState("connected");
+              console.log("✅ Соединение установлено успешно!");
+              break;
+            case "failed":
+              setCallState("error");
+              console.error("❌ Соединение не удалось установить. Проверьте сеть и ICE‑серверы.");
+              break;
+            case "disconnected":
+              console.warn("⚠️ Временное отключение. Пытаемся восстановить соединение...");
+              break;
+            case "closed":
+              setCallState("callend");
+              console.log("📞 Соединение закрыто.");
+              break;
+            default:
+              // "new", "connecting" — ожидаем
+              console.log(`⏱️ Текущее состояние: ${state}`);
+          }
+        };
+
+        localStream = await getMediaAccess({ audio: true, video: false });
+        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+        const localVideo = document.getElementById("local-video");
+        if (localVideo) localVideo.srcObject = localStream;
+
+        // Обработчик входящих сообщений WebSocket
+        const ws = getSocket();
+        ws.onmessage = async (event: MessageEvent) => {
+          try {
+            const data: SignalingMessage = JSON.parse(event.data);
+
+            switch (data.action) {
+              case "offer_call":
+                // setCallName(data.object.message_rtc.from_user.first_name);
+                setCallName(data.object);
+                // Обрабатываем входящий вызов
+                console.log("data:", data);
+                await handleIncomingOffer(pc, data, sendToSignalingServer);
+                break;
+              case "ice_candidate":
+                if (data.object.ice_candidate) {
+                  await handleIceCandidate(pc, data.object.ice_candidate);
+                }
+                break;
+              // case "answer_call":
+              //   // Устанавливаем ответ от звонящего
+              //   await pc.setRemoteDescription({
+              //     type: "answer",
+              //     sdp: data.object.answer_sdp,
+              //   });
+              //   setCallState("connected");
+              //   break;
+              default:
+                console.log("Неизвестное действие:", data.action);
+            }
+          } catch (error) {
+            console.error("Ошибка обработки сигнального сообщения:", error);
+          }
+        };
+      } catch (error) {
+        console.error("Критическая ошибка инициализации звонка:", error);
+      }
+    };
+
+    initCall();
+
+    return () => {
+      const ws = getSocket();
+      ws.onmessage = null;
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close();
+        peerConnectionRef.current = null;
+      }
+      console.log("Ресурсы звонка освобождены");
+    };
+  }, [stunAndTurnServers]);
 
   // Проверка есть ли пользователь в списке контактов
   const { data: contactsData } = useGetContactsQuery();
@@ -90,12 +374,11 @@ export default function Chat() {
   const chat = chats?.find((chat: IChat) => chat.chat?.uid === user_uid);
 
   // Получение данных профиля
-  const { data: profileData } = useGetProfileQuery();
-  const profile = profileData;
+  // const { data: profileData } = useGetProfileQuery();
+  // const profile = profileData;
 
   // Получение контакта по uid
   const { data, isLoading, isError } = useGetContactByIdQuery(user_uid);
-
 
   // Удаление и добавление в черный список
   const [addBlackList] = useAddBlackListMutation();
@@ -137,7 +420,6 @@ export default function Chat() {
   const hasMore = messagesData?.next !== null;
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1);
   }, [user_uid]);
 
@@ -389,7 +671,13 @@ export default function Chat() {
                 <Image className="min-w-[36px]" src={search} alt="Поиск" width={36} height={36} />
               </button>
               {!chat?.chat?.is_blocked && (
-                <button aria-label="Звонок">
+                <button
+                  onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                    e.stopPropagation();
+                    setIsCallModalOpen(true);
+                  }}
+                  aria-label="Звонок"
+                >
                   <Image src={call} alt="Звонок" width={36} height={36} />
                 </button>
               )}
@@ -634,6 +922,31 @@ export default function Chat() {
             cancelText="Нет"
           />
         </ModalBase>
+      )}
+      {isCallModalOpen && (
+        <CallBlock setIsCallModalOpen={setIsCallModalOpen} data={data} profile={profile!} />
+      )}
+
+      {incomingCall && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-80">
+            <h3>Входящий звонок от {callName.message_rtc.from_user.first_name}</h3>
+            <div className="flex gap-4 mt-4">
+              <button
+                // onClick={onAccept}
+                className="bg-green-500 text-white px-4 py-2 rounded"
+              >
+                Принять
+              </button>
+              <button
+                // onClick={onReject}
+                className="bg-red-500 text-white px-4 py-2 rounded"
+              >
+                Отклонить
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
