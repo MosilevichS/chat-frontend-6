@@ -13,51 +13,13 @@ import { useGetCallQuery } from "@/src/services/callApi";
 import type { IContact } from "@/src/types/contact";
 import { getSocket } from "@/src/services/socketService";
 import type { IUser } from "@/src/types/user";
+import type { SignalingMessage } from "@/src/types/calls";
 
 interface CallBlockProps {
   setIsCallModalOpen: (isCallModalOpen: boolean) => void;
   data: IContact;
   profile: IUser;
 }
-
-type SignalingMessage =
-  | {
-      action: "offer_call";
-      request_uid: string;
-      object: {
-        to_user_uid: string;
-        offer_sdp: string;
-      };
-    }
-  | {
-      action: "answer_call";
-      request_uid: string; // Добавляем request_uid для связи с вызовом
-      object: {
-        from_user_uid: string;
-        to_user_uid: string;
-        answer_sdp: string; // Приводим к строке, как в API
-      };
-    }
-  | {
-      action: "ice_candidate";
-      request_uid: string;
-      object: {
-        from_user_uid: string;
-        to_user_uid: string;
-        ice_candidate: string;
-      };
-    }
-  | {
-      action: "call_completion";
-      request_uid: string;
-      object: {
-        from_user_uid: string;
-        to_user_uid: string;
-        type_complete: "unreceived" | "rejected" | "completed";
-        message_rtc_uid: string;
-        duration: number;
-      };
-    };
 
 const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
   const [callState, setCallState] = useState<"connecting" | "connected" | "end" | "error">(
@@ -255,7 +217,9 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
 
         pc.ontrack = event => {
           console.log("Получен удалённый медиапоток");
-          const remoteVideo = document.getElementById("remote-video");
+
+          const remoteVideo = document.getElementById("remote-video") as HTMLVideoElement | null;
+          console.log("remoteVideo:", remoteVideo);
           if (remoteVideo) remoteVideo.srcObject = event.streams[0];
         };
 
@@ -276,7 +240,7 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
             console.log("Cбор кандидатов завершён");
           }
         };
-
+        // Обработка состояния соединения
         pc.onconnectionstatechange = () => {
           const state = pc.connectionState;
           console.log("Состояние соединения изменилось:", state);
@@ -313,12 +277,15 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
         };
 
         localStream = await getMediaAccess({ audio: true, video: false });
+        console.log("Локальный поток:", localStream);
+        console.log("Аудиодорожки:", localStream?.getAudioTracks());
         localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
         const localVideo = document.getElementById("local-video");
         if (localVideo) localVideo.srcObject = localStream;
 
-        // Шаг 1: создаём и отправляем offer
+        // Шаг 1: создаём и отправляем offer тому, кому хотим позвонить
         const offer = await pc.createOffer();
+        console.log("SDP offer:", offer.sdp);
         await pc.setLocalDescription(offer);
 
         if (!offer.sdp) {
@@ -403,7 +370,7 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
   return (
     <div
       className={`absolute inset-0 z-50 mx-auto mt-[84px] flex flex-col items-center justify-between  rounded-lg bg-(--color-violet-dark) p-5
-        ${isFullScreen ? "max-w-[1200px] mb-1" : "w-[388px] max-h-[770px]"}
+        ${isFullScreen ? "max-w-[1200px] mb-1" : "w-[388px] max-h-[770px]"} video-element remote
         `}
     >
       <div className="w-full flex justify-between">
@@ -415,6 +382,7 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
         </button>
       </div>
       <div className="flex flex-col items-center text-white">
+        <audio className="hidden" id="remote-video" autoPlay controls />
         <div className="flex justify-center items-center h-[184px] w-[184px] mb-[32px]">
           {data.avatar_url ? (
             <div className="relative">

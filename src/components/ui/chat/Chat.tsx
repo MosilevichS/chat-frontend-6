@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback } from "react";
+import React from "react";
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { useDispatch } from "react-redux";
@@ -56,6 +56,7 @@ import { useGetMessagesQuery } from "@/src/services/messagesApi";
 import { getSocket } from "@/src/services/socketService";
 import { useGetCallQuery } from "@/src/services/callApi";
 import { v4 as uuidv4 } from "uuid";
+import type { SignalingMessage } from "@/src/types/calls";
 
 export default function Chat() {
   const dispatch = useDispatch<AppDispatch>();
@@ -86,7 +87,8 @@ export default function Chat() {
   const [callName, setCallName] = useState(null);
 
   const [callState, setCallState] = useState("");
-  const peerConnectionRef = useRef(null);
+  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+  // накапливаем потенциальный сетевые маршрут (адрес + порт), по которому два устройства могут установить прямое соединение через WebRTC, пока нету данных чтобы их отправить
   const iceCandidateBuffer = useRef<RTCIceCandidate[]>([]);
   const { data: stunAndTurnServers } = useGetCallQuery();
 
@@ -131,6 +133,7 @@ export default function Chat() {
     }
   };
 
+  // Функция для отправки сообщения через сигнальный сервер собеседнику
   const sendToSignalingServer = (message: SignalingMessage) => {
     const ws = getSocket();
     if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -138,14 +141,10 @@ export default function Chat() {
       return;
     }
     ws.send(JSON.stringify(message));
-    console.log("Отправка через сигнальный сервер:", message);
   };
 
-  // Эффект для обработки буфера при обновлении callName
+  // обработка буфера при обновлении callName
   useEffect(() => {
-    console.log("Сработало", callName, iceCandidateBuffer.current);
-
-    console.log("Сработало 1");
     const buffered = [...iceCandidateBuffer.current];
     iceCandidateBuffer.current = [];
     buffered.forEach(candidate => {
@@ -171,12 +170,7 @@ export default function Chat() {
       });
 
       await pc.addIceCandidate(iceCandidate);
-      console.log("ICE‑кандидат успешно добавлен:", {
-        hasRemoteDescription: true,
-        sdpMid: iceCandidate.sdpMid,
-        sdpMLineIndex: iceCandidate.sdpMLineIndex,
-        candidate: iceCandidate.candidate.substring(0, 50) + "...",
-      });
+      console.log("ICE‑кандидат успешно добавлен:");
     } catch (error) {
       console.error("Критическая ошибка добавления ICE‑кандидата:", {
         candidateStr,
@@ -230,6 +224,7 @@ export default function Chat() {
         const hasPermissions = await checkPermissions();
         if (!hasPermissions) return;
 
+        // создание экземпляра объекта RTCPeerConnection для организации P2P‑соединения между браузерами.
         const pc = new RTCPeerConnection({
           iceServers: stunAndTurnServers.ice_servers,
         });
@@ -238,7 +233,9 @@ export default function Chat() {
 
         pc.ontrack = event => {
           console.log("Получен удалённый медиапоток");
-          const remoteVideo = document.getElementById("remote-video");
+
+          const remoteVideo = document.getElementById("remote-video") as HTMLVideoElement | null;
+          console.log("remoteVideo:", remoteVideo);
           if (remoteVideo) remoteVideo.srcObject = event.streams[0];
         };
 
@@ -928,12 +925,15 @@ export default function Chat() {
       )}
 
       {incomingCall && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-80">
+        <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-green-300 rounded-lg p-6 w-80">
+            <audio className="hidden" id="remote-video" autoPlay controls />
             <h3>Входящий звонок от {callName.message_rtc.from_user.first_name}</h3>
             <div className="flex gap-4 mt-4">
               <button
-                // onClick={onAccept}
+                onClick={() => {
+                  "";
+                }}
                 className="bg-green-500 text-white px-4 py-2 rounded"
               >
                 Принять
