@@ -14,7 +14,6 @@ import "overlayscrollbars/overlayscrollbars.css";
 
 import call from "@/src/assets/icons/call.svg";
 import search from "@/src/assets/icons/search-messages.svg";
-import noMessages from "@/src/assets/icons/no-messages.svg";
 import clip from "@/src/assets/icons/clip.svg";
 import close from "@/src/assets/icons/close.svg";
 
@@ -32,6 +31,7 @@ import ModalSuccess from "@/src/components/ui/modal/ModalSuccess";
 import OutgoingMessage from "@/src/components/ui/chat/OutgoingMessage";
 import IncomingMessage from "@/src/components/ui/chat/IncomingMessage";
 import DateDivider from "@/src/components/ui/chat/DateDivider";
+import NoMessagesPlaceholder from "./NoMessagesPlaceholder";
 import Button from "../Button";
 import ClearChat from "./ClearChat";
 import ModalConfirm from "../modal/ModalConfirm";
@@ -53,7 +53,6 @@ import { useGetContactsQuery, useAddContactByPhoneMutation } from "@/src/service
 import { useGetProfileQuery } from "@/src/services/userApi";
 import { useGetMessagesQuery } from "@/src/services/messagesApi";
 import { getSocket } from "@/src/services/socketService";
-
 
 export default function Chat() {
   const dispatch = useDispatch<AppDispatch>();
@@ -96,7 +95,6 @@ export default function Chat() {
   // Получение контакта по uid
   const { data, isLoading, isError } = useGetContactByIdQuery(user_uid);
 
-
   // Удаление и добавление в черный список
   const [addBlackList] = useAddBlackListMutation();
   const [deleteBlackList] = useDeleteBlackListMutation();
@@ -134,6 +132,7 @@ export default function Chat() {
   const messages = React.useMemo(() => {
     return messagesData?.results ? [...messagesData.results].reverse() : [];
   }, [messagesData]);
+
   const hasMore = messagesData?.next !== null;
 
   useEffect(() => {
@@ -147,12 +146,11 @@ export default function Chat() {
 
   // Отправка сообщения
   const sendMessage = () => {
+    if (!inputValue.trim() || !profile) return;
+
     const ws = getSocket();
 
-    if (!ws || ws.readyState !== WebSocket.OPEN) {
-      console.log("WS not ready");
-      return;
-    }
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
     ws.send(
       JSON.stringify({
@@ -313,6 +311,9 @@ export default function Chat() {
     }
   };
 
+  // Динамическое изменение высоты textarea
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   if (isLoading)
     return (
       <div className="flex items-center justify-center w-full max-w-[744px] min-h-[calc(100vh-88px)] bg-(--color-gray-light-opacity) rounded-lg  md:rounded-lg border border-(--color-gray-1) px-4">
@@ -447,18 +448,7 @@ export default function Chat() {
 
           <main className="relative flex flex-col flex-1 overflow-hidden">
             {messages.length === 0 ? (
-              <div className="flex flex-1 flex-col items-center justify-center">
-                <Image
-                  src={noMessages}
-                  alt="Нет сообщений"
-                  width={200}
-                  height={200}
-                  className="mb-6"
-                  loading="eager"
-                />
-                <p className="text-(--color-gray) text-lg leading-[130%]">Сообщений пока нет</p>
-                <p className="text-(--color-gray) text-sm leading-[120%]">Напишите первым :)</p>
-              </div>
+              <NoMessagesPlaceholder />
             ) : (
               <OverlayScrollbarsComponent
                 key={user_uid}
@@ -542,7 +532,7 @@ export default function Chat() {
 
           <footer className="flex items-center px-4 w-full min-h-[60px] bg-(--color-gray-light) rounded-b-lg border-t border-(--color-gray-3)">
             <form
-              className="flex justify-between items-center gap-2 w-full"
+              className="flex justify-between items-end gap-2 w-full"
               onSubmit={e => {
                 e.preventDefault();
                 sendMessage();
@@ -551,10 +541,10 @@ export default function Chat() {
               <button>
                 <Image src={clip} alt="Прикрепить файл" width={36} height={36} />
               </button>
-              <input
-                type="text"
+              <textarea
+                rows={1}
                 placeholder="Сообщение"
-                className="outline-none bg-white rounded-[1.25rem] py-2 pl-3 pr-10 w-full max-w-[624px]"
+                className="resize-none outline-none bg-white rounded-[1.25rem] py-2 pl-3 pr-10 w-full max-w-[624px] min-h-[36px] max-h-[120px] overflow-y-auto scrollbar-hidden"
                 onChange={e => setInputValue(e.target.value)}
                 value={inputValue}
               />

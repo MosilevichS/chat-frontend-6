@@ -2,6 +2,15 @@ import { privateApi } from "@/src/services/baseApi";
 import { connectSocket } from "@/src/services/socketService";
 import { getMessagesApi } from "./messagesApi";
 import { chatsApi } from "./chatsApi";
+import type { RootState } from "@/src/store/store";
+
+import type { IUser } from "@/src/types/user";
+import type { IMessage } from "@/src/types/message";
+
+interface IMessageList {
+  results: IMessage[];
+  next: string | null;
+}
 
 export const socketApi = privateApi.injectEndpoints({
   overrideExisting: true,
@@ -25,8 +34,9 @@ export const socketApi = privateApi.injectEndpoints({
           if (!message?.from_user?.uid || !message?.to_user?.uid) return;
 
           // Получаем мой uid из RTK Query
-          const state = getState() as any;
-          const myUid = state.privateApi.queries["getProfile(undefined)"]?.data?.uid;
+          const state = getState() as RootState;
+          const queryCache = state.privateApi.queries["getProfile(undefined)"] as { data?: IUser };
+          const myUid = queryCache?.data?.uid;
 
           if (!myUid) return;
 
@@ -36,21 +46,29 @@ export const socketApi = privateApi.injectEndpoints({
 
           // Обрабатываем только сообщения, связанные с текущим чатом
           if (data.action === "create_text_message") {
-            // Обновляем сообщения конкретного чата
-            dispatch(
-              getMessagesApi.util.updateQueryData(
-                "getMessages",
-                { user_uid: chatUserUid },
-                draft => {
-                  if (!draft) return;
+            const messagesArg = { user_uid: chatUserUid } as const;
 
+            const messagesCache = getMessagesApi.endpoints.getMessages.select(messagesArg)(
+              getState() as RootState,
+            ).data as IMessageList | undefined;
+
+            if (!messagesCache) {
+              // Создаём кэш впервые
+              dispatch(
+                getMessagesApi.util.upsertQueryData("getMessages", messagesArg, {
+                  results: [message as IMessage],
+                  next: null,
+                }),
+              );
+            } else {
+              // Обновляем существующий кэш
+              dispatch(
+                getMessagesApi.util.updateQueryData("getMessages", messagesArg, draft => {
                   const exists = draft.results.some(m => m.uid === message.uid);
-                  if (!exists) {
-                    draft.results.unshift(message);
-                  }
-                },
-              ),
-            );
+                  if (!exists) draft.results.unshift(message as IMessage);
+                }),
+              );
+            }
 
             // Обновляем список чатов
             dispatch(
