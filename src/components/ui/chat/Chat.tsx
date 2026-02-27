@@ -314,6 +314,32 @@ export default function Chat() {
   // Динамическое изменение высоты textarea
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputValue(e.target.value);
+
+    const el = textareaRef.current;
+    if (!el) return;
+
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (!inputValue.trim()) return;
+
+      sendMessage();
+
+      setInputValue("");
+
+      const el = textareaRef.current;
+      if (el) {
+        el.style.height = "auto";
+      }
+    }
+  };
+
   if (isLoading)
     return (
       <div className="flex items-center justify-center w-full max-w-[744px] min-h-[calc(100vh-88px)] bg-(--color-gray-light-opacity) rounded-lg  md:rounded-lg border border-(--color-gray-1) px-4">
@@ -535,17 +561,26 @@ export default function Chat() {
               className="flex justify-between items-end gap-2 w-full"
               onSubmit={e => {
                 e.preventDefault();
+                if (!inputValue.trim()) return;
+
                 sendMessage();
+                setInputValue("");
+
+                if (textareaRef.current) {
+                  textareaRef.current.style.height = "auto";
+                }
               }}
             >
               <button>
                 <Image src={clip} alt="Прикрепить файл" width={36} height={36} />
               </button>
               <textarea
+                ref={textareaRef}
                 rows={1}
                 placeholder="Сообщение"
                 className="resize-none outline-none bg-white rounded-[1.25rem] py-2 pl-3 pr-10 w-full max-w-[624px] min-h-[36px] max-h-[120px] overflow-y-auto scrollbar-hidden"
-                onChange={e => setInputValue(e.target.value)}
+                onChange={handleChange}
+                onKeyDown={handleKeyDown}
                 value={inputValue}
               />
               <button type="submit" aria-label="Отправить сообщение" className="active:opacity-50">
