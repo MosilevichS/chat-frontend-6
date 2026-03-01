@@ -16,7 +16,7 @@ export default function OutgoingMessage({
     <div
       className={`relative ml-auto py-2.5 pl-3 pr-[4.75rem] bg-(--color-your-message) rounded-2xl rounded-br-sm ${className}`}
     >
-      <span>{message.content}</span>
+      <span className="whitespace-pre-wrap wrap-break-word">{message.content}</span>
       <div className="absolute bottom-2.5 right-3 flex gap-0.5">
         <span className="text-sm text-(--color-gray)">
           {timeFormat(message.created_at, "time")}

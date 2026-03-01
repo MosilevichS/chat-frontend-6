@@ -1,33 +1,92 @@
 let socket: WebSocket | null = null;
-let isConnecting = false;
 
 let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempts = 0;
 
+let isConnecting = false;
+let manualClose = false;
+
 const MAX_RECONNECT_ATTEMPTS = 10;
 
-let currentToken: string | null = null;
+// Подписчик на события сокета
+type MessageListener = (event: MessageEvent) => void;
 
-export const connectSocket = (token: string) => {
-  // если уже открыт — ничего не делаем
-  if (socket?.readyState === WebSocket.OPEN) {
-    return socket;
+const listeners = new Set<MessageListener>();
+
+export const subscribeToSocket = (listener: MessageListener) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+};
+
+// Получение свежего access токена
+const getFreshToken = async (): Promise<string | null> => {
+  try {
+    const res = await fetch("/api/get-token");
+
+    if (!res.ok) {
+      console.log("Token refresh failed");
+      return null;
+    }
+
+    const { token } = await res.json();
+    return token;
+  } catch (err) {
+    console.log("Token fetch error", err);
+    return null;
+  }
+};
+
+const messageQueue: string[] = [];
+
+export const sendThroughSocket = (data: unknown) => {
+  const payload = JSON.stringify(data);
+
+  if (!socket || socket.readyState !== WebSocket.OPEN) {
+    messageQueue.push(payload);
+    return;
   }
 
-  // если сейчас подключается — не создаём второй
-  if (isConnecting) {
-    return socket;
-  }
+  socket.send(payload);
+};
+
+// Подключение сокета
+export const connectSocket = async (): Promise<WebSocket | null> => {
+  if (socket?.readyState === WebSocket.OPEN) return socket;
+  if (socket?.readyState === WebSocket.CONNECTING) return socket;
+  if (isConnecting) return socket;
 
   isConnecting = true;
-  currentToken = token;
+  manualClose = false;
+
+  const token = await getFreshToken();
+  if (!token) {
+    isConnecting = false;
+    return null;
+  }
+
+  let messageQueue: string[] = [];
 
   socket = new WebSocket(`wss://api.dev.chat.ktsf.ru/ws/chat?authorization=${token}`);
 
   socket.onopen = () => {
     console.log("WS connected");
+
     isConnecting = false;
     reconnectAttempts = 0;
+
+    if (messageQueue.length > 0) {
+      messageQueue.forEach(msg => socket?.send(msg));
+      messageQueue = [];
+    }
+
+    if (reconnectTimeout) {
+      clearTimeout(reconnectTimeout);
+      reconnectTimeout = null;
+    }
+  };
+
+  socket.onmessage = event => {
+    listeners.forEach(listener => listener(event));
   };
 
   socket.onclose = () => {
@@ -36,7 +95,9 @@ export const connectSocket = (token: string) => {
     isConnecting = false;
     socket = null;
 
-    scheduleReconnect();
+    if (!manualClose) {
+      scheduleReconnect();
+    }
   };
 
   socket.onerror = () => {
@@ -46,12 +107,14 @@ export const connectSocket = (token: string) => {
   return socket;
 };
 
+// Планирование реконнекта
 const scheduleReconnect = () => {
-  if (!currentToken) return;
   if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
     console.log("Max reconnect attempts reached");
     return;
   }
+
+  if (reconnectTimeout) return;
 
   reconnectAttempts++;
 
@@ -59,14 +122,19 @@ const scheduleReconnect = () => {
 
   console.log(`Reconnecting in ${delay}ms...`);
 
-  reconnectTimeout = setTimeout(() => {
-    connectSocket(currentToken!);
+  reconnectTimeout = setTimeout(async () => {
+    reconnectTimeout = null;
+    await connectSocket();
   }, delay);
 };
 
+// Получить текущий сокет
 export const getSocket = () => socket;
 
+//Ручное отключение (logout / unmount)
 export const disconnectSocket = () => {
+  manualClose = true;
+
   if (reconnectTimeout) {
     clearTimeout(reconnectTimeout);
     reconnectTimeout = null;
@@ -75,7 +143,6 @@ export const disconnectSocket = () => {
   reconnectAttempts = 0;
 
   if (socket) {
-    socket.onclose = null; // чтобы не вызвался reconnect
     socket.close();
     socket = null;
   }

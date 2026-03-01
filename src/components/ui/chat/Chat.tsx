@@ -52,7 +52,7 @@ import { chatsApi } from "@/src/services/chatsApi";
 import { useGetContactsQuery, useAddContactByPhoneMutation } from "@/src/services/contactApi";
 import { useGetProfileQuery } from "@/src/services/userApi";
 import { useGetMessagesQuery } from "@/src/services/messagesApi";
-import { getSocket } from "@/src/services/socketService";
+import { getSocket, sendThroughSocket } from "@/src/services/socketService";
 
 export default function Chat() {
   const dispatch = useDispatch<AppDispatch>();
@@ -148,20 +148,14 @@ export default function Chat() {
   const sendMessage = () => {
     if (!inputValue.trim() || !profile) return;
 
-    const ws = getSocket();
-
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
-
-    ws.send(
-      JSON.stringify({
-        action: "create_text_message",
-        request_uid: profile?.uid,
-        object: {
-          to_user_uid: user_uid,
-          content: inputValue.trim(),
-        },
-      }),
-    );
+    sendThroughSocket({
+      action: "create_text_message",
+      request_uid: profile.uid,
+      object: {
+        to_user_uid: user_uid,
+        content: inputValue.trim(),
+      },
+    });
 
     setInputValue("");
   };
