@@ -65,8 +65,8 @@ export default function Chat() {
   const { user_uid } = useParams<{ user_uid: string }>();
   const [addContactByPhone] = useAddContactByPhoneMutation();
 
-  const { data: profileData } = useGetProfileQuery();
-  const profile = profileData;
+  // const { data: profileData } = useGetProfileQuery();
+  // const profile = profileData;
 
   const [isBannerHidden, setBannerHidden] = useState(false);
   const [isBannerClosing, setBannerClosing] = useState(false);
@@ -232,9 +232,8 @@ export default function Chat() {
         console.log("RTCPeerConnection создан успешно");
 
         pc.ontrack = event => {
-          console.log("Получен удалённый медиапоток");
-
-          const remoteVideo = document.getElementById("remote-video") as HTMLVideoElement | null;
+          console.log("Получен удалённый медиапоток", event);
+          const remoteVideo = document.getElementById("remote") as HTMLVideoElement | null;
           console.log("remoteVideo:", remoteVideo);
           if (remoteVideo) remoteVideo.srcObject = event.streams[0];
         };
@@ -298,8 +297,8 @@ export default function Chat() {
 
         localStream = await getMediaAccess({ audio: true, video: false });
         localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-        const localVideo = document.getElementById("local-video");
-        if (localVideo) localVideo.srcObject = localStream;
+        // const localVideo = document.getElementById("local-video");
+        // if (localVideo) localVideo.srcObject = localStream;
 
         // Обработчик входящих сообщений WebSocket
         const ws = getSocket();
@@ -371,8 +370,8 @@ export default function Chat() {
   const chat = chats?.find((chat: IChat) => chat.chat?.uid === user_uid);
 
   // Получение данных профиля
-  // const { data: profileData } = useGetProfileQuery();
-  // const profile = profileData;
+  const { data: profileData } = useGetProfileQuery();
+  const profile = profileData;
 
   // Получение контакта по uid
   const { data, isLoading, isError } = useGetContactByIdQuery(user_uid);
@@ -927,7 +926,7 @@ export default function Chat() {
       {incomingCall && (
         <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-green-300 rounded-lg p-6 w-80">
-            <audio className="hidden" id="remote-video" autoPlay controls />
+            <audio className="hidden" id="remote" autoPlay controls />
             <h3>Входящий звонок от {callName.message_rtc.from_user.first_name}</h3>
             <div className="flex gap-4 mt-4">
               <button

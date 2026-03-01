@@ -39,15 +39,6 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null); // Храним интервал для очистки
   const [callDuration, setCallDuration] = useState<number>(0);
 
-  // Очистка таймера при размонтировании компонента
-  useEffect(() => {
-    return () => {
-      if (durationIntervalRef.current) {
-        clearInterval(durationIntervalRef.current);
-      }
-    };
-  }, []);
-
   const iceCandidateBuffer = useRef<RTCIceCandidate[]>([]);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
 
@@ -217,7 +208,6 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
 
         pc.ontrack = event => {
           console.log("Получен удалённый медиапоток");
-
           const remoteVideo = document.getElementById("remote-video") as HTMLVideoElement | null;
           console.log("remoteVideo:", remoteVideo);
           if (remoteVideo) remoteVideo.srcObject = event.streams[0];
@@ -277,11 +267,9 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
         };
 
         localStream = await getMediaAccess({ audio: true, video: false });
-        console.log("Локальный поток:", localStream);
-        console.log("Аудиодорожки:", localStream?.getAudioTracks());
         localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-        const localVideo = document.getElementById("local-video");
-        if (localVideo) localVideo.srcObject = localStream;
+        // const localVideo = document.getElementById("local-video");
+        // if (localVideo) localVideo.srcObject = localStream;
 
         // Шаг 1: создаём и отправляем offer тому, кому хотим позвонить
         const offer = await pc.createOffer();
@@ -339,6 +327,11 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
       // Остановка медиапотока
       if (localStream) {
         localStream.getTracks().forEach(track => track.stop());
+      }
+
+      // Очистка таймера при размонтировании компонента
+      if (durationIntervalRef.current) {
+        clearInterval(durationIntervalRef.current);
       }
 
       // Закрытие RTCPeerConnection
