@@ -7,13 +7,16 @@ import fullScreen from "@/src/assets/icons/full-screen.svg";
 import callEnd from "@/src/assets/icons/call-end.svg";
 import video from "@/src/assets/icons/video.svg";
 import removeSound from "@/src/assets/icons/remove-sound.svg";
+import callActive from "@/src/assets/icons/call-active.svg";
 // import onSound from "@/src/assets/icons/on-sound.svg";
 import bigAvatar from "@/src/assets/icons/big-avatar.svg";
+
 import { useGetCallQuery } from "@/src/services/callApi";
 import type { IContact } from "@/src/types/contact";
 import { getSocket } from "@/src/services/socketService";
 import type { IUser } from "@/src/types/user";
 import type { SignalingMessage } from "@/src/types/calls";
+import { useDelayedAction } from "@/src/hooks/useDelayedAction ";
 
 interface CallBlockProps {
   setIsCallModalOpen: (isCallModalOpen: boolean) => void;
@@ -27,6 +30,7 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
   );
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isSound, setIsSound] = useState(true);
+  const [callDuration, setCallDuration] = useState<number>(0);
   const [dots, setDots] = useState([
     { size: 6, opacity: 1 },
     { size: 5, opacity: 0.7 },
@@ -36,32 +40,39 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
   const { data: stunAndTurnServers } = useGetCallQuery();
   // Время звонка
   const callStartTimeRef = useRef<number | null>(null);
-  const durationIntervalRef = useRef<NodeJS.Timeout | null>(null); // Храним интервал для очистки
-  const [callDuration, setCallDuration] = useState<number>(0);
+  // Храним интервал для очистки
+  const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  const { executeAfterDelay } = useDelayedAction(2000);
+
+  // мой звук
+  const localStreamRef = useRef<MediaStream | undefined>(undefined);
+  // удаленный звук
+  const remoteStreamRef = useRef<MediaStream | null>(null);
+  // массив с кандидатами
   const iceCandidateBuffer = useRef<RTCIceCandidate[]>([]);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
 
   //  проверка есть ли разрешение на доступ к камере и микрофону пользователя
-  const checkPermissions = async () => {
-    try {
-      const cameraPermission = await navigator.permissions.query({
-        name: "camera",
-      });
-      const microphonePermission = await navigator.permissions.query({
-        name: "microphone",
-      });
+  // const checkPermissions = async () => {
+  //   try {
+  //     const cameraPermission = await navigator.permissions.query({
+  //       name: "camera",
+  //     });
+  //     const microphonePermission = await navigator.permissions.query({
+  //       name: "microphone",
+  //     });
 
-      if (cameraPermission.state === "denied" || microphonePermission.state === "denied") {
-        alert("Для звонка нужно разрешить доступ к камере и микрофону в настройках браузера");
-        return false;
-      }
-      return true;
-    } catch (error) {
-      console.warn("Не удалось проверить разрешения:", error);
-      return false;
-    }
-  };
+  //     if (cameraPermission.state === "denied" || microphonePermission.state === "denied") {
+  //       alert("Для звонка нужно разрешить доступ к камере и микрофону в настройках браузера");
+  //       return false;
+  //     }
+  //     return true;
+  //   } catch (error) {
+  //     console.warn("Не удалось проверить разрешения:", error);
+  //     return false;
+  //   }
+  // };
 
   // запрашиваем у пользователя разрешение на доступ к медиаустройствам (микрофону, камере) и возвращаем медиапоток
   const getMediaAccess = async (constraints: MediaStreamConstraints) => {
@@ -118,7 +129,6 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
     } else {
       // remoteDescription нет — кладём в буфер
       iceCandidateBuffer.current.push(iceCandidate);
-      console.log("ICE‑кандидат буферизован");
     }
   };
 
@@ -132,8 +142,6 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
 
   // Функция для отправки сообщения через сигнальный сервер собеседнику
   const sendToSignalingServer = (message: SignalingMessage) => {
-    console.log("Отправка через сигнальный сервер:", message);
-
     const ws = getSocket();
     if (!ws || ws.readyState !== WebSocket.OPEN) {
       console.log("WS not ready");
@@ -146,22 +154,22 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
   // завершаем звонок
   const handleEndCall = () => {
     try {
-      // 1. Закрываем WebRTC‑соединение
+      // 1. Останавливаем локальный медиапоток
+      // const localVideo = document.getElementById("remote-video") as HTMLVideoElement;
+      // if (localVideo && localVideo.srcObject) {
+      //   (localVideo.srcObject as MediaStream).getTracks().forEach(track => track.stop());
+      //   localVideo.srcObject = null;
+      // }
+
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+        localStreamRef.current = undefined;
+      }
+
+      // 2. Закрываем WebRTC‑соединение
       if (peerConnectionRef.current) {
         peerConnectionRef.current.close();
         peerConnectionRef.current = null;
-      }
-
-      if (durationIntervalRef.current) {
-        clearInterval(durationIntervalRef.current);
-        durationIntervalRef.current = null;
-      }
-
-      // 2. Останавливаем локальный медиапоток
-      const localVideo = document.getElementById("local-video") as HTMLVideoElement;
-      if (localVideo && localVideo.srcObject) {
-        (localVideo.srcObject as MediaStream).getTracks().forEach(track => track.stop());
-        localVideo.srcObject = null;
       }
 
       // 3. Отправляем сигнал о завершении звонка через WebSocket
@@ -172,17 +180,47 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
           from_user_uid: profile.uid,
           to_user_uid: data.uid,
           type_complete: "completed",
-          message_rtc_uid: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          message_rtc_uid: uuidv4(),
           duration: callDuration,
         },
       });
 
       // 4. Сбрасываем состояния
       setCallState("end");
-      console.log("Звонок завершён, ресурсы освобождены");
-      console.log(`Звонок завершён, длительность: ${formatDuration(callDuration)}`);
+
+      // Очистка таймера
+      if (durationIntervalRef.current) {
+        clearInterval(durationIntervalRef.current);
+        durationIntervalRef.current = null;
+      }
+
+      callStartTimeRef.current = null;
+
+      executeAfterDelay(() => {
+        setIsCallModalOpen(false);
+      });
     } catch (error) {
       console.error("Ошибка при завершении звонка:", error);
+    }
+  };
+
+  // отключения/включения звука
+  const toggleSound = () => {
+    setIsSound(!isSound);
+    const streamRemote = remoteStreamRef.current;
+    if (streamRemote) {
+      streamRemote.getAudioTracks().forEach(track => {
+        track.enabled = !isSound;
+      });
+      console.log(`Звук удалённого потока ${isSound ? "выключен" : "включён"}`);
+    }
+
+    const streamLocal = localStreamRef.current;
+    if (streamLocal) {
+      streamLocal.getAudioTracks().forEach(track => {
+        track.enabled = !isSound;
+      });
+      console.log(`Локальный звук ${isSound ? "выключен" : "включён"}`);
     }
   };
 
@@ -193,12 +231,11 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
     }
 
     console.log("Получены ICE‑серверы:", stunAndTurnServers);
-    let localStream: MediaStream | null = null;
 
     const initCall = async () => {
       try {
-        const hasPermissions = await checkPermissions();
-        if (!hasPermissions) return;
+        // const hasPermissions = await checkPermissions();
+        // if (!hasPermissions) return;
 
         const pc = new RTCPeerConnection({
           iceServers: stunAndTurnServers.ice_servers,
@@ -207,16 +244,25 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
         console.log("RTCPeerConnection создан успешно");
 
         pc.ontrack = event => {
-          console.log("Получен удалённый медиапоток");
+          console.log("Получен удалённый медиапоток:", event.streams[0]);
           const remoteVideo = document.getElementById("remote-video") as HTMLVideoElement | null;
           console.log("remoteVideo:", remoteVideo);
           if (remoteVideo) remoteVideo.srcObject = event.streams[0];
+
+          // Сохраняем удалённый поток в ref
+          remoteStreamRef.current = event.streams[0];
+
+          // Применяем текущее состояние звука к удалённому потоку
+          if (remoteStreamRef.current) {
+            remoteStreamRef.current.getAudioTracks().forEach(track => {
+              track.enabled = isSound;
+            });
+          }
         };
 
         // При нахождении кандидата срабатывает обработчик pc.onicecandidate кандидат отправляется другому участнику через сигнальный сервер:
         pc.onicecandidate = event => {
           if (event.candidate) {
-            console.log("Найден ICE‑кандидат:", event.candidate);
             sendToSignalingServer({
               action: "ice_candidate",
               request_uid: uuidv4(), // генерируем новый UUID для этого сообщения
@@ -266,14 +312,16 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
           }
         };
 
-        localStream = await getMediaAccess({ audio: true, video: false });
-        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+        localStreamRef.current = await getMediaAccess({ audio: true, video: false });
+        if (localStreamRef.current) {
+          const stream = localStreamRef.current;
+          stream.getTracks().forEach(track => pc.addTrack(track, stream));
+        }
         // const localVideo = document.getElementById("local-video");
         // if (localVideo) localVideo.srcObject = localStream;
 
-        // Шаг 1: создаём и отправляем offer тому, кому хотим позвонить
+        //создаём и отправляем offer тому, кому хотим позвонить
         const offer = await pc.createOffer();
-        console.log("SDP offer:", offer.sdp);
         await pc.setLocalDescription(offer);
 
         if (!offer.sdp) {
@@ -292,26 +340,32 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
 
         // Обработчик входящих сообщений WebSocket
         const ws = getSocket();
-        ws.onmessage = async (event: MessageEvent) => {
-          try {
-            const data: SignalingMessage = JSON.parse(event.data);
+        if (ws !== null) {
+          ws.onmessage = async (event: MessageEvent) => {
+            try {
+              const data: SignalingMessage = JSON.parse(event.data);
 
-            switch (data.action) {
-              case "answer_call":
-                await handleAnswerCall(peerConnectionRef.current, data);
-                break;
-              case "ice_candidate":
-                if (data.object.ice_candidate) {
-                  await handleIceCandidate(pc, data.object.ice_candidate);
-                }
-                break;
-              default:
-                console.log("Неизвестное действие:", data.action);
+              switch (data.action) {
+                case "answer_call":
+                  // пришел ответ от того кому хотим позвонить
+                  await handleAnswerCall(peerConnectionRef.current, data);
+                  break;
+                case "ice_candidate":
+                  if (data.object.ice_candidate) {
+                    await handleIceCandidate(pc, data.object.ice_candidate);
+                  }
+                  break;
+                case "call_completion":
+                  console.log("Вызов отклонен");
+                  break;
+                default:
+                  console.log("Неизвестное действие:", data.action);
+              }
+            } catch (error) {
+              console.error("Ошибка обработки сигнального сообщения:", error);
             }
-          } catch (error) {
-            console.error("Ошибка обработки сигнального сообщения:", error);
-          }
-        };
+          };
+        }
       } catch (error) {
         console.error("Критическая ошибка инициализации звонка:", error);
       }
@@ -322,16 +376,14 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
     return () => {
       // Очистка WebSocket-обработчиков
       const ws = getSocket();
-      ws.onmessage = null;
-
-      // Остановка медиапотока
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
+      if (ws !== null) {
+        ws.onmessage = null;
       }
 
-      // Очистка таймера при размонтировании компонента
-      if (durationIntervalRef.current) {
-        clearInterval(durationIntervalRef.current);
+      // Остановка медиапотока
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+        localStreamRef.current = undefined;
       }
 
       // Закрытие RTCPeerConnection
@@ -339,6 +391,14 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
         peerConnectionRef.current.close();
         peerConnectionRef.current = null;
       }
+
+      // Очистка таймера при размонтировании компонента
+      if (durationIntervalRef.current) {
+        clearInterval(durationIntervalRef.current);
+        durationIntervalRef.current = null;
+      }
+
+      callStartTimeRef.current = null;
 
       console.log("Ресурсы звонка освобождены");
     };
@@ -362,8 +422,8 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
 
   return (
     <div
-      className={`absolute inset-0 z-50 mx-auto mt-[84px] flex flex-col items-center justify-between  rounded-lg bg-(--color-violet-dark) p-5
-        ${isFullScreen ? "max-w-[1200px] mb-1" : "w-[388px] max-h-[770px]"} video-element remote
+      className={`absolute inset-0 z-50 mx-auto mt-[84px] flex flex-col items-center justify-between  rounded-lg bg-(--color-violet-dark) p-5 mb-1
+        ${isFullScreen ? "max-w-[1200px] mb-1" : "w-[388px] max-h-[770px]"} 
         `}
     >
       <div className="w-full flex justify-between">
@@ -374,8 +434,8 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
           <Image src={closeCall} alt="Закрыть окно" width={36} height={36} />
         </button>
       </div>
-      <div className="flex flex-col items-center text-white">
-        <audio className="hidden" id="remote-video" autoPlay controls />
+      <div className="flex flex-col items-center text-white h-[310px]">
+        <video className="hidden" id="remote-video" autoPlay controls />
         <div className="flex justify-center items-center h-[184px] w-[184px] mb-[32px]">
           {data.avatar_url ? (
             <div className="relative">
@@ -409,15 +469,6 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
           {data.first_name} {data.last_name}
         </p>
 
-        {callState === "connected" && <div>{formatDuration(callDuration)}</div>}
-        {callState === "end" && (
-          <div className="flex flex-col items-center">
-            <p>Звонок завершен</p>
-            {formatDuration(callDuration)}
-          </div>
-        )}
-        {callState === "error" && <div>Ошибка соединения</div>}
-
         {callState === "connecting" && (
           <div className="flex items-center gap-x-1 h-[24px]">
             <p>Звонок</p>
@@ -433,18 +484,31 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
                   }}
                 />
               ))}
-            </div>{" "}
+            </div>
           </div>
         )}
+        {callState === "connected" && (
+          <div className="flex gap-x-1">
+            <Image src={callActive} alt="Идет звонок" width={14} height={14} />
+            <p>{formatDuration(callDuration)}</p>
+          </div>
+        )}
+        {callState === "end" && (
+          <div className="flex flex-col items-center">
+            <p>Звонок завершен</p>
+            {formatDuration(callDuration)}
+          </div>
+        )}
+        {callState === "error" && <div>Ошибка соединения</div>}
       </div>
       <div className="flex gap-x-4 text-white text-xs font-normal">
         <button className="flex flex-col items-center gap-y-1 w-[68px] h-[54px]">
-          <Image src={video} alt="Завершить" width={36} height={36} />
+          <Image src={video} alt="Видео" width={36} height={36} />
           <p>Видео</p>
         </button>
         <button
           className="flex flex-col items-center gap-y-1 w-[68px] h-[54px]"
-          onClick={() => setIsSound(!isSound)}
+          onClick={() => toggleSound()}
         >
           {isSound ? (
             <Image src={removeSound} alt="Убрать звук" width={36} height={36} />
@@ -464,9 +528,9 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
                 x2="24.0992"
                 y2="25.9793"
                 stroke="#7769E1"
-                stroke-width="3"
+                strokeWidth="3"
               />
-              <path d="M11.2969 10.3203L25.2969 25.3203" stroke="white" stroke-width="2" />
+              <path d="M11.2969 10.3203L25.2969 25.3203" stroke="white" strokeWidth="2" />
             </svg>
           )}
 
