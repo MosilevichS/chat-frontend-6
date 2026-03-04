@@ -1,5 +1,6 @@
 import { privateApi } from "@/src/services/baseApi";
 import type { IContact } from "../types/contact";
+import type { PaginatedResponse, IBlackListContact } from "../types/blackList";
 
 export const contactApi = privateApi.injectEndpoints({
   endpoints: builder => ({
@@ -14,6 +15,26 @@ export const contactApi = privateApi.injectEndpoints({
         body,
       }),
       invalidatesTags: ["Contacts", "Chats"],
+    }),
+    getBlackList: builder.query<
+      PaginatedResponse<IBlackListContact>,
+      { page?: number; page_size?: number }
+    >({
+      query: params => ({
+        url: "/contacts/black-list/",
+        method: "GET",
+        params: {
+          page: params?.page || 1,
+          page_size: params?.page_size || 20,
+        },
+      }),
+      providesTags: result =>
+        result
+          ? [
+              ...result.results.map(({ id }) => ({ type: "BlackList" as const, id })),
+              { type: "BlackList", id: "LIST" },
+            ]
+          : [{ type: "BlackList", id: "LIST" }],
     }),
     addBlackList: builder.mutation<IContact, { id: string }>({
       query: ({ id }) => ({
@@ -55,6 +76,7 @@ export const contactApi = privateApi.injectEndpoints({
 export const {
   useGetContactsQuery,
   useAddContactByPhoneMutation,
+  useGetBlackListQuery,
   useAddBlackListMutation,
   useDeleteBlackListMutation,
   useDeleteContactMutation,
