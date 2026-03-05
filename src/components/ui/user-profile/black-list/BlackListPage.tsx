@@ -5,28 +5,34 @@ import { useGetBlackListQuery } from "@/src/services/contactApi";
 import { BlackListInputSearch } from "./BlackListInputSearch";
 import Image from "next/image";
 import { BlackListTopMenu } from "@/components/ui/user-profile/black-list/BlackListTopMenu";
+import type { IBlackListContact } from "@/src/types/blackList";
 
 export const BlackListPage = () => {
   const [page, setPage] = useState(1);
-  const [deleteButtonVisible, setDeleteButtonVisible] = useState<boolean>(false);
+  const [deleteMode, setDeleteMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
   const { data, isLoading, isFetching } = useGetBlackListQuery({
     page,
     page_size: 20,
   });
-  const filteredData = useMemo(() => {
+  const toggleDeleteMode = () => {
+    setDeleteMode(prev => !prev); // Переключаем режим удаления
+  };
+  const filteredData = useMemo((): IBlackListContact[] => {
     if (!data?.results) return [];
-    if (!searchTerm) return data.results;
 
-    const search = searchTerm.toLowerCase();
+    const search = searchTerm.trim().toLowerCase();
+    if (!search) return data.results;
+
     return data.results.filter(item => {
       const user = item.blocked_user;
-      const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
+
+      const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ").toLowerCase();
+
       return fullName.includes(search);
     });
   }, [data, searchTerm]);
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -35,9 +41,10 @@ export const BlackListPage = () => {
     );
   }
 
+
   return (
     <div className="container mx-auto p-4 max-w-4xl">
-      <BlackListTopMenu />
+      <BlackListTopMenu onToggleDeleteMode={toggleDeleteMode} />
       <BlackListInputSearch value={searchTerm} onChange={setSearchTerm} />
 
       {/* Статистика */}

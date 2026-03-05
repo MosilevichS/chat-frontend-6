@@ -24,18 +24,23 @@ export const contactApi = privateApi.injectEndpoints({
         url: "/contacts/black-list/",
         method: "GET",
         params: {
-          page: params?.page || 1,
-          page_size: params?.page_size || 20,
+          page: params?.page ?? 1,
+          page_size: params?.page_size ?? 20,
         },
       }),
+
       providesTags: result =>
         result
           ? [
-              ...result.results.map(({ id }) => ({ type: "BlackList" as const, id })),
+              ...result.results.map(({ blocked_user }) => ({
+                type: "BlackList" as const,
+                id: blocked_user.uid,
+              })),
               { type: "BlackList", id: "LIST" },
             ]
           : [{ type: "BlackList", id: "LIST" }],
     }),
+
     addBlackList: builder.mutation<IContact, { id: string }>({
       query: ({ id }) => ({
         url: `/contacts/add-blacklist/${id}`,
