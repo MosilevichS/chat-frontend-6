@@ -11,9 +11,10 @@ export const BlackListTopMenu = ({ onToggleDeleteMode }: BlackListTopMenuProps) 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const handleMenuClick = () => {
     setIsModalOpen(true);
+    console.log("modal is oipe");
   };
   const handleEditList = () => {
-    onToggleDeleteMode(); // Включаем режим удаления
+    onToggleDeleteMode();
     setIsModalOpen(false);
   };
 
@@ -27,7 +28,7 @@ export const BlackListTopMenu = ({ onToggleDeleteMode }: BlackListTopMenuProps) 
           <Image src={backIcon} width={24} height={24} alt="Назад" />
         </Link>
         <h2 className="text-[1.125rem] font-medium text-[var(--color-black)]">Черный список</h2>
-        <button className="kebab-button" onClick={() => handleMenuClick}>
+        <button className="kebab-button" onClick={handleMenuClick}>
           <svg width="20" height="20" viewBox="0 0 24 24">
             <circle cx="12" cy="5" r="2" fill="currentColor" />
             <circle cx="12" cy="12" r="2" fill="currentColor" />
@@ -37,17 +38,17 @@ export const BlackListTopMenu = ({ onToggleDeleteMode }: BlackListTopMenuProps) 
       </div>
       {isModalOpen && (
         <ModalBase onClose={handleCloseModal}>
-          <div className="bg-white rounded-xl w-80 p-6 shadow-xl">
-            <h3 className="text-lg font-semibold text-center mb-4">Редактировать список</h3>
+          <div className="fixed top-16 right-4 md:top-30 md:right-130 z-50 bg-white rounded-xl w-72 p-3 shadow-lg">
+            <div className="flex items-center">
+              <span className="text-lg font-semibold">Редактировать список</span>
 
-            <div className="space-y-2">
               <button
                 onClick={handleEditList}
-                className="w-full p-3 text-left text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                className="ml-auto text-red-500 hover:bg-red-50 rounded-lg transition-colors p-1"
               >
                 <svg
-                  width="28"
-                  height="28"
+                  width="24"
+                  height="24"
                   viewBox="0 0 28 28"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"

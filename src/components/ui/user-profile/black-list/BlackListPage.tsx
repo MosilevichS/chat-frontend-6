@@ -11,13 +11,15 @@ export const BlackListPage = () => {
   const [page, setPage] = useState(1);
   const [deleteMode, setDeleteMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [deleteButtonView, setDeleteButtonView] = useState(false);
 
   const { data, isLoading, isFetching } = useGetBlackListQuery({
     page,
     page_size: 20,
   });
   const toggleDeleteMode = () => {
-    setDeleteMode(prev => !prev); // Переключаем режим удаления
+    setDeleteMode(prev => !prev);
+    setDeleteButtonView(prev => !prev);
   };
   const filteredData = useMemo((): IBlackListContact[] => {
     if (!data?.results) return [];
@@ -40,7 +42,6 @@ export const BlackListPage = () => {
       </div>
     );
   }
-
 
   return (
     <div className="container mx-auto p-4 max-w-4xl">
@@ -97,7 +98,11 @@ export const BlackListPage = () => {
 
                     {/* Кнопка удаления */}
                     <button
-                      className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                      className={
+                        deleteButtonView
+                          ? "p-2 text-gray-400 hover:text-red-500 transition-colors"
+                          : "hidden"
+                      }
                       onClick={() => {
                         console.log("Удалить из ЧС:", user.uid);
                       }}
