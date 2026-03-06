@@ -130,7 +130,7 @@ const ChatsItem = ({ chat, selectedChatId, handleRightClick }: ChatItemProps) =>
 
             <div className="flex gap-x-0.5 h-[22px]">
               <div className="flex items-center">
-                {chat.new_message_count === 0 &&
+                {chat.chat?.uid !== chat.last_message?.from_user &&
                   chat.last_message &&
                   (chat.last_message?.new ? (
                     // не прочитано
@@ -166,12 +166,12 @@ const ChatsItem = ({ chat, selectedChatId, handleRightClick }: ChatItemProps) =>
 
           <div className="flex justify-between w-full h-[34px]">
             <p
-              className={`text-sm font-normal text-(--color-gray) ${isFavorite() || getNewMessageCount() > 1 ? "w-[231px]" : "w-[260px]"} leading-[1.2] tracking-[1%] line-clamp-2 ${isActive ? "text-white" : ""}`}
+              className={`text-sm font-normal text-(--color-gray) ${isFavorite() || getNewMessageCount() >= 1 ? "w-[231px]" : "w-[260px]"} leading-[1.2] tracking-[1%] line-clamp-2 ${isActive ? "text-white" : ""}`}
             >
               {chat.last_message?.content || "История очищена"}
             </p>
 
-            {isFavorite() && getNewMessageCount() < 2 && (
+            {isFavorite() ? (
               <div className="flex items-center">
                 {/* Закреплено */}
                 <svg width="21" height="21" viewBox="0 0 21 21" fill="none">
@@ -181,18 +181,18 @@ const ChatsItem = ({ chat, selectedChatId, handleRightClick }: ChatItemProps) =>
                   />
                 </svg>
               </div>
-            )}
-
-            {getNewMessageCount() > 1 && (
-              <div className="flex items-center">
-                <span
-                  className={`flex items-center px-1.5 h-[21px] rounded-[10px] bg-(--color-violet) ${isActive ? "bg-(--color-white) text-(--color-violet) font-semibold" : "text-white font-normal"}`}
-                >
-                  {getNewMessageCount() < 1000
-                    ? getNewMessageCount()
-                    : `${(getNewMessageCount() / 1000).toFixed(1).replace(".", ",")}K`}
-                </span>
-              </div>
+            ) : (
+              getNewMessageCount() >= 1 && (
+                <div className="flex items-center">
+                  <span
+                    className={`flex items-center px-1.5 h-[21px] rounded-[10px] bg-(--color-violet) ${isActive ? "bg-(--color-white) text-(--color-violet) font-semibold" : "text-white font-normal"}`}
+                  >
+                    {getNewMessageCount() < 1000
+                      ? getNewMessageCount()
+                      : `${(getNewMessageCount() / 1000).toFixed(1).replace(".", ",")}K`}
+                  </span>
+                </div>
+              )
             )}
           </div>
         </div>

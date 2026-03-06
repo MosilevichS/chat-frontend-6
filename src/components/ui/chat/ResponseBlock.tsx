@@ -25,32 +25,37 @@ interface CallData {
 
 interface ResponseBlockProps {
   data: CallData;
-  setIsResponse: (isResponse: boolean) => void;
   isSound: boolean;
   remoteStream: MediaStream;
   toggleSound: () => void;
   handleEndCall: () => void;
+  callState: string;
+  cleanupConnection: () => void;
 }
 
 const ResponseBlock = ({
   data,
-  setIsResponse,
   remoteStream,
   toggleSound,
   isSound,
   handleEndCall,
+  callState,
+  cleanupConnection,
 }: ResponseBlockProps) => {
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
   const [isFullScreen, setIsFullScreen] = useState(false);
-  // const [callState, setCallState] = useState<"connecting" | "connected" | "end" | "error">(
-  //   "connecting",
-  // );
+
   // Время начала звонка
   const callStartTimeRef = useRef<number | null>(null);
   // Храним интервал для очистки
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [callDuration, setCallDuration] = useState<number>(0);
+  const [dots, setDots] = useState([
+    { size: 6, opacity: 1 },
+    { size: 5, opacity: 0.7 },
+    { size: 4, opacity: 0.4 },
+  ]);
 
   // Форматирование времени в MM:SS
   const formatDuration = (seconds: number): string => {
@@ -59,18 +64,26 @@ const ResponseBlock = ({
     return `${mins.toString()}:${secs.toString().padStart(2, "0")}`;
   };
 
+  console.log(callState);
+
   useEffect(() => {
-    callStartTimeRef.current = Date.now(); // фиксируем время начала разговора
-    durationIntervalRef.current = setInterval(() => {
-      if (callStartTimeRef.current) {
-        const currentDuration = Math.floor((Date.now() - callStartTimeRef.current) / 1000);
-        setCallDuration(currentDuration);
-      }
-    }, 1000);
+    if (callState === "connected") {
+      callStartTimeRef.current = Date.now(); // фиксируем время начала разговора
+      durationIntervalRef.current = setInterval(() => {
+        if (callStartTimeRef.current) {
+          const currentDuration = Math.floor((Date.now() - callStartTimeRef.current) / 1000);
+          setCallDuration(currentDuration);
+        }
+      }, 1000);
+    }
 
     if (remoteVideoRef.current && remoteStream) {
       remoteVideoRef.current.srcObject = remoteStream;
       console.log(remoteVideoRef.current.srcObject);
+    }
+
+    if (callState === "end" && durationIntervalRef.current !== null) {
+      clearInterval(durationIntervalRef.current);
     }
 
     return () => {
@@ -84,8 +97,25 @@ const ResponseBlock = ({
       }
 
       callStartTimeRef.current = null;
+    };
+  }, [callState]);
 
-      console.log("Ресурсы звонка освобождены");
+  useEffect(() => {
+    let swapIndex = 0;
+    const interval = setInterval(() => {
+      setDots(prev => {
+        const newDots = [...prev];
+        // Меняем текущую точку со следующей (с циклом)
+        const nextIndex = (swapIndex + 1) % prev.length;
+        [newDots[swapIndex], newDots[nextIndex]] = [newDots[nextIndex], newDots[swapIndex]];
+        swapIndex = nextIndex;
+        return newDots;
+      });
+    }, 300);
+
+    return () => {
+      clearInterval(interval);
+      cleanupConnection();
     };
   }, []);
 
@@ -99,7 +129,7 @@ const ResponseBlock = ({
         <button onClick={() => setIsFullScreen(!isFullScreen)}>
           <Image src={fullScreen} alt="Полный экран" width={36} height={36} />
         </button>
-        <button onClick={() => setIsResponse(false)}>
+        <button onClick={handleEndCall}>
           <Image src={closeCall} alt="Закрыть окно" width={36} height={36} />
         </button>
       </div>
@@ -138,9 +168,9 @@ const ResponseBlock = ({
           {data.message_rtc.from_user.first_name} {data.message_rtc.from_user.last_name}
         </p>
 
-        {/* {callState === "connecting" && (
+        {callState === "connecting" && (
           <div className="flex items-center gap-x-1 h-[24px]">
-            <p>Звонок</p>
+            <p>Соединение</p>
             <div className="flex gap-0.5 w-[20px] h-[6px] mt-1">
               {dots.map((dot, index) => (
                 <div
@@ -155,20 +185,23 @@ const ResponseBlock = ({
               ))}
             </div>
           </div>
-        )}*/}
-        {/* {callState === "connected" && <div>{formatDuration(callDuration)}</div>} */}
-        <div className="flex gap-x-1">
-          <Image src={callActive} alt="Идет звонок" width={14} height={14} />
-          <p>{formatDuration(callDuration)}</p>
-        </div>
+        )}
 
-        {/*   {callState === "end" && (
+        {callState === "connected" && (
+          <div className="flex gap-x-1">
+            <Image src={callActive} alt="Идет звонок" width={14} height={14} />
+            <p>{formatDuration(callDuration)}</p>
+          </div>
+        )}
+
+        {callState === "end" && (
           <div className="flex flex-col items-center">
             <p>Звонок завершен</p>
             {formatDuration(callDuration)}
           </div>
         )}
-        {callState === "error" && <div>Ошибка соединения</div>} */}
+
+        {callState === "error" && <div>Ошибка соединения</div>}
       </div>
       <div className="flex gap-x-4 text-white text-xs font-normal">
         <button className="flex flex-col items-center gap-y-1 w-[68px] h-[54px]">

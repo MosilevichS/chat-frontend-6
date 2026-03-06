@@ -5,15 +5,16 @@ export type SignalingMessage =
       object: {
         to_user_uid: string;
         offer_sdp: string;
+        message_rtc?: { uid: string };
       };
     }
   | {
       action: "answer_call";
-      request_uid: string; 
+      request_uid: string;
       object: {
         from_user_uid: string;
         to_user_uid: string;
-        answer_sdp: string; 
+        answer_sdp: string;
       };
     }
   | {
@@ -33,6 +34,6 @@ export type SignalingMessage =
         to_user_uid: string;
         type_complete: "unreceived" | "rejected" | "completed";
         message_rtc_uid: string;
-        duration: number;
+        duration?: number;
       };
     };

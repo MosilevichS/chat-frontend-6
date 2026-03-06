@@ -25,12 +25,13 @@ interface CallBlockProps {
 }
 
 const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
-  const [callState, setCallState] = useState<"connecting" | "connected" | "end" | "error">(
-    "connecting",
-  );
+  const [callState, setCallState] = useState<
+    "call" | "connecting" | "connected" | "end" | "error" | "rejected"
+  >("call");
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isSound, setIsSound] = useState(true);
   const [callDuration, setCallDuration] = useState<number>(0);
+  const [messageRtc, setMessageRtc] = useState("");
   const [dots, setDots] = useState([
     { size: 6, opacity: 1 },
     { size: 5, opacity: 0.7 },
@@ -180,7 +181,7 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
           from_user_uid: profile.uid,
           to_user_uid: data.uid,
           type_complete: "completed",
-          message_rtc_uid: uuidv4(),
+          message_rtc_uid: messageRtc,
           duration: callDuration,
         },
       });
@@ -244,10 +245,13 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
         console.log("RTCPeerConnection создан успешно");
 
         pc.ontrack = event => {
-          console.log("Получен удалённый медиапоток:", event.streams[0]);
+          console.log("Получен удалённый медиапоток:", event.streams);
           const remoteVideo = document.getElementById("remote-video") as HTMLVideoElement | null;
           console.log("remoteVideo:", remoteVideo);
-          if (remoteVideo) remoteVideo.srcObject = event.streams[0];
+
+          if (remoteVideo) {
+            remoteVideo.srcObject = event.streams[0];
+          }
 
           // Сохраняем удалённый поток в ref
           remoteStreamRef.current = event.streams[0];
@@ -300,14 +304,25 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
               console.error("❌ Соединение не удалось установить. Проверьте сеть и ICE‑серверы.");
               break;
             case "disconnected":
-              console.warn("⚠️ Временное отключение. Пытаемся восстановить соединение...");
+              if (durationIntervalRef.current) {
+                clearInterval(durationIntervalRef.current);
+                durationIntervalRef.current = null;
+              }
+              setCallState("end");
+              executeAfterDelay(() => {
+                setIsCallModalOpen(false);
+              });
+
               break;
             case "closed":
               setCallState("end");
               console.log("📞 Соединение закрыто.");
               break;
+            case "connecting":
+              setCallState("connecting");
+
+              break;
             default:
-              // "new", "connecting" — ожидаем
               console.log(`⏱️ Текущее состояние: ${state}`);
           }
         };
@@ -317,8 +332,8 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
           const stream = localStreamRef.current;
           stream.getTracks().forEach(track => pc.addTrack(track, stream));
         }
-        // const localVideo = document.getElementById("local-video");
-        // if (localVideo) localVideo.srcObject = localStream;
+        // const localVideo = document.getElementById("remote-video")  as HTMLVideoElement;
+        // if (localVideo) localVideo.srcObject = localStreamRef.current;
 
         //создаём и отправляем offer тому, кому хотим позвонить
         const offer = await pc.createOffer();
@@ -349,6 +364,10 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
                 case "answer_call":
                   // пришел ответ от того кому хотим позвонить
                   await handleAnswerCall(peerConnectionRef.current, data);
+                case "offer_call":
+                  if ("message_rtc" in data.object && data.object.message_rtc) {
+                    setMessageRtc(data.object.message_rtc.uid);
+                  }
                   break;
                 case "ice_candidate":
                   if (data.object.ice_candidate) {
@@ -356,10 +375,28 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
                   }
                   break;
                 case "call_completion":
-                  console.log("Вызов отклонен");
+                  console.log(data.object.type_complete);
+                  if (data.object.type_complete === "rejected") {
+                    console.log("Звонок отклонен");
+                    setCallState("rejected");
+                    executeAfterDelay(() => {
+                      setIsCallModalOpen(false);
+                    });
+                  }
+                  if (data.object.type_complete === "completed") {
+                    console.log("Звонок завершен");
+                    if (durationIntervalRef.current) {
+                      clearInterval(durationIntervalRef.current);
+                      durationIntervalRef.current = null;
+                    }
+                    setCallState("end");
+                    executeAfterDelay(() => {
+                      setIsCallModalOpen(false);
+                    });
+                  }
                   break;
                 default:
-                  console.log("Неизвестное действие:", data.action);
+                  // console.log("Неизвестное действие:", data.action);
               }
             } catch (error) {
               console.error("Ошибка обработки сигнального сообщения:", error);
@@ -430,12 +467,17 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
         <button onClick={() => setIsFullScreen(!isFullScreen)}>
           <Image src={fullScreen} alt="Полный экран" width={36} height={36} />
         </button>
-        <button onClick={() => setIsCallModalOpen(false)}>
+        <button
+          onClick={() => {
+            setIsCallModalOpen(false);
+            handleEndCall();
+          }}
+        >
           <Image src={closeCall} alt="Закрыть окно" width={36} height={36} />
         </button>
       </div>
       <div className="flex flex-col items-center text-white h-[310px]">
-        <video className="hidden" id="remote-video" autoPlay controls />
+        <video className="hidden" id="remote-video" autoPlay controls playsInline />
         <div className="flex justify-center items-center h-[184px] w-[184px] mb-[32px]">
           {data.avatar_url ? (
             <div className="relative">
@@ -469,7 +511,7 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
           {data.first_name} {data.last_name}
         </p>
 
-        {callState === "connecting" && (
+        {callState === "call" && (
           <div className="flex items-center gap-x-1 h-[24px]">
             <p>Звонок</p>
             <div className="flex gap-0.5 w-[20px] h-[6px] mt-1">
@@ -499,7 +541,26 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
             {formatDuration(callDuration)}
           </div>
         )}
-        {callState === "error" && <div>Ошибка соединения</div>}
+        {callState === "connecting" && (
+          <div className="flex items-center gap-x-1 h-[24px]">
+            <p>Соединение</p>
+            <div className="flex gap-0.5 w-[20px] h-[6px] mt-1">
+              {dots.map((dot, index) => (
+                <div
+                  key={index}
+                  className="bg-white rounded-full my-auto transition-all duration-300"
+                  style={{
+                    width: `${dot.size}px`,
+                    height: `${dot.size}px`,
+                    opacity: dot.opacity,
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+        {callState === "error" && <p>Ошибка соединения</p>}
+        {callState === "rejected" && <p>Звонок отклонен</p>}
       </div>
       <div className="flex gap-x-4 text-white text-xs font-normal">
         <button className="flex flex-col items-center gap-y-1 w-[68px] h-[54px]">
