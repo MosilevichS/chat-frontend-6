@@ -36,17 +36,28 @@ const getFreshToken = async (): Promise<string | null> => {
   }
 };
 
-const messageQueue: string[] = [];
+// Очередь сообщений, которые нужно отправить после подключения
+const messageQueue: unknown[] = [];
 
-export const sendThroughSocket = (data: unknown) => {
-  const payload = JSON.stringify(data);
+// Отправка сообщения через сокет (или в очередь, если не подключен)
+const flushQueue = () => {
+  if (!socket || socket.readyState !== WebSocket.OPEN) return;
+
+  while (messageQueue.length > 0) {
+    const msg = messageQueue.shift();
+    if (msg) socket.send(JSON.stringify(msg));
+  }
+};
+
+export const sendThroughSocket = async (data: unknown) => {
+  messageQueue.push(data);
 
   if (!socket || socket.readyState !== WebSocket.OPEN) {
-    messageQueue.push(payload);
+    await connectSocket();
     return;
   }
 
-  socket.send(payload);
+  flushQueue();
 };
 
 // Подключение сокета
@@ -64,8 +75,6 @@ export const connectSocket = async (): Promise<WebSocket | null> => {
     return null;
   }
 
-  let messageQueue: string[] = [];
-
   socket = new WebSocket(`wss://api.dev.chat.ktsf.ru/ws/chat?authorization=${token}`);
 
   socket.onopen = () => {
@@ -74,10 +83,7 @@ export const connectSocket = async (): Promise<WebSocket | null> => {
     isConnecting = false;
     reconnectAttempts = 0;
 
-    if (messageQueue.length > 0) {
-      messageQueue.forEach(msg => socket?.send(msg));
-      messageQueue = [];
-    }
+    flushQueue();
 
     if (reconnectTimeout) {
       clearTimeout(reconnectTimeout);

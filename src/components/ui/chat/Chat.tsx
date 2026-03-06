@@ -51,7 +51,7 @@ import type { AppDispatch } from "@/src/store/store";
 import { chatsApi } from "@/src/services/chatsApi";
 import { useGetContactsQuery, useAddContactByPhoneMutation } from "@/src/services/contactApi";
 import { useGetProfileQuery } from "@/src/services/userApi";
-import { useGetMessagesQuery } from "@/src/services/messagesApi";
+import { getMessagesApi, useGetMessagesQuery } from "@/src/services/messagesApi";
 import { getSocket, sendThroughSocket } from "@/src/services/socketService";
 
 export default function Chat() {
@@ -148,12 +148,44 @@ export default function Chat() {
   const sendMessage = () => {
     if (!inputValue.trim() || !profile) return;
 
+    const content = inputValue.trim();
+    const tempId = crypto.randomUUID();
+
+    // 1. optimistic update
+    dispatch(
+      getMessagesApi.util.updateQueryData("getMessages", { user_uid }, draft => {
+        if (!draft) return;
+
+        if (!chat?.chat) return;
+
+        draft.results.unshift({
+          id: -Date.now(),
+          uid: tempId,
+          from_user: profile,
+          to_user: chat?.chat,
+          content,
+          replied_messages: [],
+          forwarded_messages: [],
+          files_list: [],
+          new: true,
+          created_at: Math.floor(Date.now() / 1000),
+          updated_at: Math.floor(Date.now() / 1000),
+          chat_id: chat.id,
+          chat_key: chat.chat_key,
+          chat_type: chat.chat_type,
+          message_rtc: null,
+          pending: true,
+        });
+      }),
+    );
+
+    // 2. отправляем через сокет
     sendThroughSocket({
       action: "create_text_message",
-      request_uid: profile.uid,
+      request_uid: tempId,
       object: {
         to_user_uid: user_uid,
-        content: inputValue.trim(),
+        content,
       },
     });
 

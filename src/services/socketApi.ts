@@ -62,6 +62,15 @@ export const socketApi = privateApi.injectEndpoints({
             } else {
               dispatch(
                 getMessagesApi.util.updateQueryData("getMessages", messagesArg, draft => {
+                  const pendingIndex = draft.results.findIndex(
+                    m => m.pending && m.uid === data.request_uid,
+                  );
+
+                  if (pendingIndex !== -1) {
+                    draft.results[pendingIndex] = message as IMessage;
+                    return;
+                  }
+
                   const exists = draft.results.some(m => m.uid === message.uid);
                   if (!exists) {
                     draft.results.unshift(message as IMessage);
