@@ -1,15 +1,17 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useGetBlackListQuery } from "@/src/services/contactApi";
+import {
+  useDeleteBlackListSettingsMutation,
+  useGetBlackListQuery,
+} from "@/src/services/contactApi";
 import { BlackListInputSearch } from "./BlackListInputSearch";
 import Image from "next/image";
 import { BlackListTopMenu } from "@/components/ui/user-profile/black-list/BlackListTopMenu";
-import type { IBlackListContact } from "@/src/types/blackList";
+import type { IBlackListContact, IBlockedUser } from "@/src/types/blackList";
 
 export const BlackListPage = () => {
   const [page, setPage] = useState(1);
-  const [deleteMode, setDeleteMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteButtonView, setDeleteButtonView] = useState(false);
 
@@ -18,8 +20,18 @@ export const BlackListPage = () => {
     page_size: 20,
   });
   const toggleDeleteMode = () => {
-    setDeleteMode(prev => !prev);
     setDeleteButtonView(prev => !prev);
+  };
+
+  const [deleteBlackList] = useDeleteBlackListSettingsMutation();
+
+  const handleDeleteBlackList = async (user: IBlockedUser) => {
+    if (!user) return;
+    try {
+      await deleteBlackList({ id: user.uid }).unwrap();
+    } catch (error) {
+      console.error("Ошибка:", error);
+    }
   };
   const filteredData = useMemo((): IBlackListContact[] => {
     if (!data?.results) return [];
@@ -48,7 +60,6 @@ export const BlackListPage = () => {
       <BlackListTopMenu onToggleDeleteMode={toggleDeleteMode} />
       <BlackListInputSearch value={searchTerm} onChange={setSearchTerm} />
 
-      {/* Статистика */}
       <div className="flex justify-between items-center mb-4 text-sm text-gray-500">
         {isFetching && (
           <span className="text-[var(--color-violet)] animate-pulse">Обновление...</span>
@@ -65,24 +76,23 @@ export const BlackListPage = () => {
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 ">
             {filteredData.map(item => {
               const user = item.blocked_user;
               const fullName =
                 [user.first_name, user.last_name].filter(Boolean).join(" ") || "Без имени";
-
               return (
                 <div key={user.uid}>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full  bg-[var(--color-violet)]  flex-shrink-0 overflow-hidden">
+                    <div className="p-2 flex items-center gap-4">
+                      <div className="relative w-12 h-12 rounded-full bg-[var(--color-violet)] flex-shrink-0 overflow-hidden">
                         {user.avatar_url ? (
                           <Image
                             src={user.avatar_url}
                             alt={fullName}
-                            width={48}
-                            height={48}
-                            className="object-cover w-full h-full"
+                            fill
+                            sizes="48px"
+                            className="w-full h-full object-cover"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-white font-bold text-lg">
@@ -104,7 +114,7 @@ export const BlackListPage = () => {
                           : "hidden"
                       }
                       onClick={() => {
-                        console.log("Удалить из ЧС:", user.uid);
+                        handleDeleteBlackList(user);
                       }}
                     >
                       <svg

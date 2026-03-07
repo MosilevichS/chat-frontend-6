@@ -11,7 +11,6 @@ export const BlackListTopMenu = ({ onToggleDeleteMode }: BlackListTopMenuProps) 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const handleMenuClick = () => {
     setIsModalOpen(true);
-    console.log("modal is oipe");
   };
   const handleEditList = () => {
     onToggleDeleteMode();

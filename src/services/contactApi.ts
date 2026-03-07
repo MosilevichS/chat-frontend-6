@@ -53,7 +53,28 @@ export const contactApi = privateApi.injectEndpoints({
         url: `/contacts/delete-blacklist/${id}`,
         method: "DELETE",
       }),
+
       invalidatesTags: ["Chats"],
+    }),
+    deleteBlackListSettings: builder.mutation<void, { id: string }>({
+      query: ({ id }) => ({
+        url: `/contacts/delete-blacklist/${id}/`,
+        method: "DELETE",
+      }),
+
+      async onQueryStarted({ id }, { dispatch, queryFulfilled }) {
+        const patchResult = dispatch(
+          contactApi.util.updateQueryData("getBlackList", { page: 1, page_size: 20 }, draft => {
+            draft.results = draft.results.filter(item => item.blocked_user.uid !== id);
+          }),
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          patchResult.undo();
+        }
+      },
     }),
     deleteContact: builder.mutation<void, { contact_uids: string[] }>({
       query: body => ({
@@ -87,4 +108,5 @@ export const {
   useDeleteContactMutation,
   useGetUsersListQuery,
   useGetContactByIdQuery,
+  useDeleteBlackListSettingsMutation,
 } = contactApi;

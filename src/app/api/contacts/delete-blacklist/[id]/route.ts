@@ -11,7 +11,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   const { id } = await params;
 
   try {
-    await fetch(`${process.env.API_URL}/api/v1/contact/blacklist/delete/${id}/`, {
+    await fetch(`${process.env.API_URL}/api/v1/contacts/blacklist/delete/${id}/`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`,
