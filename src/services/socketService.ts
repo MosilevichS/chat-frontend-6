@@ -1,3 +1,5 @@
+import { enqueueMessage, flushQueue } from "./messageQueueService";
+
 let socket: WebSocket | null = null;
 
 let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -36,28 +38,20 @@ const getFreshToken = async (): Promise<string | null> => {
   }
 };
 
-// Очередь сообщений, которые нужно отправить после подключения
-const messageQueue: unknown[] = [];
-
-// Отправка сообщения через сокет (или в очередь, если не подключен)
-const flushQueue = () => {
-  if (!socket || socket.readyState !== WebSocket.OPEN) return;
-
-  while (messageQueue.length > 0) {
-    const msg = messageQueue.shift();
-    if (msg) socket.send(JSON.stringify(msg));
-  }
-};
-
+// Отправка данных через сокет с очередью
 export const sendThroughSocket = async (data: unknown) => {
-  messageQueue.push(data);
+  enqueueMessage(data);
 
-  if (!socket || socket.readyState !== WebSocket.OPEN) {
-    await connectSocket();
+  // если сокет открыт — сразу отправляем
+  if (socket?.readyState === WebSocket.OPEN) {
+    flushQueue(socket);
     return;
   }
 
-  flushQueue();
+  // если сокета нет — инициируем соединение
+  if (!socket && !isConnecting) {
+    await connectSocket();
+  }
 };
 
 // Подключение сокета
@@ -83,7 +77,7 @@ export const connectSocket = async (): Promise<WebSocket | null> => {
     isConnecting = false;
     reconnectAttempts = 0;
 
-    flushQueue();
+    flushQueue(socket!);
 
     if (reconnectTimeout) {
       clearTimeout(reconnectTimeout);
@@ -130,7 +124,12 @@ const scheduleReconnect = () => {
 
   reconnectTimeout = setTimeout(async () => {
     reconnectTimeout = null;
-    await connectSocket();
+
+    const ws = await connectSocket();
+
+    if (ws?.readyState === WebSocket.OPEN) {
+      flushQueue(ws);
+    }
   }, delay);
 };
 

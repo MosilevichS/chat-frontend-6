@@ -1,5 +1,5 @@
 import { privateApi } from "@/src/services/baseApi";
-import { connectSocket, disconnectSocket, subscribeToSocket } from "@/src/services/socketService";
+import { connectSocket, subscribeToSocket } from "@/src/services/socketService";
 
 import { getMessagesApi } from "./messagesApi";
 import { chatsApi } from "./chatsApi";
@@ -120,7 +120,6 @@ export const socketApi = privateApi.injectEndpoints({
         await cacheEntryRemoved;
 
         unsubscribe();
-        disconnectSocket();
       },
     }),
   }),
