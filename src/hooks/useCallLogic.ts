@@ -12,7 +12,7 @@ interface CallInfo {
   offer_sdp?: string;
 }
 
-export const useCallLogic = () => {
+export const useCallLogic = (isCallModalOpen: boolean) => {
   // Состояния
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [incomingCall, setIncomingCall] = useState(false);
@@ -57,9 +57,7 @@ export const useCallLogic = () => {
             break;
           case "call_completion":
             if (data.object.type_complete === "completed") {
-              if (callState !== "end") {
-                setCallState("end");
-              }
+              setCallState("end");
               executeAfterDelay(() => setIsResponse(false));
             }
 
@@ -79,6 +77,8 @@ export const useCallLogic = () => {
       console.warn("STUN/TURN серверы не загружены");
       return null;
     }
+
+    console.log("Иницилизация");
 
     try {
       const pc = new RTCPeerConnection({
@@ -100,7 +100,6 @@ export const useCallLogic = () => {
 
       pc.onicecandidate = event => {
         if (event.candidate) {
-          console.log("Найден ICE‑кандидат:", event.candidate);
           const fromUserUid = callInfo?.from_user;
           const toUserUid = callInfo?.to_user;
 
@@ -390,7 +389,6 @@ export const useCallLogic = () => {
       });
 
       await pc.addIceCandidate(iceCandidate);
-      console.log("ICE‑кандидат успешно добавлен:");
     } catch (error) {
       console.error("Критическая ошибка добавления ICE‑кандидата:", error);
     }
@@ -426,6 +424,7 @@ export const useCallLogic = () => {
         pc.close();
         console.log("RTCPeerConnection закрыт");
       }
+      console.log("pc соеденение", pc);
 
       peerConnectionRef.current = null;
     }
@@ -457,7 +456,7 @@ export const useCallLogic = () => {
     };
 
     initCall();
-  }, [stunAndTurnServers]);
+  }, [stunAndTurnServers, isCallModalOpen]);
 
   return {
     // Состояния

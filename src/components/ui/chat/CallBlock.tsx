@@ -117,6 +117,12 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
   };
 
   const handleIceCandidate = async (pc: RTCPeerConnection, candidateStr: string) => {
+    // Проверка на закрытое соединение
+    if (pc.signalingState === "closed") {
+      console.warn("Попытка добавить ICE‑кандидат в закрытое соединение");
+      return;
+    }
+
     const iceCandidate = new RTCIceCandidate({
       candidate: candidateStr,
       sdpMid: "0", // Явно указываем медиалинию (обычно '0' для аудио)
@@ -242,7 +248,8 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
           iceServers: stunAndTurnServers.ice_servers,
         });
         peerConnectionRef.current = pc;
-        console.log("RTCPeerConnection создан успешно");
+
+        console.log("pc соеденение открыто", pc);
 
         pc.ontrack = event => {
           console.log("Получен удалённый медиапоток:", event.streams);
@@ -359,11 +366,12 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
           ws.onmessage = async (event: MessageEvent) => {
             try {
               const data: SignalingMessage = JSON.parse(event.data);
-
+              console.log(data.action);
               switch (data.action) {
                 case "answer_call":
                   // пришел ответ от того кому хотим позвонить
                   await handleAnswerCall(peerConnectionRef.current, data);
+                  break;
                 case "offer_call":
                   if ("message_rtc" in data.object && data.object.message_rtc) {
                     setMessageRtc(data.object.message_rtc.uid);
@@ -396,7 +404,7 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
                   }
                   break;
                 default:
-                  // console.log("Неизвестное действие:", data.action);
+                // console.log("Неизвестное действие:", data.action);
               }
             } catch (error) {
               console.error("Ошибка обработки сигнального сообщения:", error);
@@ -411,12 +419,6 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
     initCall();
 
     return () => {
-      // Очистка WebSocket-обработчиков
-      const ws = getSocket();
-      if (ws !== null) {
-        ws.onmessage = null;
-      }
-
       // Остановка медиапотока
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach(track => track.stop());
@@ -425,9 +427,13 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
 
       // Закрытие RTCPeerConnection
       if (peerConnectionRef.current) {
+        console.log("pc соеденение закрыто");
+        peerConnectionRef.current.onicecandidate = null;
         peerConnectionRef.current.close();
         peerConnectionRef.current = null;
       }
+
+      iceCandidateBuffer.current = [];
 
       // Очистка таймера при размонтировании компонента
       if (durationIntervalRef.current) {
@@ -437,7 +443,7 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
 
       callStartTimeRef.current = null;
 
-      console.log("Ресурсы звонка освобождены");
+      console.log("Ресурсы звонка освобождены CallBlock");
     };
   }, [stunAndTurnServers]);
 

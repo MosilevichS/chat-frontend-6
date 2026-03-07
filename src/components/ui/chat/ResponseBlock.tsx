@@ -64,8 +64,6 @@ const ResponseBlock = ({
     return `${mins.toString()}:${secs.toString().padStart(2, "0")}`;
   };
 
-  console.log(callState);
-
   useEffect(() => {
     if (callState === "connected") {
       callStartTimeRef.current = Date.now(); // фиксируем время начала разговора
@@ -79,7 +77,6 @@ const ResponseBlock = ({
 
     if (remoteVideoRef.current && remoteStream) {
       remoteVideoRef.current.srcObject = remoteStream;
-      console.log(remoteVideoRef.current.srcObject);
     }
 
     if (callState === "end" && durationIntervalRef.current !== null) {

@@ -116,7 +116,7 @@ export default function Chat() {
     toggleSound,
     handleEndCall,
     handleAcceptCall,
-  } = useCallLogic();
+  } = useCallLogic(isCallModalOpen);
 
   // Проверка есть ли пользователь в списке контактов
   const { data: contactsData } = useGetContactsQuery();
