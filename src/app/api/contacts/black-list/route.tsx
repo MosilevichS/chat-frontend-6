@@ -75,7 +75,7 @@ export async function GET(request: Request) {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Error in GET /api/contacts/black-list:", error);
+    console.error("Error in GET /api/contacts/blackList:", error);
     return new Response(
       JSON.stringify({
         error: "Internal Server Error",
