@@ -22,3 +22,4 @@ export interface IContact {
   system_contact: ISystemContact;
   uid: string;
 }
+
