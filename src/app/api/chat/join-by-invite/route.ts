@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     }
 
     // Используем WebSocket для вступления по ссылке
-    return await new Promise(resolve => {
+    return new Promise<Response>(resolve => {
       const ws = new WebSocket(`wss://api.dev.chat.ktsf.ru/ws/chat?authorization=${accessToken}`);
 
       const timeout = setTimeout(() => {
@@ -68,13 +68,11 @@ export async function POST(request: Request) {
           },
         };
 
-        console.log("Sending WebSocket request:", request);
         ws.send(JSON.stringify(request));
       };
 
       ws.onmessage = event => {
         const data = JSON.parse(event.data);
-        console.log("WebSocket response:", data);
 
         if (data.action === "join_by_invite_link") {
           clearTimeout(timeout);
@@ -90,8 +88,7 @@ export async function POST(request: Request) {
         }
       };
 
-      ws.onerror = error => {
-        console.error("WebSocket error:", error);
+      ws.onerror = () => {
         clearTimeout(timeout);
         ws.close();
         resolve(NextResponse.json({ error: "WebSocket error" }, { status: 500 }));
