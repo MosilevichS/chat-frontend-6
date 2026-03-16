@@ -24,7 +24,7 @@ interface ReceivCallBlockProps {
 
 const ReceivCallBlock = ({ data, handleRejectCall, handleAcceptCall }: ReceivCallBlockProps) => {
   return (
-    <div className="absolute inset-0 z-50 mx-auto mt-[84px] flex flex-col rounded-lg bg-(--color-violet-3) p-5 mb-1 w-[388px] max-h-[770px]">
+    <div className="absolute inset-0 bg-(--color-violet-3) z-50 mx-auto mt-[84px] flex flex-col rounded-lg p-5 mb-1 w-[388px] max-h-[770px]">
       <div className="flex flex-col flex-1 items-center justify-center h-[267px]">
         <div className="flex justify-center items-center h-[184px] w-[184px] mb-[32px]">
           {data.message_rtc.from_user.avatar_url ? (
@@ -56,8 +56,8 @@ const ReceivCallBlock = ({ data, handleRejectCall, handleAcceptCall }: ReceivCal
           )}
         </div>
 
-        <div>
-          <p className="flex flex-col items-center text-2xl font-medium mb-2">
+        <div className="flex flex-col items-center">
+          <p className="text-2xl font-medium mb-2">
             {data.message_rtc.from_user.first_name} {data.message_rtc.from_user.last_name}
           </p>
           <p>Входящий звонок</p>

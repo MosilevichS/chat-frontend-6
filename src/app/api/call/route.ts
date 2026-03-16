@@ -6,7 +6,7 @@ export async function GET() {
   if (!token) {
     return new Response("Unauthorized", { status: 401 });
   }
-// api/v1/chat/calls/ice-servers/
+
   try {
     const res = await fetch(`${process.env.API_URL}/api/v1/chat/calls/ice-servers/`, {
       method: "GET",

@@ -22,7 +22,7 @@ export const connectSocket = (token: string) => {
   isConnecting = true;
   currentToken = token;
 
-  socket = new WebSocket(`wss://api.dev.chat.ktsf.ru/ws/chat?authorization=${token}`);
+  socket = new WebSocket(`wss://api.test.chat.ktsf.ru/ws/chat?authorization=${token}`);
 
   socket.onopen = () => {
     console.log("WS connected");

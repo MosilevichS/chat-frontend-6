@@ -15,6 +15,11 @@ interface CallInfo {
 export const useCallLogic = (isCallModalOpen: boolean) => {
   // Состояния
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+
+  // const [sdp, setSdp] = useState("");
+  const sdpRef = useRef<string>("");
+
   const [incomingCall, setIncomingCall] = useState(false);
   const [isSound, setIsSound] = useState(true);
   // показываем или нет блок ответа
@@ -24,6 +29,9 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
   const [callState, setCallState] = useState<
     "connecting" | "connected" | "end" | "error" | "rejected"
   >("connecting");
+  // Новые состояния для видео
+  const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
+  const [videoEnabled, setVideoEnabled] = useState(true);
 
   // Рефы
   // мой звук
@@ -33,6 +41,9 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   // накапливаем потенциальный сетевые маршрут (адрес + порт), по которому два устройства могут установить прямое соединение через WebRTC, пока нету данных чтобы их отправить
   const iceCandidateBuffer = useRef<RTCIceCandidate[]>([]);
+  // Новые рефы для видео
+  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const { data: stunAndTurnServers } = useGetCallQuery();
   const { executeAfterDelay } = useDelayedAction(2000);
@@ -47,8 +58,35 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
         const data: SignalingMessage = JSON.parse(event.data);
 
         switch (data.action) {
+          // пришел вызов
           case "offer_call":
-            await handleIncomingOffer(data);
+            if (sdpRef.current === "") {
+              await handleIncomingOffer(data);
+              // Передаём данные в функцию показа окна (ответить на звонок да нет)
+              handleIncomingCall(data);
+              console.log("Первый offer_call");
+              sdpRef.current = data.object.offer_sdp;
+            } else {
+              console.log(" не Первый offer_call");
+
+              await peerConnectionRef.current?.setRemoteDescription({
+                type: "offer",
+                sdp: data.object.offer_sdp,
+              });
+              const answer = await peerConnectionRef.current?.createAnswer();
+              await peerConnectionRef.current?.setLocalDescription(answer);
+
+              sendToSignalingServer({
+                action: "answer_call",
+                request_uid: uuidv4(),
+                object: {
+                  from_user_uid: data.object.from_user,
+                  to_user_uid: data.object.to_user,
+                  answer_sdp: answer?.sdp as string,
+                },
+              });
+            }
+
             break;
           case "ice_candidate":
             if (data.object.ice_candidate && peerConnectionRef.current) {
@@ -57,8 +95,12 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
             break;
           case "call_completion":
             if (data.object.type_complete === "completed") {
+              setIncomingCall(false);
               setCallState("end");
-              executeAfterDelay(() => setIsResponse(false));
+              executeAfterDelay(() => {
+                setIsResponse(false);
+                setCallState("connecting");
+              });
             }
 
             break;
@@ -71,6 +113,8 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
     };
   };
 
+  console.log("useCallLogic");
+
   //  Инициализация соединения
   const initializePeerConnection = async (): Promise<RTCPeerConnection | null> => {
     if (!stunAndTurnServers?.ice_servers?.length) {
@@ -78,25 +122,121 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
       return null;
     }
 
-    console.log("Иницилизация");
+    console.log("Инициализация PeerConnection");
 
     try {
       const pc = new RTCPeerConnection({
         iceServers: stunAndTurnServers.ice_servers,
       });
 
-      // Настраиваем обработчики событий
+      // Настраиваем обработчик получения треков
       pc.ontrack = event => {
-        console.log("Получен удалённый медиапоток", event.streams[0]);
-        setRemoteStream(event.streams[0]);
-        remoteStreamRef.current = event.streams[0];
+        console.log("Получен удалённый медиапоток, треков:", event.streams.length);
+        // console.log("Получен удалённый медиапоток", event.streams[0]);
 
-        if (remoteStreamRef.current) {
-          remoteStreamRef.current.getAudioTracks().forEach(track => {
-            track.enabled = isSound;
-          });
+        // Проверяем, что есть хотя бы один поток
+        if (!event.streams || event.streams.length === 0) {
+          console.warn("ontrack: нет потоков в событии");
+          return;
         }
+
+        // Ищем существующий объединённый поток или создаём новый
+        let combinedStream = remoteStreamRef.current;
+        console.log(combinedStream);
+
+        if (!combinedStream) {
+          combinedStream = new MediaStream();
+          remoteStreamRef.current = combinedStream;
+        }
+
+        // Обрабатываем все потоки из события
+        event.streams.forEach(incomingStream => {
+          // Добавляем все треки из входящего потока в объединённый
+          incomingStream.getTracks().forEach(track => {
+            // Проверяем, нет ли уже такого трека в объединённом потоке
+            const existingTrack = combinedStream.getTracks().find(t => t.id === track.id);
+            if (!existingTrack) {
+              combinedStream.addTrack(track);
+              console.log(`Добавлен ${track.kind}-трек (ID: ${track.id})`);
+            }
+          });
+        });
+
+        // Обновляем состояние
+        setRemoteStream(combinedStream);
+
+        console.log(combinedStream.getTracks());
+
+        if (combinedStream.getTracks().length >= 2) {
+          setHasRemoteVideo(true);
+        }
+
+        // Применяем текущее состояние звука ко всем аудио‑трекам
+        combinedStream.getAudioTracks().forEach(track => {
+          track.enabled = isSound;
+        });
+
+        // // Находим поток с видео‑треком (приоритет) или берём первый доступный
+        // const targetStream =
+        //   event.streams.find(stream => stream.getVideoTracks().length > 0) || event.streams[0];
+
+        // console.log(targetStream.getTracks());
+
+        // setRemoteStream(event.streams[0]);
+        // remoteStreamRef.current = event.streams[0];
+
+        // if (remoteStreamRef.current) {
+        //   remoteStreamRef.current.getAudioTracks().forEach(track => {
+        //     track.enabled = isSound;
+        //   });
+        // }
       };
+
+      // pc.ontrack = event => {
+      //   // console.log("📹 Получен трек:", event.track.kind);
+      //   console.log("Получен новый медиа‑поток:", event.streams);
+
+      //   console.log(event);
+
+      //   if (event.track.kind === "video") {
+      //     setRemoteStream(event.streams[0]);
+      //     setHasRemoteVideo(true);
+      //   }
+
+      //   const newTrack = event.track;
+      //   const streamFromEvent = event.streams[0];
+
+      //   // Если потока ещё нет — создаём из пришедшего потока
+      //   if (!remoteStream) {
+      //     setRemoteStream(streamFromEvent);
+
+      //     setRemoteStreamKey(prev => prev + 1);
+
+      //     console.log("Создан новый поток из события:", streamFromEvent);
+      //     // setHasRemoteVideo(true);
+      //   } else {
+      //     // Если поток уже есть — проверяем, не добавлен ли уже этот трек
+      //     const existingTrack = remoteStream.getTracks().find(track => track.id === newTrack.id);
+
+      //     if (!existingTrack) {
+      //       // Добавляем трек в существующий поток
+      //       remoteStream.addTrack(newTrack);
+      //       console.log("Добавлен новый трек в существующий поток:", newTrack.kind);
+      //       setRemoteStreamKey(prev => prev + 1);
+      //       // Явно обновляем состояние и UI
+      //       setRemoteStream(new MediaStream(remoteStream.getTracks()));
+      //       setHasRemoteVideo(true);
+      //     } else {
+      //       console.log("Трек уже в потоке, пропускаем добавление:", newTrack.id);
+      //     }
+      //   }
+
+      //   // if (remoteStreamRef.current) {
+      //   //   remoteStreamRef.current.getAudioTracks().forEach(track => {
+      //   //     track.enabled = isSound;
+      //   //   });
+      //   // }
+      // };
 
       pc.onicecandidate = event => {
         if (event.candidate) {
@@ -221,10 +361,51 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
         type: "offer",
         sdp: message.object.offer_sdp,
       });
-      // Передаём данные в функцию показа окна
-      handleIncomingCall(message);
     } catch (error) {
       console.error("Ошибка при обработке входящего звонка:", error);
+      setCallState("error");
+    }
+  };
+
+  // Принять вызов
+  const handleAcceptCall = async () => {
+    console.log("Вызов принят");
+    console.log("Ответ на звонок отправлен");
+
+    if (peerConnectionRef.current === null) return;
+
+    try {
+      localStreamRef.current = await getMediaAccess({
+        audio: true,
+        // video: true,
+      });
+
+      if (localStreamRef.current) {
+        const stream = localStreamRef.current;
+        stream.getTracks().forEach(track => peerConnectionRef.current!.addTrack(track, stream));
+        setLocalStream(stream);
+      }
+
+      const answer = await peerConnectionRef.current.createAnswer();
+      await peerConnectionRef.current.setLocalDescription(answer);
+      console.log(callInfo);
+
+      if (callInfo) {
+        sendToSignalingServer({
+          action: "answer_call",
+          request_uid: uuidv4(),
+          object: {
+            from_user_uid: callInfo.from_user,
+            to_user_uid: callInfo.to_user,
+            answer_sdp: answer.sdp as string,
+          },
+        });
+      }
+
+      setIsResponse(true);
+      setIncomingCall(false);
+    } catch (error) {
+      console.error("Ошибка при принятии звонка:", error);
       setCallState("error");
     }
   };
@@ -242,7 +423,6 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
   // Показываем модальное окно для принятия вызова
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleIncomingCall = (callData: any) => {
-    console.log(callData);
     setCallInfo(callData.object);
     setIncomingCall(true);
   };
@@ -296,57 +476,20 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
     }
   }, []);
 
-  // Принять вызов
-  const handleAcceptCall = async () => {
-    console.log("Вызов принят");
-    console.log("Ответ на звонок отправлен");
-
-    if (peerConnectionRef.current === null) return;
-
-    try {
-      localStreamRef.current = await getMediaAccess({
-        audio: true,
-        video: false,
-      });
-
-      if (localStreamRef.current) {
-        const stream = localStreamRef.current;
-        stream.getTracks().forEach(track => peerConnectionRef.current!.addTrack(track, stream));
-      }
-
-      const answer = await peerConnectionRef.current.createAnswer();
-      await peerConnectionRef.current.setLocalDescription(answer);
-
-      if (callInfo) {
-        sendToSignalingServer({
-          action: "answer_call",
-          request_uid: uuidv4(),
-          object: {
-            from_user_uid: callInfo.from_user,
-            to_user_uid: callInfo.to_user,
-            answer_sdp: answer.sdp as string,
-          },
-        });
-      }
-
-      setIsResponse(true);
-      setIncomingCall(false);
-    } catch (error) {
-      console.error("Ошибка при принятии звонка:", error);
-      setCallState("error");
-    }
-  };
-
   const checkPermissions = useCallback(async () => {
     try {
-      const cameraPermission = await navigator.permissions.query({
-        name: "camera",
-      });
+      // const cameraPermission = await navigator.permissions.query({
+      //   name: "camera",
+      // });
       const microphonePermission = await navigator.permissions.query({
         name: "microphone",
       });
 
-      if (cameraPermission.state === "denied" || microphonePermission.state === "denied") {
+      if (
+        // cameraPermission.state === "denied"
+        // ||
+        microphonePermission.state === "denied"
+      ) {
         alert("Для звонка нужно разрешить доступ к камере и микрофону в настройках браузера");
         return false;
       }
@@ -394,12 +537,25 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
     }
   };
 
+  // функция очистки
   const cleanupConnection = () => {
     // 1. Останавливаем локальный медиапоток
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => track.stop());
       localStreamRef.current = undefined;
       console.log("Локальный медиапоток остановлен");
+    }
+    setHasRemoteVideo(false);
+    sdpRef.current = "";
+
+    // setRemoteStream(null);
+    if (remoteStream) {
+      console.log("очистка удаленного стрима");
+
+      remoteStream.getTracks().forEach(track => track.stop());
+      const tracks = remoteStream.getTracks();
+      tracks.forEach(track => remoteStream.removeTrack(track));
+      setRemoteStream(null);
     }
 
     // 2. Останавливаем удалённый медиапоток
@@ -461,12 +617,13 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
   return {
     // Состояния
     remoteStream,
+    localStream,
     incomingCall,
     isSound,
     isResponse,
     callInfo,
     callState,
-
+    hasRemoteVideo,
     // Функции
     handleIncomingCall,
     handleRejectCall,

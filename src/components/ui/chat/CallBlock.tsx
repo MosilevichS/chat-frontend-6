@@ -2,8 +2,8 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-import closeCall from "@/src/assets/icons/close-call.svg";
-import fullScreen from "@/src/assets/icons/full-screen.svg";
+// import closeCall from "@/src/assets/icons/close-call.svg";
+// import fullScreen from "@/src/assets/icons/full-screen.svg";
 import callEnd from "@/src/assets/icons/call-end.svg";
 import video from "@/src/assets/icons/video.svg";
 import removeSound from "@/src/assets/icons/remove-sound.svg";
@@ -37,6 +37,8 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
     { size: 5, opacity: 0.7 },
     { size: 4, opacity: 0.4 },
   ]);
+  const [showVideo, setShowVideo] = useState(false);
+  const [isSwapped, setIsSwapped] = useState(false);
 
   const { data: stunAndTurnServers } = useGetCallQuery();
   // Время звонка
@@ -46,9 +48,9 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
 
   const { executeAfterDelay } = useDelayedAction(2000);
 
-  // мой звук
+  // мой стрим
   const localStreamRef = useRef<MediaStream | undefined>(undefined);
-  // удаленный звук
+  // удаленный стрим
   const remoteStreamRef = useRef<MediaStream | null>(null);
   // массив с кандидатами
   const iceCandidateBuffer = useRef<RTCIceCandidate[]>([]);
@@ -161,24 +163,6 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
   // завершаем звонок
   const handleEndCall = () => {
     try {
-      // 1. Останавливаем локальный медиапоток
-      // const localVideo = document.getElementById("remote-video") as HTMLVideoElement;
-      // if (localVideo && localVideo.srcObject) {
-      //   (localVideo.srcObject as MediaStream).getTracks().forEach(track => track.stop());
-      //   localVideo.srcObject = null;
-      // }
-
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(track => track.stop());
-        localStreamRef.current = undefined;
-      }
-
-      // 2. Закрываем WebRTC‑соединение
-      if (peerConnectionRef.current) {
-        peerConnectionRef.current.close();
-        peerConnectionRef.current = null;
-      }
-
       // 3. Отправляем сигнал о завершении звонка через WebSocket
       sendToSignalingServer({
         action: "call_completion",
@@ -191,6 +175,29 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
           duration: callDuration,
         },
       });
+
+      // Очищаем srcObject у ВСЕХ видео (чтобы пропал черный экран)
+      const localVideo = document.getElementById("local-video") as HTMLVideoElement;
+      const remoteVideo = document.getElementById("remote-video") as HTMLVideoElement;
+
+      if (localVideo) {
+        localVideo.srcObject = null;
+      }
+      if (remoteVideo) {
+        remoteVideo.srcObject = null;
+      }
+      setShowVideo(false);
+
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+        localStreamRef.current = undefined;
+      }
+
+      // 2. Закрываем WebRTC‑соединение
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close();
+        peerConnectionRef.current = null;
+      }
 
       // 4. Сбрасываем состояния
       setCallState("end");
@@ -247,14 +254,53 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
         const pc = new RTCPeerConnection({
           iceServers: stunAndTurnServers.ice_servers,
         });
+
         peerConnectionRef.current = pc;
 
-        console.log("pc соеденение открыто", pc);
+        // Создаем поток только с аудио
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          // video: true
+        });
+        localStreamRef.current = stream;
+        console.log(stream);
+
+        // Добавляем аудиодорожку в RTCPeerConnection
+        stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+        console.log(pc);
+
+        // const finalStream = new MediaStream();
+        // const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // const audioTrack = audioStream.getAudioTracks()[0];
+        // finalStream.addTrack(audioTrack);
+        // localStreamRef.current = finalStream;
+
+        // // 🟢 СОЗДАЕМ TRANSCEIVERS
+
+        // // 1. Аудио transceiver - с реальным треком
+        // const audioTransceiver = pc.addTransceiver("audio", {
+        //   direction: "sendrecv",
+        //   streams: [finalStream],
+        // });
+
+        // // Привязываем реальный аудио-трек
+        // await audioTransceiver.sender.replaceTrack(audioTrack);
+
+        // // const videoTransceiver = pc.addTransceiver("video", {
+        // //   direction: "sendonly", // или "sendrecv"
+        // // });
+        // // // videoTransceiver.sender.track === null
+
+        // // 2. Видео transceiver - БЕЗ реального трека, но с направлением "inactive"
+        // const videoTransceiver = pc.addTransceiver("video", {
+        //   direction: "inactive", // Неактивен, но в SDP будет
+        //   streams: [finalStream], // Поток тот же
+        // });
 
         pc.ontrack = event => {
           console.log("Получен удалённый медиапоток:", event.streams);
           const remoteVideo = document.getElementById("remote-video") as HTMLVideoElement | null;
-          console.log("remoteVideo:", remoteVideo);
 
           if (remoteVideo) {
             remoteVideo.srcObject = event.streams[0];
@@ -271,7 +317,12 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
           }
         };
 
-        // При нахождении кандидата срабатывает обработчик pc.onicecandidate кандидат отправляется другому участнику через сигнальный сервер:
+        pc.onnegotiationneeded = event => {
+          console.log("пересогласовавние");
+          console.log(event);
+        };
+
+        // При нахождении кандидата срабатывает обработчик pc.onicecandidate кандидат (сетевой маршрут) отправляется другому участнику через сигнальный сервер:
         pc.onicecandidate = event => {
           if (event.candidate) {
             sendToSignalingServer({
@@ -287,6 +338,7 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
             console.log("Cбор кандидатов завершён");
           }
         };
+
         // Обработка состояния соединения
         pc.onconnectionstatechange = () => {
           const state = pc.connectionState;
@@ -334,14 +386,6 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
           }
         };
 
-        localStreamRef.current = await getMediaAccess({ audio: true, video: false });
-        if (localStreamRef.current) {
-          const stream = localStreamRef.current;
-          stream.getTracks().forEach(track => pc.addTrack(track, stream));
-        }
-        // const localVideo = document.getElementById("remote-video")  as HTMLVideoElement;
-        // if (localVideo) localVideo.srcObject = localStreamRef.current;
-
         //создаём и отправляем offer тому, кому хотим позвонить
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
@@ -371,6 +415,7 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
                 case "answer_call":
                   // пришел ответ от того кому хотим позвонить
                   await handleAnswerCall(peerConnectionRef.current, data);
+                  console.log("data answer_call:", data);
                   break;
                 case "offer_call":
                   if ("message_rtc" in data.object && data.object.message_rtc) {
@@ -463,15 +508,161 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
     return () => clearInterval(interval);
   }, []);
 
+  // if (peerConnectionRef.current) {
+  //   const senders = peerConnectionRef.current.getSenders();
+  //   const audioSenders = senders.filter(s => s.track?.kind === "audio");
+
+  //   // console.log("🎤 Мое аудио:", {
+  //   //   "Есть треки": audioSenders.length > 0,
+  //   //   Количество: audioSenders.length,
+  //   //   Детали: audioSenders.map(s => ({
+  //   //     enabled: s.track?.enabled,
+  //   //     readyState: s.track?.readyState,
+  //   //     muted: s.track?.muted,
+  //   //     id: s.track?.id,
+  //   //   })),
+  //   // });
+
+  //   // const videoSenders = senders.filter(s => s.track?.kind === "video");
+
+  //   // console.log("📤 ОТПРАВКА ВИДЕО:", {
+  //   //   "Есть отправители": videoSenders.length > 0,
+  //   //   Количество: videoSenders.length,
+  //   //   Детали: videoSenders.map(s => ({
+  //   //     enabled: s.track?.enabled,
+  //   //     readyState: s.track?.readyState,
+  //   //     id: s.track?.id,
+  //   //   })),
+  //   // });
+
+  //   console.log(localStreamRef.current?.getTracks());
+  // }
+
+  const sendNewOffer = async () => {
+    if (!peerConnectionRef.current) {
+      console.error("PeerConnection не инициализирован");
+      return;
+    }
+
+    const pc = peerConnectionRef.current;
+
+    // Проверяем состояние соединения
+    if (pc.signalingState !== "stable") {
+      console.warn("Нельзя отправить offer: текущее состояние —", pc.signalingState);
+      return;
+    }
+
+    try {
+      // Создаём новый offer
+      const newOffer = await pc.createOffer();
+      await pc.setLocalDescription(newOffer);
+      console.log("Создан новый offer");
+
+      if (!newOffer.sdp) {
+        console.error("SDP offer не содержит данных");
+        setCallState("error");
+        return;
+      }
+
+      // Отправляем offer через сигнальный сервер
+      sendToSignalingServer({
+        action: "offer_call",
+        request_uid: uuidv4(),
+        object: {
+          to_user_uid: data.uid,
+          offer_sdp: newOffer.sdp,
+        },
+      });
+    } catch (error) {
+      console.error("Ошибка при создании/отправке offer:", error);
+    }
+  };
+
+  // Функция для включения видео
+  const enableVideo = async () => {
+    try {
+      // Получаем видеопоток
+      const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const videoTrack = videoStream.getVideoTracks()[0];
+
+      // Добавляем видеодорожку в соединение
+      peerConnectionRef.current?.addTrack(videoTrack, videoStream);
+
+      // Добавляем в локальный поток
+      localStreamRef.current?.addTrack(videoTrack);
+
+      setShowVideo(true);
+
+      sendNewOffer();
+    } catch (err) {
+      console.log("❌ Ошибка включения видео:", err);
+    }
+  };
+
+  // Функция для выключения видео
+  const disableVideo = () => {
+    // Просто выключаем отправку
+    const videoTracks = localStreamRef.current?.getVideoTracks() || [];
+    videoTracks.forEach(track => {
+      track.enabled = false;
+    });
+
+    // Меняем направление обратно на inactive
+    const videoTransceiver = peerConnectionRef.current
+      ?.getTransceivers()
+      .find(t => t.receiver.track.kind === "video");
+
+    if (videoTransceiver) {
+      videoTransceiver.direction = "inactive";
+    }
+
+    setShowVideo(false);
+  };
+
+  useEffect(() => {
+    const localVideo = document.getElementById("local-video") as HTMLVideoElement;
+    if (localVideo) {
+      localVideo.srcObject = localStreamRef.current;
+    }
+
+    // const remoteVideo = document.getElementById("remote-video") as HTMLVideoElement | null;
+    // if (remoteVideo) {
+    //   remoteVideo.srcObject = remoteStreamRef.current;
+    // }
+  }, [showVideo]);
+
   return (
     <div
       className={`absolute inset-0 z-50 mx-auto mt-[84px] flex flex-col items-center justify-between  rounded-lg bg-(--color-violet-dark) p-5 mb-1
         ${isFullScreen ? "max-w-[1200px] mb-1" : "w-[388px] max-h-[770px]"} 
         `}
     >
-      <div className="w-full flex justify-between">
+      {isSwapped ? (
+        <video
+          className="absolute inset-0 -z-10 w-full h-full object-cover rounded-lg"
+          id="local-video"
+          autoPlay
+          playsInline
+        />
+      ) : (
+        <video
+          className="absolute inset-0 -z-10 w-full h-full object-cover rounded-lg"
+          id="remote-video"
+          autoPlay
+          playsInline
+        />
+      )}
+      <div className="w-full flex justify-between h-[36px] mb-10">
         <button onClick={() => setIsFullScreen(!isFullScreen)}>
-          <Image src={fullScreen} alt="Полный экран" width={36} height={36} />
+          <svg
+            width="36"
+            height="36"
+            viewBox="0 0 36 36"
+            fill="white"
+            className="hover:fill-(--color-gray-dark) transition-colors duration-200"
+          >
+            <path d="M12.1654 20.334H9.83203V26.1673H15.6654V23.834H12.1654V20.334ZM9.83203 15.6673H12.1654V12.1673H15.6654V9.83398H9.83203V15.6673ZM23.832 23.834H20.332V26.1673H26.1654V20.334H23.832V23.834ZM20.332 9.83398V12.1673H23.832V15.6673H26.1654V9.83398H20.332Z" />
+          </svg>
         </button>
         <button
           onClick={() => {
@@ -479,40 +670,55 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
             handleEndCall();
           }}
         >
-          <Image src={closeCall} alt="Закрыть окно" width={36} height={36} />
+          <svg
+            width="36"
+            height="36"
+            viewBox="0 0 36 36"
+            fill="white"
+            className="hover:fill-(--color-gray-dark) transition-colors duration-200"
+          >
+            <path d="M24.5625 12.7594L23.2406 11.4375L18 16.6781L12.7594 11.4375L11.4375 12.7594L16.6781 18L11.4375 23.2406L12.7594 24.5625L18 19.3219L23.2406 24.5625L24.5625 23.2406L19.3219 18L24.5625 12.7594Z" />
+          </svg>
         </button>
       </div>
-      <div className="flex flex-col items-center text-white h-[310px]">
-        <video className="hidden" id="remote-video" autoPlay controls playsInline />
-        <div className="flex justify-center items-center h-[184px] w-[184px] mb-[32px]">
-          {data.avatar_url ? (
-            <div className="relative">
-              <Image
-                src={data.avatar_url}
-                width={160}
-                height={160}
-                alt="Аватар"
-                className="rounded-full h-[160px] w-[160px]"
-              />
-              <div className="absolute -top-3 -left-3">
-                <svg width="184" height="184" viewBox="0 0 184 184" fill="none">
-                  <rect
-                    x="6"
-                    y="6"
-                    width="172"
-                    height="172"
-                    rx="86"
-                    stroke="#CEC8FF"
-                    strokeOpacity="0.3"
-                    strokeWidth="12"
-                  />
-                </svg>
+      <div
+        className={`flex flex-col items-center text-white h-[310px]
+     ${remoteStreamRef.current?.getVideoTracks().length && callState !== "end" ? "mb-auto" : ""}
+       
+        `}
+      >
+        {callState === "end" || !remoteStreamRef.current?.getVideoTracks().length ? (
+          <div className="flex justify-center items-center h-[184px] w-[184px] mb-[32px]">
+            {data.avatar_url ? (
+              <div className="relative">
+                <Image
+                  src={data.avatar_url}
+                  width={160}
+                  height={160}
+                  alt="Аватар"
+                  className="rounded-full h-[160px] w-[160px]"
+                />
+                <div className="absolute -top-3 -left-3">
+                  <svg width="184" height="184" viewBox="0 0 184 184" fill="none">
+                    <rect
+                      x="6"
+                      y="6"
+                      width="172"
+                      height="172"
+                      rx="86"
+                      stroke="#CEC8FF"
+                      strokeOpacity="0.3"
+                      strokeWidth="12"
+                    />
+                  </svg>
+                </div>
               </div>
-            </div>
-          ) : (
-            <Image src={bigAvatar} width={184} height={184} alt="Аватар" />
-          )}
-        </div>
+            ) : (
+              <Image src={bigAvatar} width={184} height={184} alt="Аватар" />
+            )}
+          </div>
+        ) : null}
+
         <p className="text-2xl font-medium mb-2">
           {data.first_name} {data.last_name}
         </p>
@@ -568,10 +774,38 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
         {callState === "error" && <p>Ошибка соединения</p>}
         {callState === "rejected" && <p>Звонок отклонен</p>}
       </div>
-      <div className="flex gap-x-4 text-white text-xs font-normal">
-        <button className="flex flex-col items-center gap-y-1 w-[68px] h-[54px]">
+
+      {/* {showVideo && (
+        <button className="w-full" onClick={() => setIsSwapped(!isSwapped)}>
+          {isSwapped ? (
+          //   <video
+          //     id="remote-video"
+          //     className="ml-auto w-[140px] h-[200px] object-cover rounded-md"
+          //     autoPlay
+          //   />
+          // ) : ( */}
+      {/* мое видео */}
+      {showVideo && (
+        <video
+          id="local-video"
+          className="ml-auto w-[140px] h-[200px] object-cover rounded-md"
+          autoPlay
+          muted
+        />
+      )}
+
+      {/* )}
+        </button>
+      )} */}
+      <div className="flex gap-x-4 text-white text-xs font-normal h-[54px] mt-5">
+        <button
+          className="flex flex-col items-center gap-y-1 w-[68px] h-[54px]"
+          onClick={() => {
+            showVideo ? disableVideo() : enableVideo();
+          }}
+        >
           <Image src={video} alt="Видео" width={36} height={36} />
-          <p>Видео</p>
+          <p>{showVideo ? "Аудио" : "Видео"}</p>
         </button>
         <button
           className="flex flex-col items-center gap-y-1 w-[68px] h-[54px]"

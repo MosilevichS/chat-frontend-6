@@ -72,7 +72,6 @@ export default function Chat() {
       // Браузер автоматически покажет стандартное окно запроса разрешений
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
-        video: false,
       });
 
       // Освобождаем ресурсы — останавливаем все треки
@@ -106,11 +105,13 @@ export default function Chat() {
 
   const {
     remoteStream,
+    localStream,
     incomingCall,
     isSound,
     isResponse,
     callInfo,
     callState,
+    hasRemoteVideo,
     cleanupConnection,
     handleRejectCall,
     toggleSound,
@@ -692,11 +693,13 @@ export default function Chat() {
         <ResponseBlock
           data={callInfo!}
           remoteStream={remoteStream!}
+          localStream={localStream}
           toggleSound={toggleSound}
           isSound={isSound}
           handleEndCall={handleEndCall}
           callState={callState}
           cleanupConnection={cleanupConnection}
+          hasRemoteVideo={hasRemoteVideo}
         />
       )}
     </>
