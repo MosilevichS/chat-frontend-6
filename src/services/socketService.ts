@@ -40,18 +40,21 @@ const getFreshToken = async (): Promise<string | null> => {
 
 // Отправка данных через сокет с очередью
 export const sendThroughSocket = async (data: unknown) => {
+  console.log("sendThroughSocket called", data);
   enqueueMessage(data);
 
-  // если сокет открыт — сразу отправляем
   if (socket?.readyState === WebSocket.OPEN) {
     flushQueue(socket);
     return;
   }
 
-  // если сокета нет — инициируем соединение
-  if (!socket && !isConnecting) {
-    await connectSocket();
+  // если есть таймер реконнекта — отменяем
+  if (reconnectTimeout) {
+    clearTimeout(reconnectTimeout);
+    reconnectTimeout = null;
   }
+
+  await connectSocket();
 };
 
 // Подключение сокета
@@ -118,7 +121,7 @@ const scheduleReconnect = () => {
 
   reconnectAttempts++;
 
-  const delay = Math.min(1000 * 2 ** reconnectAttempts, 10000);
+  const delay = Math.min(500 * 2 ** reconnectAttempts, 5000);
 
   console.log(`Reconnecting in ${delay}ms...`);
 
