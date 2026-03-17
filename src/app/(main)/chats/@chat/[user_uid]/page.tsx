@@ -13,8 +13,6 @@ export default function Page() {
 
   const id = params?.user_uid as string;
 
-  console.log("Page params:", { id, type });
-
   const { data: chatsData, isLoading } = useGetChatsQuery();
 
   if (isLoading) {
@@ -27,11 +25,9 @@ export default function Page() {
 
   // Если есть параметр type=group - показываем GroupChat
   if (type === "group") {
-    console.log("Rendering GroupChat with id:", id);
     return <GroupChat />;
   }
 
   // Иначе показываем личный чат
-  console.log("Rendering Chat with id:", id);
   return <Chat />;
 }
