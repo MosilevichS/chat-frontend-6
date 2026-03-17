@@ -3,6 +3,7 @@ import { timeFormat } from "@/src/utils/timeFormat";
 import type { IMessage } from "@/src/types/message";
 import messageSent from "@/src/assets/icons/message-sent.svg";
 import messageRead from "@/src/assets/icons/message-read.svg";
+import MessageWithLinks from "./MessageWithLinks";
 // import messageNotSent from "@/src/assets/icons/message-not-sent.svg";
 
 export default function OutgoingMessage({

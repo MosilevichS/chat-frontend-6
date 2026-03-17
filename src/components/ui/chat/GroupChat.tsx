@@ -21,7 +21,7 @@ import groupAvatar from "@/src/assets/icons/group.svg";
 import channelAvatar from "@/src/assets/icons/channel.svg";
 
 import type { IMessage } from "@/src/types/message";
-import type { Chat } from "@/src/types/chat";
+import type { IChat } from "@/src/types/chat";
 
 import Loader from "@/src/components/ui/Loader";
 import OutgoingMessage from "@/src/components/ui/chat/OutgoingMessage";
@@ -51,7 +51,7 @@ export default function GroupChat() {
 
   const { data: chatsData, isLoading } = useGetChatsQuery();
 
-  const chat = chatsData?.results?.find((c: Chat) => c.chat_key === id || c.id.toString() === id);
+  const chat = chatsData?.results?.find((c: IChat) => c.chat_key === id || c.id.toString() === id);
 
   console.log("GroupChat found chat:", chat);
 
@@ -200,7 +200,7 @@ export default function GroupChat() {
       setIsLoadingMessages(true);
       try {
         const res = await fetch(
-          `/api/chat/messages/group/${chat.chat_key}?page=1&page_size=${PAGE_SIZE}`,
+          `/api/chat/messages/group/${chat.chat_key}?page=1&page_size=${PAGE_SIZE}&ordering=-created_at`,
         );
 
         if (!res.ok) {
@@ -240,7 +240,7 @@ export default function GroupChat() {
 
     try {
       const res = await fetch(
-        `/api/chat/messages/${chat.chat_key}?page=${page}&page_size=${PAGE_SIZE}`,
+        `/api/chat/messages/group/${chat.chat_key}?page=${page}&page_size=${PAGE_SIZE}&ordering=-created_at`,
       );
 
       if (!res.ok) {
@@ -339,6 +339,10 @@ export default function GroupChat() {
   const chatName = chat.name || (isChannel ? "Канал" : "Группа");
   const chatAvatar = isChannel ? channelAvatar : groupAvatar;
 
+  // Получаем последнее сообщение для отображения в шапке
+  const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+  const lastMessageText = lastMessage?.content || (lastMessage?.files_list?.length ? "Файл" : "");
+
   return (
     <div className="md:flex w-full overflow-hidden">
       <div className="relative flex flex-col w-full h-screen md:h-[calc(100vh-88px)] max-w-[744px] bg-(--color-gray-light-opacity) rounded-lg border border-(--color-gray-1)">
@@ -357,13 +361,24 @@ export default function GroupChat() {
               />
             </div>
 
-            <div>
+            <div className="flex flex-col">
               <p className="font-medium text-lg leading-[1.2] truncate max-w-[165px] mb-0.5">
                 {chatName}
               </p>
-              <p className="text-sm font-normal text-(--color-gray) leading-[1.2] tracking-[1%] line-clamp-2">
-                {isChannel ? "Канал" : "Группа"} • {messages.length} сообщений
+
+              {/* Отображение типа чата и количества сообщений */}
+              <p className="text-sm font-normal text-(--color-gray) leading-[1.2] tracking-[1%]">
+                {isChannel ? "Канал" : "Группа"}
+                {messages.length > 0 &&
+                  ` • ${messages.length} ${messages.length === 1 ? "сообщение" : messages.length < 5 ? "сообщения" : "сообщений"}`}
               </p>
+
+              {/* Отображение последнего сообщения, если оно есть */}
+              {lastMessageText && (
+                <p className="text-xs text-(--color-gray) truncate max-w-[200px] mt-0.5">
+                  {lastMessageText}
+                </p>
+              )}
             </div>
           </div>
 
@@ -394,7 +409,7 @@ export default function GroupChat() {
                 className="mb-6"
                 loading="eager"
               />
-              <p className="text-(--color-gray) text-lg leading-[130%]">Сообщений пока нет</p>
+              <p className="text-(--color-gray) text-lg leading-[130%]">Нет сообщений</p>
               <p className="text-(--color-gray) text-sm leading-[120%]">
                 {isChannel
                   ? "Напишите первое сообщение в канал"

@@ -48,7 +48,7 @@ export const UserProfileActions = () => {
         hover:bg-[color:var(--color-violet-ultra-light)] transition-colors hover:border-[color:var(--color-gray-300)]"
       >
         <div className="flex items-center gap-2">
-          <Image src={leave} width={28} height={28} alt="" />
+          <Image src={leave} width={32} height={32} alt="" />
           <span className="text-base font-normal text-1xl text-[color:var(--color-black)]">
             Выйти из аккаунта
           </span>

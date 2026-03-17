@@ -1,28 +1,40 @@
 import { cookies } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: number }> }) {
-  const cookieStore = cookies();
-  const token = (await cookieStore).get("accessToken")?.value;
-
-  if (!token) {
-    return new Response(JSON.stringify({ message: "Unauthorized" }), { status: 401 });
-  }
-
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const { id } = await params;
 
-  try {
-    await fetch(`${process.env.API_URL}/api/v1/contact/blacklist/delete/${id}/`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
+  const cookieStore = await cookies();
+  const token = cookieStore.get("accessToken")?.value;
 
-    // Пробрасываем статус и данные backend напрямую
-    return new Response(null, { status: 204 });
-  } catch (err: unknown) {
+  if (!token) {
+    return NextResponse.json(
+      { message: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
+  try {
+    const res = await fetch(
+      `${process.env.API_URL}/api/v1/contact/blacklist/delete/${id}/`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    return new NextResponse(null, { status: res.status });
+  } catch (err) {
     console.error("Server error:", err);
-    return new Response(JSON.stringify({ message: "Internal Server Error" }), { status: 500 });
+
+    return NextResponse.json(
+      { message: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }

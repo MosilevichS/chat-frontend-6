@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { timeFormat } from "@/src/utils/timeFormat";
 import type { IMessage } from "@/src/types/message";
+import MessageWithLinks from "./MessageWithLinks";
 
 export default function IncomingMessage({
   message,
@@ -15,8 +16,6 @@ export default function IncomingMessage({
 
   useEffect(() => {
     if (!ref.current) return;
-
-    // уже прочитано
     if (!message.new) return;
 
     const observer = new IntersectionObserver(
