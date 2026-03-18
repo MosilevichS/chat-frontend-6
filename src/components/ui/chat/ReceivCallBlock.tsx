@@ -1,6 +1,7 @@
 import Image from "next/image";
 
 import bigAvatar from "@/src/assets/icons/big-avatar.svg";
+import { useEffect, useRef } from "react";
 
 interface User {
   avatar_url?: string;
@@ -23,6 +24,29 @@ interface ReceivCallBlockProps {
 }
 
 const ReceivCallBlock = ({ data, handleRejectCall, handleAcceptCall }: ReceivCallBlockProps) => {
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const playPromise = audio.play();
+
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          console.log("Гудок запущен");
+        })
+        .catch(error => {
+          console.warn(
+            "Автовоспроизведение заблокировано. Ожидание взаимодействия пользователя:",
+            error,
+          );
+          // Показываем кнопку «Разрешить звук»
+        });
+    }
+  }, []);
+
   return (
     <div className="absolute inset-0 bg-(--color-violet-3) z-50 mx-auto mt-[84px] flex flex-col rounded-lg p-5 mb-1 w-[388px] max-h-[770px]">
       <div className="flex flex-col flex-1 items-center justify-center h-[267px]">
@@ -78,6 +102,8 @@ const ReceivCallBlock = ({ data, handleRejectCall, handleAcceptCall }: ReceivCal
           Ответить
         </button>
       </div>
+
+      <audio ref={audioRef} src="/sounds/ringtone.mp3" autoPlay loop />
     </div>
   );
 };

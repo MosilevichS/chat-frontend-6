@@ -106,11 +106,10 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
 
     try {
       await pc.setRemoteDescription({
-        type: "answer", // Правильно: "answer" для ответа
-        sdp: data.object.answer_sdp, // Правильно: берём из answer_sdp
+        type: "answer",
+        sdp: data.object.answer_sdp,
       });
       await processIceCandidateBuffer(pc);
-      console.log("Удаленное описание (answer) успешно установлено", pc);
       setCallState("connected");
     } catch (error) {
       console.error("Ошибка установки remoteDescription для answer:", error);
@@ -127,14 +126,13 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
 
     const iceCandidate = new RTCIceCandidate({
       candidate: candidateStr,
-      sdpMid: "0", // Явно указываем медиалинию (обычно '0' для аудио)
+      sdpMid: "0",
       sdpMLineIndex: 0,
     });
 
     if (pc.remoteDescription) {
       // remoteDescription есть — можно добавить кандидата
       await pc.addIceCandidate(iceCandidate);
-      console.log("ICE‑кандидат добавлен");
     } else {
       // remoteDescription нет — кладём в буфер
       iceCandidateBuffer.current.push(iceCandidate);
@@ -244,8 +242,6 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
       return;
     }
 
-    console.log("Получены ICE‑серверы:", stunAndTurnServers);
-
     const initCall = async () => {
       try {
         // const hasPermissions = await checkPermissions();
@@ -260,43 +256,11 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
         // Создаем поток только с аудио
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: true,
-          // video: true
         });
         localStreamRef.current = stream;
-        console.log(stream);
 
         // Добавляем аудиодорожку в RTCPeerConnection
         stream.getTracks().forEach(track => pc.addTrack(track, stream));
-
-        console.log(pc);
-
-        // const finalStream = new MediaStream();
-        // const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        // const audioTrack = audioStream.getAudioTracks()[0];
-        // finalStream.addTrack(audioTrack);
-        // localStreamRef.current = finalStream;
-
-        // // 🟢 СОЗДАЕМ TRANSCEIVERS
-
-        // // 1. Аудио transceiver - с реальным треком
-        // const audioTransceiver = pc.addTransceiver("audio", {
-        //   direction: "sendrecv",
-        //   streams: [finalStream],
-        // });
-
-        // // Привязываем реальный аудио-трек
-        // await audioTransceiver.sender.replaceTrack(audioTrack);
-
-        // // const videoTransceiver = pc.addTransceiver("video", {
-        // //   direction: "sendonly", // или "sendrecv"
-        // // });
-        // // // videoTransceiver.sender.track === null
-
-        // // 2. Видео transceiver - БЕЗ реального трека, но с направлением "inactive"
-        // const videoTransceiver = pc.addTransceiver("video", {
-        //   direction: "inactive", // Неактивен, но в SDP будет
-        //   streams: [finalStream], // Поток тот же
-        // });
 
         pc.ontrack = event => {
           console.log("Получен удалённый медиапоток:", event.streams);
@@ -317,9 +281,36 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
           }
         };
 
-        pc.onnegotiationneeded = event => {
-          console.log("пересогласовавние");
-          console.log(event);
+        // пересогласование параметров соединения
+        pc.onnegotiationneeded = async () => {
+          console.log("Пересогласование");
+          // Проверяем состояние соединения
+          if (pc.signalingState !== "stable") {
+            console.warn("Нельзя отправить offer: текущее состояние —", pc.signalingState);
+            return;
+          }
+
+          try {
+            //создаём и отправляем offer тому, кому хотим позвонить
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+
+            if (!offer.sdp) {
+              console.error("SDP offer не содержит данных");
+              setCallState("error");
+              return;
+            }
+            sendToSignalingServer({
+              action: "offer_call",
+              request_uid: uuidv4(),
+              object: {
+                to_user_uid: data.uid,
+                offer_sdp: offer.sdp,
+              },
+            });
+          } catch (error) {
+            console.error("Ошибка при создании/отправке offer:", error);
+          }
         };
 
         // При нахождении кандидата срабатывает обработчик pc.onicecandidate кандидат (сетевой маршрут) отправляется другому участнику через сигнальный сервер:
@@ -386,36 +377,16 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
           }
         };
 
-        //создаём и отправляем offer тому, кому хотим позвонить
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-
-        if (!offer.sdp) {
-          console.error("SDP offer не содержит данных");
-          setCallState("error");
-          return;
-        }
-        sendToSignalingServer({
-          action: "offer_call",
-          request_uid: uuidv4(),
-          object: {
-            to_user_uid: data.uid,
-            offer_sdp: offer.sdp,
-          },
-        });
-
         // Обработчик входящих сообщений WebSocket
         const ws = getSocket();
         if (ws !== null) {
           ws.onmessage = async (event: MessageEvent) => {
             try {
               const data: SignalingMessage = JSON.parse(event.data);
-              console.log(data.action);
               switch (data.action) {
                 case "answer_call":
                   // пришел ответ от того кому хотим позвонить
                   await handleAnswerCall(peerConnectionRef.current, data);
-                  console.log("data answer_call:", data);
                   break;
                 case "offer_call":
                   if ("message_rtc" in data.object && data.object.message_rtc) {
@@ -428,15 +399,14 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
                   }
                   break;
                 case "call_completion":
-                  console.log(data.object.type_complete);
-                  if (data.object.type_complete === "rejected") {
+                  if (data.object?.type_complete === "rejected") {
                     console.log("Звонок отклонен");
                     setCallState("rejected");
                     executeAfterDelay(() => {
                       setIsCallModalOpen(false);
                     });
                   }
-                  if (data.object.type_complete === "completed") {
+                  if (data.object?.type_complete === "completed") {
                     console.log("Звонок завершен");
                     if (durationIntervalRef.current) {
                       clearInterval(durationIntervalRef.current);
@@ -538,46 +508,6 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
   //   console.log(localStreamRef.current?.getTracks());
   // }
 
-  const sendNewOffer = async () => {
-    if (!peerConnectionRef.current) {
-      console.error("PeerConnection не инициализирован");
-      return;
-    }
-
-    const pc = peerConnectionRef.current;
-
-    // Проверяем состояние соединения
-    if (pc.signalingState !== "stable") {
-      console.warn("Нельзя отправить offer: текущее состояние —", pc.signalingState);
-      return;
-    }
-
-    try {
-      // Создаём новый offer
-      const newOffer = await pc.createOffer();
-      await pc.setLocalDescription(newOffer);
-      console.log("Создан новый offer");
-
-      if (!newOffer.sdp) {
-        console.error("SDP offer не содержит данных");
-        setCallState("error");
-        return;
-      }
-
-      // Отправляем offer через сигнальный сервер
-      sendToSignalingServer({
-        action: "offer_call",
-        request_uid: uuidv4(),
-        object: {
-          to_user_uid: data.uid,
-          offer_sdp: newOffer.sdp,
-        },
-      });
-    } catch (error) {
-      console.error("Ошибка при создании/отправке offer:", error);
-    }
-  };
-
   // Функция для включения видео
   const enableVideo = async () => {
     try {
@@ -592,36 +522,42 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
       localStreamRef.current?.addTrack(videoTrack);
 
       setShowVideo(true);
-
-      sendNewOffer();
     } catch (err) {
       console.log("❌ Ошибка включения видео:", err);
     }
   };
 
   // Функция для выключения видео
-  const disableVideo = () => {
-    // Просто выключаем отправку
-    const videoTracks = localStreamRef.current?.getVideoTracks() || [];
-    videoTracks.forEach(track => {
-      track.enabled = false;
-    });
+  const disableVideo = async () => {
+    try {
+      const videoTrack = localStreamRef.current?.getVideoTracks()[0];
+      const peerConnection = peerConnectionRef.current;
 
-    // Меняем направление обратно на inactive
-    const videoTransceiver = peerConnectionRef.current
-      ?.getTransceivers()
-      .find(t => t.receiver.track.kind === "video");
+      if (!videoTrack || !peerConnection) return;
 
-    if (videoTransceiver) {
-      videoTransceiver.direction = "inactive";
+      // 1. Получаем sender для видеодорожки
+      const sender = peerConnection.getSenders().find(s => s.track === videoTrack);
+
+      if (sender) {
+        // 2. Удаляем трек из соединения
+        peerConnection.removeTrack(sender);
+      }
+
+      // 4. Отключаем трек в локальном потоке
+      videoTrack.stop();
+      localStreamRef.current?.removeTrack(videoTrack);
+
+      // 5. Обновляем UI
+      setShowVideo(false);
+      console.log("Видео полностью отключено и удалено из соединения");
+    } catch (err) {
+      console.error("Ошибка отключения видео:", err);
     }
-
-    setShowVideo(false);
   };
 
   useEffect(() => {
     const localVideo = document.getElementById("local-video") as HTMLVideoElement;
-    if (localVideo) {
+    if (localVideo && localStreamRef.current) {
       localVideo.srcObject = localStreamRef.current;
     }
 
@@ -633,25 +569,26 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
 
   return (
     <div
-      className={`absolute inset-0 z-50 mx-auto mt-[84px] flex flex-col items-center justify-between  rounded-lg bg-(--color-violet-dark) p-5 mb-1
+      className={`absolute inset-0 z-50 mx-auto mt-[84px] flex flex-col items-center justify-between  
+        rounded-lg bg-(--color-violet-dark) p-5 mb-1
         ${isFullScreen ? "max-w-[1200px] mb-1" : "w-[388px] max-h-[770px]"} 
         `}
     >
-      {isSwapped ? (
-        <video
-          className="absolute inset-0 -z-10 w-full h-full object-cover rounded-lg"
-          id="local-video"
-          autoPlay
-          playsInline
-        />
-      ) : (
-        <video
-          className="absolute inset-0 -z-10 w-full h-full object-cover rounded-lg"
-          id="remote-video"
-          autoPlay
-          playsInline
-        />
-      )}
+      {/* {isSwapped ? ( */}
+      {/* // <video */}
+      {/* //   className="absolute inset-0 -z-10 w-full h-full object-cover rounded-lg"
+        //   id="local-video"
+        //   autoPlay
+        //   playsInline
+        // />
+      // ) : ( */}
+      <video
+        className="absolute inset-0 -z-10 w-full h-full object-cover rounded-lg"
+        id="remote-video"
+        autoPlay
+        playsInline
+      />
+      {/* )} */}
       <div className="w-full flex justify-between h-[36px] mb-10">
         <button onClick={() => setIsFullScreen(!isFullScreen)}>
           <svg
@@ -784,7 +721,7 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
           //     autoPlay
           //   />
           // ) : ( */}
-      {/* мое видео */}
+      {/* Локальное видео */}
       {showVideo && (
         <video
           id="local-video"

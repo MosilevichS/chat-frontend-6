@@ -31,19 +31,15 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
   >("connecting");
   // Новые состояния для видео
   const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
-  const [videoEnabled, setVideoEnabled] = useState(true);
 
   // Рефы
   // мой звук
   const localStreamRef = useRef<MediaStream | undefined>(undefined);
-  // удаленный звук
+  // удаленный стрим
   const remoteStreamRef = useRef<MediaStream | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   // накапливаем потенциальный сетевые маршрут (адрес + порт), по которому два устройства могут установить прямое соединение через WebRTC, пока нету данных чтобы их отправить
   const iceCandidateBuffer = useRef<RTCIceCandidate[]>([]);
-  // Новые рефы для видео
-  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
-  const localVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const { data: stunAndTurnServers } = useGetCallQuery();
   const { executeAfterDelay } = useDelayedAction(2000);
@@ -94,12 +90,13 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
             }
             break;
           case "call_completion":
-            if (data.object.type_complete === "completed") {
+            if (data.object?.type_complete === "completed") {
               setIncomingCall(false);
               setCallState("end");
               executeAfterDelay(() => {
                 setIsResponse(false);
                 setCallState("connecting");
+                cleanupConnection();
               });
             }
 
@@ -113,12 +110,10 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
     };
   };
 
-  console.log("useCallLogic");
-
   //  Инициализация соединения
   const initializePeerConnection = async (): Promise<RTCPeerConnection | null> => {
     if (!stunAndTurnServers?.ice_servers?.length) {
-      console.warn("STUN/TURN серверы не загружены");
+      // console.warn("STUN/TURN серверы не загружены");
       return null;
     }
 
@@ -131,8 +126,13 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
 
       // Настраиваем обработчик получения треков
       pc.ontrack = event => {
-        console.log("Получен удалённый медиапоток, треков:", event.streams.length);
-        // console.log("Получен удалённый медиапоток", event.streams[0]);
+        const stream = event.streams[0];
+
+        stream.onremovetrack = e => {
+          if (e.track.kind === "video") {
+            setHasRemoteVideo(false);
+          }
+        };
 
         // Проверяем, что есть хотя бы один поток
         if (!event.streams || event.streams.length === 0) {
@@ -142,7 +142,6 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
 
         // Ищем существующий объединённый поток или создаём новый
         let combinedStream = remoteStreamRef.current;
-        console.log(combinedStream);
 
         if (!combinedStream) {
           combinedStream = new MediaStream();
@@ -151,13 +150,28 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
 
         // Обрабатываем все потоки из события
         event.streams.forEach(incomingStream => {
-          // Добавляем все треки из входящего потока в объединённый
           incomingStream.getTracks().forEach(track => {
-            // Проверяем, нет ли уже такого трека в объединённом потоке
-            const existingTrack = combinedStream.getTracks().find(t => t.id === track.id);
-            if (!existingTrack) {
+            // Определяем тип трека
+            if (track.kind === "video") {
+              // Удаляем все существующие видео‑треки из объединённого потока
+              const existingVideoTracks = combinedStream
+                .getTracks()
+                .filter(t => t.kind === "video");
+
+              existingVideoTracks.forEach(oldTrack => {
+                combinedStream.removeTrack(oldTrack);
+              });
+
+              // Добавляем новый видео‑трек
               combinedStream.addTrack(track);
-              console.log(`Добавлен ${track.kind}-трек (ID: ${track.id})`);
+
+              setHasRemoteVideo(true);
+            } else {
+              // Для аудио‑треков сохраняем логику добавления без замены
+              const existingTrack = combinedStream.getTracks().find(t => t.id === track.id);
+              if (!existingTrack) {
+                combinedStream.addTrack(track);
+              }
             }
           });
         });
@@ -175,68 +189,7 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
         combinedStream.getAudioTracks().forEach(track => {
           track.enabled = isSound;
         });
-
-        // // Находим поток с видео‑треком (приоритет) или берём первый доступный
-        // const targetStream =
-        //   event.streams.find(stream => stream.getVideoTracks().length > 0) || event.streams[0];
-
-        // console.log(targetStream.getTracks());
-
-        // setRemoteStream(event.streams[0]);
-        // remoteStreamRef.current = event.streams[0];
-
-        // if (remoteStreamRef.current) {
-        //   remoteStreamRef.current.getAudioTracks().forEach(track => {
-        //     track.enabled = isSound;
-        //   });
-        // }
       };
-
-      // pc.ontrack = event => {
-      //   // console.log("📹 Получен трек:", event.track.kind);
-      //   console.log("Получен новый медиа‑поток:", event.streams);
-
-      //   console.log(event);
-
-      //   if (event.track.kind === "video") {
-      //     setRemoteStream(event.streams[0]);
-      //     setHasRemoteVideo(true);
-      //   }
-
-      //   const newTrack = event.track;
-      //   const streamFromEvent = event.streams[0];
-
-      //   // Если потока ещё нет — создаём из пришедшего потока
-      //   if (!remoteStream) {
-      //     setRemoteStream(streamFromEvent);
-
-      //     setRemoteStreamKey(prev => prev + 1);
-
-      //     console.log("Создан новый поток из события:", streamFromEvent);
-      //     // setHasRemoteVideo(true);
-      //   } else {
-      //     // Если поток уже есть — проверяем, не добавлен ли уже этот трек
-      //     const existingTrack = remoteStream.getTracks().find(track => track.id === newTrack.id);
-
-      //     if (!existingTrack) {
-      //       // Добавляем трек в существующий поток
-      //       remoteStream.addTrack(newTrack);
-      //       console.log("Добавлен новый трек в существующий поток:", newTrack.kind);
-      //       setRemoteStreamKey(prev => prev + 1);
-      //       // Явно обновляем состояние и UI
-      //       setRemoteStream(new MediaStream(remoteStream.getTracks()));
-      //       setHasRemoteVideo(true);
-      //     } else {
-      //       console.log("Трек уже в потоке, пропускаем добавление:", newTrack.id);
-      //     }
-      //   }
-
-      //   // if (remoteStreamRef.current) {
-      //   //   remoteStreamRef.current.getAudioTracks().forEach(track => {
-      //   //     track.enabled = isSound;
-      //   //   });
-      //   // }
-      // };
 
       pc.onicecandidate = event => {
         if (event.candidate) {
@@ -388,7 +341,6 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
 
       const answer = await peerConnectionRef.current.createAnswer();
       await peerConnectionRef.current.setLocalDescription(answer);
-      console.log(callInfo);
 
       if (callInfo) {
         sendToSignalingServer({
@@ -441,7 +393,7 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
         },
       });
     }
-
+    cleanupConnection();
     setIncomingCall(false);
   };
 
@@ -580,7 +532,6 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
         pc.close();
         console.log("RTCPeerConnection закрыт");
       }
-      console.log("pc соеденение", pc);
 
       peerConnectionRef.current = null;
     }
