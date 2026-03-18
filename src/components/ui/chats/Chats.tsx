@@ -178,7 +178,7 @@ const Chats = () => {
     try {
       await updatedChats({
         id: selectedChatId,
-        data: { last_seen_message: chat.last_message.id, new_message_count: 0 },
+        data: { last_seen_message: chat.last_message.id },
       }).unwrap();
     } catch (err) {
       console.error("Ошибка:", err);

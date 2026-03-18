@@ -37,6 +37,7 @@ import ClearChat from "./ClearChat";
 import ModalConfirm from "../modal/ModalConfirm";
 import ProfileInfo from "./ProfileInfo";
 import CopyInfo from "./CopyInfo";
+import CallBlock from "./CallBlock";
 
 import { timeFormat } from "@/src/utils/timeFormat";
 import formatChatDate from "@/src/utils/formatChatDate";
@@ -51,6 +52,9 @@ import type { AppDispatch } from "@/src/store/store";
 import { chatsApi } from "@/src/services/chatsApi";
 import { useGetContactsQuery, useAddContactByPhoneMutation } from "@/src/services/contactApi";
 import { useGetProfileQuery } from "@/src/services/userApi";
+import ReceivCallBlock from "./ReceivCallBlock";
+import ResponseBlock from "./ResponseBlock";
+import { useCallLogic } from "@/src/hooks/useCallLogic";
 import { getMessagesApi, useGetMessagesQuery } from "@/src/services/messagesApi";
 import { getSocket, sendThroughSocket } from "@/src/services/socketService";
 
@@ -60,6 +64,30 @@ export default function Chat() {
   // Контакт и профиль
   const { user_uid } = useParams<{ user_uid: string }>();
   const [addContactByPhone] = useAddContactByPhoneMutation();
+
+  const handleCallButtonClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+
+    try {
+      // Браузер автоматически покажет стандартное окно запроса разрешений
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+      });
+
+      // Освобождаем ресурсы — останавливаем все треки
+      stream.getTracks().forEach(track => track.stop());
+
+      // Если доступ получен, открываем модальное окно звонка
+      setIsCallModalOpen(true);
+    } catch (error) {
+      console.error("Доступ к устройствам отклонён:", error);
+
+      // Показываем информативное сообщение пользователю
+      alert(
+        "Для совершения звонка необходимо разрешить доступ к микрофону и камере (для видео звонка). Нажмите на значок в начале адресной строки браузера, чтобы изменить настройки разрешений.",
+      );
+    }
+  };
 
   const [isBannerHidden, setBannerHidden] = useState(false);
   const [isBannerClosing, setBannerClosing] = useState(false);
@@ -73,6 +101,23 @@ export default function Chat() {
   const [showClearChatModal, setShowClearChatModal] = useState(false);
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [selectedCopyInfo, setSelectedCopyInfo] = useState({ text: "", name: "" });
+  const [isCallModalOpen, setIsCallModalOpen] = useState(false);
+
+  const {
+    remoteStream,
+    localStream,
+    incomingCall,
+    isSound,
+    isResponse,
+    callInfo,
+    callState,
+    hasRemoteVideo,
+    cleanupConnection,
+    handleRejectCall,
+    toggleSound,
+    handleEndCall,
+    handleAcceptCall,
+  } = useCallLogic(isCallModalOpen);
 
   // Проверка есть ли пользователь в списке контактов
   const { data: contactsData } = useGetContactsQuery();
@@ -136,7 +181,6 @@ export default function Chat() {
   const hasMore = messagesData?.next !== null;
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1);
   }, [user_uid]);
 
@@ -442,7 +486,7 @@ export default function Chat() {
                 <Image className="min-w-[36px]" src={search} alt="Поиск" width={36} height={36} />
               </button>
               {!chat?.chat?.is_blocked && (
-                <button aria-label="Звонок">
+                <button onClick={handleCallButtonClick} aria-label="Звонок">
                   <Image src={call} alt="Звонок" width={36} height={36} />
                 </button>
               )}
@@ -685,6 +729,31 @@ export default function Chat() {
             cancelText="Нет"
           />
         </ModalBase>
+      )}
+      {isCallModalOpen && (
+        <CallBlock setIsCallModalOpen={setIsCallModalOpen} data={data} profile={profile!} />
+      )}
+
+      {incomingCall && (
+        <ReceivCallBlock
+          data={callInfo!}
+          handleAcceptCall={handleAcceptCall}
+          handleRejectCall={handleRejectCall}
+        />
+      )}
+
+      {isResponse && (
+        <ResponseBlock
+          data={callInfo!}
+          remoteStream={remoteStream!}
+          localStream={localStream}
+          toggleSound={toggleSound}
+          isSound={isSound}
+          handleEndCall={handleEndCall}
+          callState={callState}
+          cleanupConnection={cleanupConnection}
+          hasRemoteVideo={hasRemoteVideo}
+        />
       )}
     </>
   );

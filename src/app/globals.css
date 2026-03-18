@@ -13,12 +13,16 @@
 :root {
   --color-text: #1c1c1e;
   --color-error: #ff0000;
+  --color-red: #ff383c;
+  --color-green: #34c759;
   --color-button-disabled: #e4e4e4;
   --color-overlay: #9587f566;
+  
 
-  --color-violet: #7769e1; 
+  --color-violet: #7769e1;
   --color-violet-1: #615aa399;
   --color-violet-2: #615aa380;
+  --color-violet-3: #d6d2f6;
   --color-violet-ultra-light: #f5f4ff;
   --color-violet-light: #cec8ff;
   --color-violet-dark: #615aa3;
@@ -101,7 +105,6 @@ ul {
     transform: rotate(360deg);
   }
 }
-
 
 .os-scrollbar-handle {
   background: var(--color-gray-dark) !important;

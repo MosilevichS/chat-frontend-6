@@ -72,7 +72,7 @@ export const connectSocket = async (): Promise<WebSocket | null> => {
     return null;
   }
 
-  socket = new WebSocket(`wss://api.dev.chat.ktsf.ru/ws/chat?authorization=${token}`);
+  socket = new WebSocket(`wss://api.test.chat.ktsf.ru/ws/chat?authorization=${token}`);
 
   socket.onopen = () => {
     console.log("WS connected");

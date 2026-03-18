@@ -58,8 +58,8 @@ const ProfileInfo = ({
 
   const [updatedChats] = useUpdatedChatsMutation();
 
-  // console.log("ProfileInfo:", data);
-  // console.log("chat:", chat);
+  console.log("ProfileInfo:", data);
+  console.log("chat:", chat);
 
   const toggleNotifications = async () => {
     try {
@@ -97,9 +97,12 @@ const ProfileInfo = ({
           </button>
           <h2 className="text-lg font-medium leading-[120%]">Информация</h2>
         </div>
-        <button onClick={() => setIsAdditionalMenu(!isAdditionalMenu)}>
-          <Image src={still} alt="Еще" width={24} height={24} />
-        </button>
+        {chat && (
+          <button onClick={() => setIsAdditionalMenu(!isAdditionalMenu)}>
+            <Image src={still} alt="Еще" width={24} height={24} />
+          </button>
+        )}
+
         {isAdditionalMenu && (
           <div
             className="absolute top-14 right-4 z-1 w-[240px] bg-white font-normal rounded-lg"
@@ -175,19 +178,22 @@ const ProfileInfo = ({
             </div>
           </div>
 
-          <div className="flex items-center justify-between px-4 h-[52px]">
-            <p>Уведомления</p>
-            <div
-              className={`relative w-[52px] h-[32px]  p-1 rounded-2xl cursor-pointer transition-all duration-300 ease-in-out
-        ${chat.notifications ? "bg-(--color-violet)" : "bg-(--color-violet-2)"}`}
-              onClick={() => toggleNotifications()}
-            >
+          {chat?.notifications && (
+            <div className="flex items-center justify-between px-4 h-[52px]">
+              <p>Уведомления</p>
               <div
-                className={`absolute w-[24px] h-[24px] bg-white rounded-full transition-all duration-300 ease-in-out
-               ${chat.notifications ? "translate-x-4.75" : "translate-x-px"}`}
-              ></div>
+                className={`relative w-[52px] h-[32px]  p-1 rounded-2xl cursor-pointer transition-all duration-300 ease-in-out
+        ${chat?.notifications ? "bg-(--color-violet)" : "bg-(--color-violet-2)"}`}
+                onClick={() => toggleNotifications()}
+              >
+                <div
+                  className={`absolute w-[24px] h-[24px] bg-white rounded-full transition-all duration-300 ease-in-out
+               ${chat?.notifications ? "translate-x-4.75" : "translate-x-px"}`}
+                ></div>
+              </div>
             </div>
-          </div>
+          )}
+
           <div className="mx-4 mb-2.5 w-[328px] bg-white rounded-lg">
             <div className="flex items-center justify-between h-[57px] px-2.5 border-b border-(--color-button-disabled)">
               <div>
@@ -245,7 +251,7 @@ const ProfileInfo = ({
               <p className="text-(--color-violet) font-normal">Добавить в контакты</p>
             </button>
           )}
-          {chat.chat?.is_blocked && (
+          {chat?.chat?.is_blocked && (
             <button
               className="flex items-center gap-x-1 h-[44px] px-4 mb-2"
               onClick={() => setIsDeleteToBlacklistModalOpen(true)}

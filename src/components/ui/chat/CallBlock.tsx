@@ -1,0 +1,789 @@
+import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
+import { v4 as uuidv4 } from "uuid";
+
+// import closeCall from "@/src/assets/icons/close-call.svg";
+// import fullScreen from "@/src/assets/icons/full-screen.svg";
+import callEnd from "@/src/assets/icons/call-end.svg";
+import video from "@/src/assets/icons/video.svg";
+import removeSound from "@/src/assets/icons/remove-sound.svg";
+import callActive from "@/src/assets/icons/call-active.svg";
+// import onSound from "@/src/assets/icons/on-sound.svg";
+import bigAvatar from "@/src/assets/icons/big-avatar.svg";
+
+import { useGetCallQuery } from "@/src/services/callApi";
+import type { IContact } from "@/src/types/contact";
+import { getSocket } from "@/src/services/socketService";
+import type { IUser } from "@/src/types/user";
+import type { SignalingMessage } from "@/src/types/calls";
+import { useDelayedAction } from "@/src/hooks/useDelayedAction ";
+
+interface CallBlockProps {
+  setIsCallModalOpen: (isCallModalOpen: boolean) => void;
+  data: IContact;
+  profile: IUser;
+}
+
+const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
+  const [callState, setCallState] = useState<
+    "call" | "connecting" | "connected" | "end" | "error" | "rejected"
+  >("call");
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [isSound, setIsSound] = useState(true);
+  const [callDuration, setCallDuration] = useState<number>(0);
+  const [messageRtc, setMessageRtc] = useState("");
+  const [dots, setDots] = useState([
+    { size: 6, opacity: 1 },
+    { size: 5, opacity: 0.7 },
+    { size: 4, opacity: 0.4 },
+  ]);
+  const [showVideo, setShowVideo] = useState(false);
+  const [isSwapped, setIsSwapped] = useState(false);
+
+  const { data: stunAndTurnServers } = useGetCallQuery();
+  // Время звонка
+  const callStartTimeRef = useRef<number | null>(null);
+  // Храним интервал для очистки
+  const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const { executeAfterDelay } = useDelayedAction(2000);
+
+  // мой стрим
+  const localStreamRef = useRef<MediaStream | undefined>(undefined);
+  // удаленный стрим
+  const remoteStreamRef = useRef<MediaStream | null>(null);
+  // массив с кандидатами
+  const iceCandidateBuffer = useRef<RTCIceCandidate[]>([]);
+  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+
+  //  проверка есть ли разрешение на доступ к камере и микрофону пользователя
+  // const checkPermissions = async () => {
+  //   try {
+  //     const cameraPermission = await navigator.permissions.query({
+  //       name: "camera",
+  //     });
+  //     const microphonePermission = await navigator.permissions.query({
+  //       name: "microphone",
+  //     });
+
+  //     if (cameraPermission.state === "denied" || microphonePermission.state === "denied") {
+  //       alert("Для звонка нужно разрешить доступ к камере и микрофону в настройках браузера");
+  //       return false;
+  //     }
+  //     return true;
+  //   } catch (error) {
+  //     console.warn("Не удалось проверить разрешения:", error);
+  //     return false;
+  //   }
+  // };
+
+  // запрашиваем у пользователя разрешение на доступ к медиаустройствам (микрофону, камере) и возвращаем медиапоток
+  const getMediaAccess = async (constraints: MediaStreamConstraints) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log("Доступ к устройствам получен");
+      return stream;
+    } catch (error) {
+      console.log("Ошибка доступа к устройствам:", error);
+    }
+  };
+
+  // Форматирование времени в MM:SS
+  const formatDuration = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString()}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const handleAnswerCall = async (
+    pc: RTCPeerConnection | null,
+    data: Extract<SignalingMessage, { action: "answer_call" }>,
+  ) => {
+    if (!pc) {
+      console.warn("RTCPeerConnection не инициализирован");
+      return;
+    }
+
+    try {
+      await pc.setRemoteDescription({
+        type: "answer",
+        sdp: data.object.answer_sdp,
+      });
+      await processIceCandidateBuffer(pc);
+      setCallState("connected");
+    } catch (error) {
+      console.error("Ошибка установки remoteDescription для answer:", error);
+      setCallState("error");
+    }
+  };
+
+  const handleIceCandidate = async (pc: RTCPeerConnection, candidateStr: string) => {
+    // Проверка на закрытое соединение
+    if (pc.signalingState === "closed") {
+      console.warn("Попытка добавить ICE‑кандидат в закрытое соединение");
+      return;
+    }
+
+    const iceCandidate = new RTCIceCandidate({
+      candidate: candidateStr,
+      sdpMid: "0",
+      sdpMLineIndex: 0,
+    });
+
+    if (pc.remoteDescription) {
+      // remoteDescription есть — можно добавить кандидата
+      await pc.addIceCandidate(iceCandidate);
+    } else {
+      // remoteDescription нет — кладём в буфер
+      iceCandidateBuffer.current.push(iceCandidate);
+    }
+  };
+
+  // берем все кандидаты из буфера и добавляем их
+  const processIceCandidateBuffer = async (pc: RTCPeerConnection) => {
+    for (const candidate of iceCandidateBuffer.current) {
+      await pc.addIceCandidate(candidate);
+    }
+    iceCandidateBuffer.current = []; // очищаем буфер после обработки
+  };
+
+  // Функция для отправки сообщения через сигнальный сервер собеседнику
+  const sendToSignalingServer = (message: SignalingMessage) => {
+    const ws = getSocket();
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      console.log("WS not ready");
+      return;
+    }
+
+    ws.send(JSON.stringify(message));
+  };
+
+  // завершаем звонок
+  const handleEndCall = () => {
+    try {
+      // 3. Отправляем сигнал о завершении звонка через WebSocket
+      sendToSignalingServer({
+        action: "call_completion",
+        request_uid: uuidv4(),
+        object: {
+          from_user_uid: profile.uid,
+          to_user_uid: data.uid,
+          type_complete: "completed",
+          message_rtc_uid: messageRtc,
+          duration: callDuration,
+        },
+      });
+
+      // Очищаем srcObject у ВСЕХ видео (чтобы пропал черный экран)
+      const localVideo = document.getElementById("local-video") as HTMLVideoElement;
+      const remoteVideo = document.getElementById("remote-video") as HTMLVideoElement;
+
+      if (localVideo) {
+        localVideo.srcObject = null;
+      }
+      if (remoteVideo) {
+        remoteVideo.srcObject = null;
+      }
+      setShowVideo(false);
+
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+        localStreamRef.current = undefined;
+      }
+
+      // 2. Закрываем WebRTC‑соединение
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close();
+        peerConnectionRef.current = null;
+      }
+
+      // 4. Сбрасываем состояния
+      setCallState("end");
+
+      // Очистка таймера
+      if (durationIntervalRef.current) {
+        clearInterval(durationIntervalRef.current);
+        durationIntervalRef.current = null;
+      }
+
+      callStartTimeRef.current = null;
+
+      executeAfterDelay(() => {
+        setIsCallModalOpen(false);
+      });
+    } catch (error) {
+      console.error("Ошибка при завершении звонка:", error);
+    }
+  };
+
+  // отключения/включения звука
+  const toggleSound = () => {
+    setIsSound(!isSound);
+    const streamRemote = remoteStreamRef.current;
+    if (streamRemote) {
+      streamRemote.getAudioTracks().forEach(track => {
+        track.enabled = !isSound;
+      });
+      console.log(`Звук удалённого потока ${isSound ? "выключен" : "включён"}`);
+    }
+
+    const streamLocal = localStreamRef.current;
+    if (streamLocal) {
+      streamLocal.getAudioTracks().forEach(track => {
+        track.enabled = !isSound;
+      });
+      console.log(`Локальный звук ${isSound ? "выключен" : "включён"}`);
+    }
+  };
+
+  useEffect(() => {
+    if (!stunAndTurnServers?.ice_servers?.length) {
+      console.log("ICE‑серверы ещё не загружены");
+      return;
+    }
+
+    const initCall = async () => {
+      try {
+        // const hasPermissions = await checkPermissions();
+        // if (!hasPermissions) return;
+
+        const pc = new RTCPeerConnection({
+          iceServers: stunAndTurnServers.ice_servers,
+        });
+
+        peerConnectionRef.current = pc;
+
+        // Создаем поток только с аудио
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
+        localStreamRef.current = stream;
+
+        // Добавляем аудиодорожку в RTCPeerConnection
+        stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+        pc.ontrack = event => {
+          console.log("Получен удалённый медиапоток:", event.streams);
+          const remoteVideo = document.getElementById("remote-video") as HTMLVideoElement | null;
+
+          if (remoteVideo) {
+            remoteVideo.srcObject = event.streams[0];
+          }
+
+          // Сохраняем удалённый поток в ref
+          remoteStreamRef.current = event.streams[0];
+
+          // Применяем текущее состояние звука к удалённому потоку
+          if (remoteStreamRef.current) {
+            remoteStreamRef.current.getAudioTracks().forEach(track => {
+              track.enabled = isSound;
+            });
+          }
+        };
+
+        // пересогласование параметров соединения
+        pc.onnegotiationneeded = async () => {
+          console.log("Пересогласование");
+          // Проверяем состояние соединения
+          if (pc.signalingState !== "stable") {
+            console.warn("Нельзя отправить offer: текущее состояние —", pc.signalingState);
+            return;
+          }
+
+          try {
+            //создаём и отправляем offer тому, кому хотим позвонить
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+
+            if (!offer.sdp) {
+              console.error("SDP offer не содержит данных");
+              setCallState("error");
+              return;
+            }
+            sendToSignalingServer({
+              action: "offer_call",
+              request_uid: uuidv4(),
+              object: {
+                to_user_uid: data.uid,
+                offer_sdp: offer.sdp,
+              },
+            });
+          } catch (error) {
+            console.error("Ошибка при создании/отправке offer:", error);
+          }
+        };
+
+        // При нахождении кандидата срабатывает обработчик pc.onicecandidate кандидат (сетевой маршрут) отправляется другому участнику через сигнальный сервер:
+        pc.onicecandidate = event => {
+          if (event.candidate) {
+            sendToSignalingServer({
+              action: "ice_candidate",
+              request_uid: uuidv4(), // генерируем новый UUID для этого сообщения
+              object: {
+                from_user_uid: profile.uid, // ID текущего пользователя
+                to_user_uid: data.uid, // ID получателя
+                ice_candidate: event.candidate.candidate, // строковое представление кандидата
+              },
+            });
+          } else {
+            console.log("Cбор кандидатов завершён");
+          }
+        };
+
+        // Обработка состояния соединения
+        pc.onconnectionstatechange = () => {
+          const state = pc.connectionState;
+          console.log("Состояние соединения изменилось:", state);
+
+          switch (state) {
+            case "connected":
+              setCallState("connected");
+              console.log("✅ Соединение установлено успешно!");
+              callStartTimeRef.current = Date.now(); // фиксируем время начала разговора
+              durationIntervalRef.current = setInterval(() => {
+                if (callStartTimeRef.current) {
+                  const currentDuration = Math.floor(
+                    (Date.now() - callStartTimeRef.current) / 1000,
+                  );
+                  setCallDuration(currentDuration);
+                }
+              }, 1000);
+              break;
+            case "failed":
+              setCallState("error");
+              console.error("❌ Соединение не удалось установить. Проверьте сеть и ICE‑серверы.");
+              break;
+            case "disconnected":
+              if (durationIntervalRef.current) {
+                clearInterval(durationIntervalRef.current);
+                durationIntervalRef.current = null;
+              }
+              setCallState("end");
+              executeAfterDelay(() => {
+                setIsCallModalOpen(false);
+              });
+
+              break;
+            case "closed":
+              setCallState("end");
+              console.log("📞 Соединение закрыто.");
+              break;
+            case "connecting":
+              setCallState("connecting");
+
+              break;
+            default:
+              console.log(`⏱️ Текущее состояние: ${state}`);
+          }
+        };
+
+        // Обработчик входящих сообщений WebSocket
+        const ws = getSocket();
+        if (ws !== null) {
+          ws.onmessage = async (event: MessageEvent) => {
+            try {
+              const data: SignalingMessage = JSON.parse(event.data);
+              switch (data.action) {
+                case "answer_call":
+                  // пришел ответ от того кому хотим позвонить
+                  await handleAnswerCall(peerConnectionRef.current, data);
+                  break;
+                case "offer_call":
+                  if ("message_rtc" in data.object && data.object.message_rtc) {
+                    setMessageRtc(data.object.message_rtc.uid);
+                  }
+                  break;
+                case "ice_candidate":
+                  if (data.object.ice_candidate) {
+                    await handleIceCandidate(pc, data.object.ice_candidate);
+                  }
+                  break;
+                case "call_completion":
+                  if (data.object?.type_complete === "rejected") {
+                    console.log("Звонок отклонен");
+                    setCallState("rejected");
+                    executeAfterDelay(() => {
+                      setIsCallModalOpen(false);
+                    });
+                  }
+                  if (data.object?.type_complete === "completed") {
+                    console.log("Звонок завершен");
+                    if (durationIntervalRef.current) {
+                      clearInterval(durationIntervalRef.current);
+                      durationIntervalRef.current = null;
+                    }
+                    setCallState("end");
+                    executeAfterDelay(() => {
+                      setIsCallModalOpen(false);
+                    });
+                  }
+                  break;
+                default:
+                // console.log("Неизвестное действие:", data.action);
+              }
+            } catch (error) {
+              console.error("Ошибка обработки сигнального сообщения:", error);
+            }
+          };
+        }
+      } catch (error) {
+        console.error("Критическая ошибка инициализации звонка:", error);
+      }
+    };
+
+    initCall();
+
+    return () => {
+      // Остановка медиапотока
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+        localStreamRef.current = undefined;
+      }
+
+      // Закрытие RTCPeerConnection
+      if (peerConnectionRef.current) {
+        console.log("pc соеденение закрыто");
+        peerConnectionRef.current.onicecandidate = null;
+        peerConnectionRef.current.close();
+        peerConnectionRef.current = null;
+      }
+
+      iceCandidateBuffer.current = [];
+
+      // Очистка таймера при размонтировании компонента
+      if (durationIntervalRef.current) {
+        clearInterval(durationIntervalRef.current);
+        durationIntervalRef.current = null;
+      }
+
+      callStartTimeRef.current = null;
+
+      console.log("Ресурсы звонка освобождены CallBlock");
+    };
+  }, [stunAndTurnServers]);
+
+  useEffect(() => {
+    let swapIndex = 0;
+    const interval = setInterval(() => {
+      setDots(prev => {
+        const newDots = [...prev];
+        // Меняем текущую точку со следующей (с циклом)
+        const nextIndex = (swapIndex + 1) % prev.length;
+        [newDots[swapIndex], newDots[nextIndex]] = [newDots[nextIndex], newDots[swapIndex]];
+        swapIndex = nextIndex;
+        return newDots;
+      });
+    }, 300);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // if (peerConnectionRef.current) {
+  //   const senders = peerConnectionRef.current.getSenders();
+  //   const audioSenders = senders.filter(s => s.track?.kind === "audio");
+
+  //   // console.log("🎤 Мое аудио:", {
+  //   //   "Есть треки": audioSenders.length > 0,
+  //   //   Количество: audioSenders.length,
+  //   //   Детали: audioSenders.map(s => ({
+  //   //     enabled: s.track?.enabled,
+  //   //     readyState: s.track?.readyState,
+  //   //     muted: s.track?.muted,
+  //   //     id: s.track?.id,
+  //   //   })),
+  //   // });
+
+  //   // const videoSenders = senders.filter(s => s.track?.kind === "video");
+
+  //   // console.log("📤 ОТПРАВКА ВИДЕО:", {
+  //   //   "Есть отправители": videoSenders.length > 0,
+  //   //   Количество: videoSenders.length,
+  //   //   Детали: videoSenders.map(s => ({
+  //   //     enabled: s.track?.enabled,
+  //   //     readyState: s.track?.readyState,
+  //   //     id: s.track?.id,
+  //   //   })),
+  //   // });
+
+  //   console.log(localStreamRef.current?.getTracks());
+  // }
+
+  // Функция для включения видео
+  const enableVideo = async () => {
+    try {
+      // Получаем видеопоток
+      const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const videoTrack = videoStream.getVideoTracks()[0];
+
+      // Добавляем видеодорожку в соединение
+      peerConnectionRef.current?.addTrack(videoTrack, videoStream);
+
+      // Добавляем в локальный поток
+      localStreamRef.current?.addTrack(videoTrack);
+
+      setShowVideo(true);
+    } catch (err) {
+      console.log("❌ Ошибка включения видео:", err);
+    }
+  };
+
+  // Функция для выключения видео
+  const disableVideo = async () => {
+    try {
+      const videoTrack = localStreamRef.current?.getVideoTracks()[0];
+      const peerConnection = peerConnectionRef.current;
+
+      if (!videoTrack || !peerConnection) return;
+
+      // 1. Получаем sender для видеодорожки
+      const sender = peerConnection.getSenders().find(s => s.track === videoTrack);
+
+      if (sender) {
+        // 2. Удаляем трек из соединения
+        peerConnection.removeTrack(sender);
+      }
+
+      // 4. Отключаем трек в локальном потоке
+      videoTrack.stop();
+      localStreamRef.current?.removeTrack(videoTrack);
+
+      // 5. Обновляем UI
+      setShowVideo(false);
+      console.log("Видео полностью отключено и удалено из соединения");
+    } catch (err) {
+      console.error("Ошибка отключения видео:", err);
+    }
+  };
+
+  useEffect(() => {
+    const localVideo = document.getElementById("local-video") as HTMLVideoElement;
+    if (localVideo && localStreamRef.current) {
+      localVideo.srcObject = localStreamRef.current;
+    }
+
+    // const remoteVideo = document.getElementById("remote-video") as HTMLVideoElement | null;
+    // if (remoteVideo) {
+    //   remoteVideo.srcObject = remoteStreamRef.current;
+    // }
+  }, [showVideo]);
+
+  return (
+    <div
+      className={`absolute inset-0 z-50 mx-auto mt-[84px] flex flex-col items-center justify-between  
+        rounded-lg bg-(--color-violet-dark) p-5 mb-1
+        ${isFullScreen ? "max-w-[1200px] mb-1" : "w-[388px] max-h-[770px]"} 
+        `}
+    >
+      {/* {isSwapped ? ( */}
+      {/* // <video */}
+      {/* //   className="absolute inset-0 -z-10 w-full h-full object-cover rounded-lg"
+        //   id="local-video"
+        //   autoPlay
+        //   playsInline
+        // />
+      // ) : ( */}
+      <video
+        className="absolute inset-0 -z-10 w-full h-full object-cover rounded-lg"
+        id="remote-video"
+        autoPlay
+        playsInline
+      />
+      {/* )} */}
+      <div className="w-full flex justify-between h-[36px] mb-10">
+        <button onClick={() => setIsFullScreen(!isFullScreen)}>
+          <svg
+            width="36"
+            height="36"
+            viewBox="0 0 36 36"
+            fill="white"
+            className="hover:fill-(--color-gray-dark) transition-colors duration-200"
+          >
+            <path d="M12.1654 20.334H9.83203V26.1673H15.6654V23.834H12.1654V20.334ZM9.83203 15.6673H12.1654V12.1673H15.6654V9.83398H9.83203V15.6673ZM23.832 23.834H20.332V26.1673H26.1654V20.334H23.832V23.834ZM20.332 9.83398V12.1673H23.832V15.6673H26.1654V9.83398H20.332Z" />
+          </svg>
+        </button>
+        <button
+          onClick={() => {
+            setIsCallModalOpen(false);
+            handleEndCall();
+          }}
+        >
+          <svg
+            width="36"
+            height="36"
+            viewBox="0 0 36 36"
+            fill="white"
+            className="hover:fill-(--color-gray-dark) transition-colors duration-200"
+          >
+            <path d="M24.5625 12.7594L23.2406 11.4375L18 16.6781L12.7594 11.4375L11.4375 12.7594L16.6781 18L11.4375 23.2406L12.7594 24.5625L18 19.3219L23.2406 24.5625L24.5625 23.2406L19.3219 18L24.5625 12.7594Z" />
+          </svg>
+        </button>
+      </div>
+      <div
+        className={`flex flex-col items-center text-white h-[310px]
+     ${remoteStreamRef.current?.getVideoTracks().length && callState !== "end" ? "mb-auto" : ""}
+       
+        `}
+      >
+        {callState === "end" || !remoteStreamRef.current?.getVideoTracks().length ? (
+          <div className="flex justify-center items-center h-[184px] w-[184px] mb-[32px]">
+            {data.avatar_url ? (
+              <div className="relative">
+                <Image
+                  src={data.avatar_url}
+                  width={160}
+                  height={160}
+                  alt="Аватар"
+                  className="rounded-full h-[160px] w-[160px]"
+                />
+                <div className="absolute -top-3 -left-3">
+                  <svg width="184" height="184" viewBox="0 0 184 184" fill="none">
+                    <rect
+                      x="6"
+                      y="6"
+                      width="172"
+                      height="172"
+                      rx="86"
+                      stroke="#CEC8FF"
+                      strokeOpacity="0.3"
+                      strokeWidth="12"
+                    />
+                  </svg>
+                </div>
+              </div>
+            ) : (
+              <Image src={bigAvatar} width={184} height={184} alt="Аватар" />
+            )}
+          </div>
+        ) : null}
+
+        <p className="text-2xl font-medium mb-2">
+          {data.first_name} {data.last_name}
+        </p>
+
+        {callState === "call" && (
+          <div className="flex items-center gap-x-1 h-[24px]">
+            <p>Звонок</p>
+            <div className="flex gap-0.5 w-[20px] h-[6px] mt-1">
+              {dots.map((dot, index) => (
+                <div
+                  key={index}
+                  className="bg-white rounded-full my-auto transition-all duration-300"
+                  style={{
+                    width: `${dot.size}px`,
+                    height: `${dot.size}px`,
+                    opacity: dot.opacity,
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+        {callState === "connected" && (
+          <div className="flex gap-x-1">
+            <Image src={callActive} alt="Идет звонок" width={14} height={14} />
+            <p>{formatDuration(callDuration)}</p>
+          </div>
+        )}
+        {callState === "end" && (
+          <div className="flex flex-col items-center">
+            <p>Звонок завершен</p>
+            {formatDuration(callDuration)}
+          </div>
+        )}
+        {callState === "connecting" && (
+          <div className="flex items-center gap-x-1 h-[24px]">
+            <p>Соединение</p>
+            <div className="flex gap-0.5 w-[20px] h-[6px] mt-1">
+              {dots.map((dot, index) => (
+                <div
+                  key={index}
+                  className="bg-white rounded-full my-auto transition-all duration-300"
+                  style={{
+                    width: `${dot.size}px`,
+                    height: `${dot.size}px`,
+                    opacity: dot.opacity,
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+        {callState === "error" && <p>Ошибка соединения</p>}
+        {callState === "rejected" && <p>Звонок отклонен</p>}
+      </div>
+
+      {/* {showVideo && (
+        <button className="w-full" onClick={() => setIsSwapped(!isSwapped)}>
+          {isSwapped ? (
+          //   <video
+          //     id="remote-video"
+          //     className="ml-auto w-[140px] h-[200px] object-cover rounded-md"
+          //     autoPlay
+          //   />
+          // ) : ( */}
+      {/* Локальное видео */}
+      {showVideo && (
+        <video
+          id="local-video"
+          className="ml-auto w-[140px] h-[200px] object-cover rounded-md"
+          autoPlay
+          muted
+        />
+      )}
+
+      {/* )}
+        </button>
+      )} */}
+      <div className="flex gap-x-4 text-white text-xs font-normal h-[54px] mt-5">
+        <button
+          className="flex flex-col items-center gap-y-1 w-[68px] h-[54px]"
+          onClick={() => {
+            showVideo ? disableVideo() : enableVideo();
+          }}
+        >
+          <Image src={video} alt="Видео" width={36} height={36} />
+          <p>{showVideo ? "Аудио" : "Видео"}</p>
+        </button>
+        <button
+          className="flex flex-col items-center gap-y-1 w-[68px] h-[54px]"
+          onClick={() => toggleSound()}
+        >
+          {isSound ? (
+            <Image src={removeSound} alt="Убрать звук" width={36} height={36} />
+          ) : (
+            <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+              <path
+                d="M36 18C36 27.9411 27.9411 36 18 36C8.05887 36 0 27.9411 0 18C0 8.05887 8.05887 0 18 0C27.9411 0 36 8.05887 36 18Z"
+                fill="white"
+              />
+              <path
+                d="M18.0001 20.3438C19.5563 20.3438 20.8126 19.0875 20.8126 17.5312V11.9063C20.8126 10.35 19.5563 9.09375 18.0001 9.09375C16.4438 9.09375 15.1876 10.35 15.1876 11.9063V17.5312C15.1876 19.0875 16.4438 20.3438 18.0001 20.3438ZM17.0626 11.9063C17.0626 11.3906 17.4845 10.9688 18.0001 10.9688C18.5157 10.9688 18.9376 11.3906 18.9376 11.9063V17.5312C18.9376 18.0469 18.5157 18.4688 18.0001 18.4688C17.4845 18.4688 17.0626 18.0469 17.0626 17.5312V11.9063ZM22.6876 17.5312C22.6876 20.1187 20.5876 22.2188 18.0001 22.2188C15.4126 22.2188 13.3126 20.1187 13.3126 17.5312H11.4376C11.4376 20.8406 13.8845 23.5594 17.0626 24.0188V26.9062H18.9376V24.0188C22.1157 23.5594 24.5626 20.8406 24.5626 17.5312H22.6876Z"
+                fill="#7769E1"
+              />
+              <line
+                x1="11.0992"
+                y1="11.9793"
+                x2="24.0992"
+                y2="25.9793"
+                stroke="#7769E1"
+                strokeWidth="3"
+              />
+              <path d="M11.2969 10.3203L25.2969 25.3203" stroke="white" strokeWidth="2" />
+            </svg>
+          )}
+
+          <p>{isSound ? "Убрать звук" : "Вкл. звук"}</p>
+        </button>
+        <button
+          className="flex flex-col items-center gap-y-1 w-[68px] h-[54px]"
+          onClick={() => handleEndCall()}
+        >
+          <Image src={callEnd} alt="Завершить" width={36} height={36} />
+          <p>Завершить</p>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default CallBlock;
