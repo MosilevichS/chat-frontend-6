@@ -32,6 +32,7 @@ interface ResponseBlockProps {
   handleEndCall: () => void;
   callState: string;
   cleanupConnection: () => void;
+  hasRemoteVideo: boolean;
 }
 
 const ResponseBlock = ({

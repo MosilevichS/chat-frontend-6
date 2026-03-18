@@ -78,8 +78,6 @@ const Chats = () => {
     refetchOnMountOrArgChange: true,
   });
 
-  console.log(data?.results);
-
   const [updatedChats] = useUpdatedChatsMutation();
   const [addContactByPhone] = useAddContactByPhoneMutation();
   const [deleteChat] = useDeleteChatMutation();

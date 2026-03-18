@@ -18,21 +18,10 @@ const ChatsItem = ({ chat, selectedChatId, handleRightClick }: ChatItemProps) =>
   const getChatPath = () => {
     // Для групп/каналов добавляем параметр type=group
     if (chat.chat_type === "private-group" || chat.chat_type === "public-channel" || chat.name) {
-      console.log(
-        "Group chat:",
-        chat.name,
-        "path:",
-        `/chats/${chat.chat_key || chat.id}?type=group`,
-      );
       return `/chats/${chat.chat_key || chat.id}?type=group`;
     }
     // Для личных чатов
-    console.log(
-      "Personal chat:",
-      chat.chat?.first_name,
-      "path:",
-      `/chats/${chat.chat?.uid || chat.chat_key || chat.id}`,
-    );
+
     return `/chats/${chat.chat?.uid || chat.chat_key || chat.id}`;
   };
 

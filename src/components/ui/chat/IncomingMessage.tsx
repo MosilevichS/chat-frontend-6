@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { timeFormat } from "@/src/utils/timeFormat";
 import type { IMessage } from "@/src/types/message";
+import MessageWithLinks from "./MessageWithLinks";
 
 export default function IncomingMessage({
   message,
@@ -15,8 +16,6 @@ export default function IncomingMessage({
 
   useEffect(() => {
     if (!ref.current) return;
-
-    // уже прочитано
     if (!message.new) return;
 
     const observer = new IntersectionObserver(
@@ -39,7 +38,7 @@ export default function IncomingMessage({
       ref={ref}
       className={`relative mr-auto py-2.5 pl-3 pr-14 bg-(--color-gray-1) rounded-2xl rounded-bl-sm ${className}`}
     >
-      <span>{message.content}</span>
+      <span className="whitespace-pre-wrap wrap-break-words">{message.content}</span>
       <div className="absolute bottom-2.5 right-3">
         <span className="text-sm text-(--color-gray)">
           {timeFormat(message.created_at, "time")}

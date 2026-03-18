@@ -14,7 +14,6 @@ import "overlayscrollbars/overlayscrollbars.css";
 
 import call from "@/src/assets/icons/call.svg";
 import search from "@/src/assets/icons/search-messages.svg";
-import noMessages from "@/src/assets/icons/no-messages.svg";
 import clip from "@/src/assets/icons/clip.svg";
 import close from "@/src/assets/icons/close.svg";
 
@@ -32,6 +31,7 @@ import ModalSuccess from "@/src/components/ui/modal/ModalSuccess";
 import OutgoingMessage from "@/src/components/ui/chat/OutgoingMessage";
 import IncomingMessage from "@/src/components/ui/chat/IncomingMessage";
 import DateDivider from "@/src/components/ui/chat/DateDivider";
+import NoMessagesPlaceholder from "./NoMessagesPlaceholder";
 import Button from "../Button";
 import ClearChat from "./ClearChat";
 import ModalConfirm from "../modal/ModalConfirm";
@@ -52,11 +52,11 @@ import type { AppDispatch } from "@/src/store/store";
 import { chatsApi } from "@/src/services/chatsApi";
 import { useGetContactsQuery, useAddContactByPhoneMutation } from "@/src/services/contactApi";
 import { useGetProfileQuery } from "@/src/services/userApi";
-import { useGetMessagesQuery } from "@/src/services/messagesApi";
-import { getSocket } from "@/src/services/socketService";
 import ReceivCallBlock from "./ReceivCallBlock";
 import ResponseBlock from "./ResponseBlock";
 import { useCallLogic } from "@/src/hooks/useCallLogic";
+import { getMessagesApi, useGetMessagesQuery } from "@/src/services/messagesApi";
+import { getSocket, sendThroughSocket } from "@/src/services/socketService";
 
 export default function Chat() {
   const dispatch = useDispatch<AppDispatch>();
@@ -177,6 +177,7 @@ export default function Chat() {
   const messages = React.useMemo(() => {
     return messagesData?.results ? [...messagesData.results].reverse() : [];
   }, [messagesData]);
+
   const hasMore = messagesData?.next !== null;
 
   useEffect(() => {
@@ -189,23 +190,48 @@ export default function Chat() {
 
   // Отправка сообщения
   const sendMessage = () => {
-    const ws = getSocket();
+    if (!inputValue.trim() || !profile) return;
 
-    if (!ws || ws.readyState !== WebSocket.OPEN) {
-      console.log("WS not ready");
-      return;
-    }
+    const content = inputValue.trim();
+    const tempId = crypto.randomUUID();
 
-    ws.send(
-      JSON.stringify({
-        action: "create_text_message",
-        request_uid: profile?.uid,
-        object: {
-          to_user_uid: user_uid,
-          content: inputValue.trim(),
-        },
+    // 1. optimistic update
+    dispatch(
+      getMessagesApi.util.updateQueryData("getMessages", { user_uid }, draft => {
+        if (!draft) return;
+
+        if (!chat?.chat) return;
+
+        draft.results.unshift({
+          id: -Date.now(),
+          uid: tempId,
+          from_user: profile,
+          to_user: chat?.chat,
+          content,
+          replied_messages: [],
+          forwarded_messages: [],
+          files_list: [],
+          new: true,
+          created_at: Math.floor(Date.now() / 1000),
+          updated_at: Math.floor(Date.now() / 1000),
+          chat_id: chat.id,
+          chat_key: chat.chat_key,
+          chat_type: chat.chat_type,
+          message_rtc: null,
+          pending: true,
+        });
       }),
     );
+
+    // 2. отправляем через сокет
+    sendThroughSocket({
+      action: "create_text_message",
+      request_uid: tempId,
+      object: {
+        to_user_uid: user_uid,
+        content,
+      },
+    });
 
     setInputValue("");
   };
@@ -355,6 +381,35 @@ export default function Chat() {
     }
   };
 
+  // Динамическое изменение высоты textarea
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputValue(e.target.value);
+
+    const el = textareaRef.current;
+    if (!el) return;
+
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (!inputValue.trim()) return;
+
+      sendMessage();
+
+      setInputValue("");
+
+      const el = textareaRef.current;
+      if (el) {
+        el.style.height = "auto";
+      }
+    }
+  };
+
   if (isLoading)
     return (
       <div className="flex items-center justify-center w-full max-w-[744px] min-h-[calc(100vh-88px)] bg-(--color-gray-light-opacity) rounded-lg  md:rounded-lg border border-(--color-gray-1) px-4">
@@ -489,18 +544,7 @@ export default function Chat() {
 
           <main className="relative flex flex-col flex-1 overflow-hidden">
             {messages.length === 0 ? (
-              <div className="flex flex-1 flex-col items-center justify-center">
-                <Image
-                  src={noMessages}
-                  alt="Нет сообщений"
-                  width={200}
-                  height={200}
-                  className="mb-6"
-                  loading="eager"
-                />
-                <p className="text-(--color-gray) text-lg leading-[130%]">Сообщений пока нет</p>
-                <p className="text-(--color-gray) text-sm leading-[120%]">Напишите первым :)</p>
-              </div>
+              <NoMessagesPlaceholder />
             ) : (
               <OverlayScrollbarsComponent
                 key={user_uid}
@@ -584,20 +628,29 @@ export default function Chat() {
 
           <footer className="flex items-center px-4 w-full min-h-[60px] bg-(--color-gray-light) rounded-b-lg border-t border-(--color-gray-3)">
             <form
-              className="flex justify-between items-center gap-2 w-full"
+              className="flex justify-between items-end gap-2 w-full"
               onSubmit={e => {
                 e.preventDefault();
+                if (!inputValue.trim()) return;
+
                 sendMessage();
+                setInputValue("");
+
+                if (textareaRef.current) {
+                  textareaRef.current.style.height = "auto";
+                }
               }}
             >
               <button>
                 <Image src={clip} alt="Прикрепить файл" width={36} height={36} />
               </button>
-              <input
-                type="text"
+              <textarea
+                ref={textareaRef}
+                rows={1}
                 placeholder="Сообщение"
-                className="outline-none bg-white rounded-[1.25rem] py-2 pl-3 pr-10 w-full max-w-[624px]"
-                onChange={e => setInputValue(e.target.value)}
+                className="resize-none outline-none bg-white rounded-[1.25rem] py-2 pl-3 pr-10 w-full max-w-[624px] min-h-[36px] max-h-[120px] overflow-y-auto scrollbar-hidden"
+                onChange={handleChange}
+                onKeyDown={handleKeyDown}
                 value={inputValue}
               />
               <button type="submit" aria-label="Отправить сообщение" className="active:opacity-50">
