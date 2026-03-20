@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 
-export async function POST(request: Request, { params }: { params: Promise<{ id: number }> }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const cookieStore = cookies();
   const token = (await cookieStore).get("accessToken")?.value;
 
