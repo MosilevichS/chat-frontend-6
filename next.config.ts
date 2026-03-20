@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "api.test.chat.ktsf.ru",
+        hostname: "api.dev.chat.ktsf.ru",
         pathname: "/**",
       },
     ],
