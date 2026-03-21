@@ -8,8 +8,15 @@ import { useDelayedAction } from "./useDelayedAction ";
 interface CallInfo {
   from_user: string;
   to_user: string;
-  message_rtc: { uid: string };
+  message_rtc: {
+    uid: string;
+    from_user?: { avatar_url?: string; first_name: string; last_name: string };
+  };
   offer_sdp?: string;
+}
+
+interface IncomingCallData {
+  object: CallInfo;
 }
 
 export const useCallLogic = (isCallModalOpen: boolean) => {
@@ -51,7 +58,7 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
 
     ws.onmessage = async (event: MessageEvent) => {
       try {
-        const data: SignalingMessage = JSON.parse(event.data);
+        const data = JSON.parse(event.data);
 
         switch (data.action) {
           // пришел вызов
@@ -373,8 +380,7 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
   }, []);
 
   // Показываем модальное окно для принятия вызова
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleIncomingCall = (callData: any) => {
+  const handleIncomingCall = (callData: IncomingCallData) => {
     setCallInfo(callData.object);
     setIncomingCall(true);
   };

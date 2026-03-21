@@ -38,7 +38,7 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
     { size: 4, opacity: 0.4 },
   ]);
   const [showVideo, setShowVideo] = useState(false);
-  const [isSwapped, setIsSwapped] = useState(false);
+  // const [isSwapped, setIsSwapped] = useState(false);
 
   const { data: stunAndTurnServers } = useGetCallQuery();
   // Время звонка
@@ -78,15 +78,15 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
   // };
 
   // запрашиваем у пользователя разрешение на доступ к медиаустройствам (микрофону, камере) и возвращаем медиапоток
-  const getMediaAccess = async (constraints: MediaStreamConstraints) => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      console.log("Доступ к устройствам получен");
-      return stream;
-    } catch (error) {
-      console.log("Ошибка доступа к устройствам:", error);
-    }
-  };
+  // const getMediaAccess = async (constraints: MediaStreamConstraints) => {
+  //   try {
+  //     const stream = await navigator.mediaDevices.getUserMedia(constraints);
+  //     console.log("Доступ к устройствам получен");
+  //     return stream;
+  //   } catch (error) {
+  //     console.log("Ошибка доступа к устройствам:", error);
+  //   }
+  // };
 
   // Форматирование времени в MM:SS
   const formatDuration = (seconds: number): string => {
