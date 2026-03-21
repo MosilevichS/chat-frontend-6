@@ -2,8 +2,6 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-// import closeCall from "@/src/assets/icons/close-call.svg";
-// import fullScreen from "@/src/assets/icons/full-screen.svg";
 import callEnd from "@/src/assets/icons/call-end.svg";
 import video from "@/src/assets/icons/video.svg";
 import removeSound from "@/src/assets/icons/remove-sound.svg";
@@ -52,8 +50,12 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
   const localStreamRef = useRef<MediaStream | undefined>(undefined);
   // удаленный стрим
   const remoteStreamRef = useRef<MediaStream | null>(null);
-  // массив с кандидатами
+  // массив с кандидатами удаленной стороны
   const iceCandidateBuffer = useRef<RTCIceCandidate[]>([]);
+  // массив моих кандидатов
+  const localIceCandidateBuffer = useRef<RTCIceCandidate[]>([]);
+  const messageRtcRef = useRef<string>("");
+
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
 
   //  проверка есть ли разрешение на доступ к камере и микрофону пользователя
@@ -236,6 +238,31 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
     }
   };
 
+  // фунция для отправки моих кандидатов
+  const sendBufferedLocalIceCandidates = () => {
+    console.log("ЛОГ");
+    console.log("messageRtc", messageRtc);
+    console.log("localIceCandidateBuffer.current", localIceCandidateBuffer.current);
+
+    if (!messageRtcRef.current || !localIceCandidateBuffer.current.length) return;
+
+    localIceCandidateBuffer.current.forEach(candidate => {
+      sendToSignalingServer({
+        action: "ice_candidate",
+        request_uid: uuidv4(),
+        object: {
+          from_user_uid: profile.uid,
+          to_user_uid: data.uid,
+          message_rtc_uid: messageRtcRef.current,
+          ice_candidate: candidate.candidate,
+        },
+      });
+    });
+
+    // Очищаем буфер после отправки
+    // localIceCandidateBuffer.current = [];
+  };
+
   useEffect(() => {
     if (!stunAndTurnServers?.ice_servers?.length) {
       console.log("ICE‑серверы ещё не загружены");
@@ -316,15 +343,20 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
         // При нахождении кандидата срабатывает обработчик pc.onicecandidate кандидат (сетевой маршрут) отправляется другому участнику через сигнальный сервер:
         pc.onicecandidate = event => {
           if (event.candidate) {
-            sendToSignalingServer({
-              action: "ice_candidate",
-              request_uid: uuidv4(), // генерируем новый UUID для этого сообщения
-              object: {
-                from_user_uid: profile.uid, // ID текущего пользователя
-                to_user_uid: data.uid, // ID получателя
-                ice_candidate: event.candidate.candidate, // строковое представление кандидата
-              },
-            });
+            if (messageRtcRef.current) {
+              sendToSignalingServer({
+                action: "ice_candidate",
+                request_uid: uuidv4(), // генерируем новый UUID для этого сообщения
+                object: {
+                  from_user_uid: profile.uid, // ID текущего пользователя
+                  to_user_uid: data.uid, // ID получателя
+                  message_rtc_uid: messageRtcRef.current,
+                  ice_candidate: event.candidate.candidate, // строковое представление кандидата
+                },
+              });
+            } else {
+              localIceCandidateBuffer.current.push(event.candidate);
+            }
           } else {
             console.log("Cбор кандидатов завершён");
           }
@@ -390,7 +422,9 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
                   break;
                 case "offer_call":
                   if ("message_rtc" in data.object && data.object.message_rtc) {
-                    setMessageRtc(data.object.message_rtc.uid);
+                    // setMessageRtc(data.object.message_rtc.uid);
+                    messageRtcRef.current = data.object.message_rtc.uid;
+                    sendBufferedLocalIceCandidates();
                   }
                   break;
                 case "ice_candidate":
@@ -449,6 +483,8 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
       }
 
       iceCandidateBuffer.current = [];
+      localIceCandidateBuffer.current = [];
+      messageRtcRef.current = "";
 
       // Очистка таймера при размонтировании компонента
       if (durationIntervalRef.current) {
