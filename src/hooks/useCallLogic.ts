@@ -8,16 +8,23 @@ import { useDelayedAction } from "./useDelayedAction ";
 interface CallInfo {
   from_user: string;
   to_user: string;
-  message_rtc: { uid: string };
+  message_rtc: {
+    uid: string;
+    from_user: { avatar_url?: string; first_name: string; last_name: string };
+  };
   offer_sdp?: string;
+}
+
+interface IncomingCallData {
+  object: CallInfo;
 }
 
 export const useCallLogic = (isCallModalOpen: boolean) => {
   // Состояния
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [showVideo, setShowVideo] = useState(false);
 
-  // const [sdp, setSdp] = useState("");
   const sdpRef = useRef<string>("");
 
   const [incomingCall, setIncomingCall] = useState(false);
@@ -29,7 +36,7 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
   const [callState, setCallState] = useState<
     "connecting" | "connected" | "end" | "error" | "rejected"
   >("connecting");
-  // Новые состояния для видео
+  //Состояние для удаленного видео
   const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
 
   // Рефы
@@ -40,6 +47,8 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   // накапливаем потенциальный сетевые маршрут (адрес + порт), по которому два устройства могут установить прямое соединение через WebRTC, пока нету данных чтобы их отправить
   const iceCandidateBuffer = useRef<RTCIceCandidate[]>([]);
+  const callInfoRef = useRef<CallInfo | null>(null);
+  const fromUserRef = useRef<string | null>(null);
 
   const { data: stunAndTurnServers } = useGetCallQuery();
   const { executeAfterDelay } = useDelayedAction(2000);
@@ -51,36 +60,48 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
 
     ws.onmessage = async (event: MessageEvent) => {
       try {
-        const data: SignalingMessage = JSON.parse(event.data);
+        const data = JSON.parse(event.data);
 
         switch (data.action) {
           // пришел вызов
           case "offer_call":
-            if (sdpRef.current === "") {
-              await handleIncomingOffer(data);
-              // Передаём данные в функцию показа окна (ответить на звонок да нет)
-              handleIncomingCall(data);
-              console.log("Первый offer_call");
-              sdpRef.current = data.object.offer_sdp;
+            console.log(data);
+            if (fromUserRef.current === null) {
+              fromUserRef.current = data.object.from_user;
+              console.log(fromUserRef.current);
+            }
+            console.log(peerConnectionRef.current?.signalingState);
+
+            if (data.object.from_user === fromUserRef.current) {
+              if (sdpRef.current === "") {
+                await handleIncomingOffer(data);
+                // Передаём данные в функцию показа окна (ответить на звонок или отклонить)
+                handleIncomingCall(data);
+                console.log("Первый offer_call");
+                sdpRef.current = data.object.offer_sdp;
+              } else {
+                console.log("не Первый offer_call");
+
+                await peerConnectionRef.current?.setRemoteDescription({
+                  type: "offer",
+                  sdp: data.object.offer_sdp,
+                });
+                const answer = await peerConnectionRef.current?.createAnswer();
+                await peerConnectionRef.current?.setLocalDescription(answer);
+
+                sendToSignalingServer({
+                  action: "answer_call",
+                  request_uid: uuidv4(),
+                  object: {
+                    from_user_uid: data.object.from_user,
+                    to_user_uid: data.object.to_user,
+                    answer_sdp: answer?.sdp as string,
+                    message_rtc_uid: data.object.message_rtc.uid,
+                  },
+                });
+              }
             } else {
-              console.log(" не Первый offer_call");
-
-              await peerConnectionRef.current?.setRemoteDescription({
-                type: "offer",
-                sdp: data.object.offer_sdp,
-              });
-              const answer = await peerConnectionRef.current?.createAnswer();
-              await peerConnectionRef.current?.setLocalDescription(answer);
-
-              sendToSignalingServer({
-                action: "answer_call",
-                request_uid: uuidv4(),
-                object: {
-                  from_user_uid: data.object.from_user,
-                  to_user_uid: data.object.to_user,
-                  answer_sdp: answer?.sdp as string,
-                },
-              });
+              console.log("От моего действия прилетает");
             }
 
             break;
@@ -89,7 +110,27 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
               await handleIceCandidate(peerConnectionRef.current, data.object.ice_candidate);
             }
             break;
+          case "answer_call":
+            console.log(data);
+            if (data.object.from_user !== fromUserRef.current) {
+              await peerConnectionRef.current?.setRemoteDescription({
+                type: "answer",
+                sdp: data.object.answer_sdp,
+              });
+              sendToSignalingServer({
+                action: "call_state_update",
+                request_uid: uuidv4(),
+                object: {
+                  from_user_uid: data.object.from_user,
+                  to_user_uid: data.object.to_user,
+                  message_rtc_uid: data.object.message_rtc_uid,
+                  state: "connected",
+                },
+              });
+            }
+            break;
           case "call_completion":
+            setShowVideo(false);
             if (data.object?.type_complete === "completed") {
               setIncomingCall(false);
               setCallState("end");
@@ -99,10 +140,13 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
                 cleanupConnection();
               });
             }
+            // не ответил
+            if (data.object?.type_complete === "unreceived") {
+              setIncomingCall(false);
+              cleanupConnection();
+            }
 
             break;
-          default:
-          // console.log("Неизвестное действие:", data.action);
         }
       } catch (error) {
         console.error("Ошибка обработки сигнального сообщения:", error);
@@ -195,6 +239,7 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
         if (event.candidate) {
           const fromUserUid = callInfo?.from_user;
           const toUserUid = callInfo?.to_user;
+          console.log(callInfo);
 
           if (fromUserUid && toUserUid) {
             sendToSignalingServer({
@@ -204,6 +249,7 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
                 from_user_uid: fromUserUid,
                 to_user_uid: toUserUid,
                 ice_candidate: event.candidate.candidate,
+                message_rtc_uid: "",
               },
             });
           } else {
@@ -212,6 +258,40 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
           }
         } else {
           console.log("Сбор ICE‑кандидатов завершён");
+        }
+      };
+
+      pc.onnegotiationneeded = async () => {
+        console.log("Пересогласование");
+        // Проверяем состояние соединения
+        if (pc.signalingState !== "stable") {
+          console.warn("Нельзя отправить offer: текущее состояние —", pc.signalingState);
+          return;
+        }
+
+        try {
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+
+          if (!offer.sdp) {
+            console.error("SDP offer не содержит данных");
+            setCallState("error");
+            return;
+          }
+          if (callInfoRef.current) {
+            console.log("Работает");
+
+            sendToSignalingServer({
+              action: "offer_call",
+              request_uid: uuidv4(),
+              object: {
+                to_user_uid: callInfoRef.current?.from_user,
+                offer_sdp: offer.sdp,
+              },
+            });
+          }
+        } catch (error) {
+          console.error("Ошибка при создании/отправке offer:", error);
         }
       };
 
@@ -248,6 +328,7 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
   // Завершение звонка
   const handleEndCall = () => {
     try {
+      setShowVideo(false);
       // Останавливаем локальный медиапоток
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach(track => track.stop());
@@ -322,15 +403,14 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
 
   // Принять вызов
   const handleAcceptCall = async () => {
-    console.log("Вызов принят");
-    console.log("Ответ на звонок отправлен");
-
     if (peerConnectionRef.current === null) return;
+
+    const hasPermissions = await checkPermissions();
+    if (!hasPermissions) return;
 
     try {
       localStreamRef.current = await getMediaAccess({
         audio: true,
-        // video: true,
       });
 
       if (localStreamRef.current) {
@@ -350,6 +430,7 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
             from_user_uid: callInfo.from_user,
             to_user_uid: callInfo.to_user,
             answer_sdp: answer.sdp as string,
+            message_rtc_uid: callInfo.message_rtc.uid,
           },
         });
       }
@@ -373,9 +454,10 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
   }, []);
 
   // Показываем модальное окно для принятия вызова
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleIncomingCall = (callData: any) => {
+
+  const handleIncomingCall = (callData: IncomingCallData) => {
     setCallInfo(callData.object);
+    callInfoRef.current = callData.object;
     setIncomingCall(true);
   };
 
@@ -430,19 +512,14 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
 
   const checkPermissions = useCallback(async () => {
     try {
-      // const cameraPermission = await navigator.permissions.query({
-      //   name: "camera",
-      // });
       const microphonePermission = await navigator.permissions.query({
         name: "microphone",
       });
 
-      if (
-        // cameraPermission.state === "denied"
-        // ||
-        microphonePermission.state === "denied"
-      ) {
-        alert("Для звонка нужно разрешить доступ к камере и микрофону в настройках браузера");
+      console.log("UsecallLogic");
+
+      if (microphonePermission.state === "denied") {
+        alert("Для звонков нужно разрешить доступ к камере и микрофону в настройках браузера");
         return false;
       }
       return true;
@@ -465,6 +542,7 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
             from_user_uid: callInfo?.from_user,
             to_user_uid: callInfo?.to_user,
             ice_candidate: candidate.candidate,
+            message_rtc_uid: callInfo.message_rtc.uid,
           },
         });
       }
@@ -498,7 +576,9 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
       console.log("Локальный медиапоток остановлен");
     }
     setHasRemoteVideo(false);
+    setShowVideo(false);
     sdpRef.current = "";
+    fromUserRef.current = null;
 
     // setRemoteStream(null);
     if (remoteStream) {
@@ -517,6 +597,8 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
       setRemoteStream(null);
       console.log("Удаленный медиапоток остановлен");
     }
+
+    callInfoRef.current = null;
 
     // 3. Закрываем RTCPeerConnection
     if (peerConnectionRef.current) {
@@ -552,8 +634,8 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
 
   useEffect(() => {
     const initCall = async () => {
-      const hasPermissions = await checkPermissions();
-      if (!hasPermissions) return;
+      // const hasPermissions = await checkPermissions();
+      // if (!hasPermissions) return;
 
       const pc = await initializePeerConnection();
       if (!pc) return;
@@ -565,6 +647,73 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
     initCall();
   }, [stunAndTurnServers, isCallModalOpen]);
 
+  const checkcameraPermission = async () => {
+    try {
+      const cameraPermission = await navigator.permissions.query({
+        name: "camera",
+      });
+
+      if (cameraPermission.state === "denied") {
+        alert("Для видео звонка нужно разрешить доступ к камере в настройках браузера");
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.warn("Не удалось проверить разрешения:", error);
+      return false;
+    }
+  };
+
+  // Функция для включения видео
+  const enableVideo = async () => {
+    if (!checkcameraPermission()) return;
+
+    try {
+      // Получаем видеопоток
+      const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const videoTrack = videoStream.getVideoTracks()[0];
+
+      // Добавляем видеодорожку в соединение
+      peerConnectionRef.current?.addTrack(videoTrack, videoStream);
+
+      // Добавляем в локальный поток
+      localStreamRef.current?.addTrack(videoTrack);
+
+      console.log(localStream?.getTracks());
+      setShowVideo(true);
+    } catch (err) {
+      console.log("❌ Ошибка включения видео:", err);
+    }
+  };
+
+  // Функция для выключения видео
+  const disableVideo = () => {
+    try {
+      const videoTrack = localStreamRef.current?.getVideoTracks()[0];
+      const peerConnection = peerConnectionRef.current;
+
+      if (!videoTrack || !peerConnection) return;
+
+      // 1. Получаем sender для видеодорожки
+      const sender = peerConnection.getSenders().find(s => s.track === videoTrack);
+
+      if (sender) {
+        // 2. Удаляем трек из соединения
+        peerConnection.removeTrack(sender);
+      }
+
+      // 4. Отключаем трек в локальном потоке
+      videoTrack.stop();
+      localStreamRef.current?.removeTrack(videoTrack);
+
+      // 5. Обновляем UI
+      setShowVideo(false);
+      console.log("Видео полностью отключено и удалено из соединения");
+    } catch (err) {
+      console.error("Ошибка отключения видео:", err);
+    }
+  };
+
   return {
     // Состояния
     remoteStream,
@@ -575,6 +724,7 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
     callInfo,
     callState,
     hasRemoteVideo,
+    showVideo,
     // Функции
     handleIncomingCall,
     handleRejectCall,
@@ -583,5 +733,7 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
     handleAcceptCall,
     setIsResponse,
     cleanupConnection,
+    enableVideo,
+    disableVideo,
   };
 };

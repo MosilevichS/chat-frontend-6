@@ -15,6 +15,7 @@ export type SignalingMessage =
         from_user_uid: string;
         to_user_uid: string;
         answer_sdp: string;
+        message_rtc_uid: string;
       };
     }
   | {
@@ -24,6 +25,7 @@ export type SignalingMessage =
         from_user_uid: string;
         to_user_uid: string;
         ice_candidate: string;
+        message_rtc_uid?: string;
       };
     }
   | {
@@ -35,5 +37,15 @@ export type SignalingMessage =
         type_complete: "unreceived" | "rejected" | "completed";
         message_rtc_uid: string;
         duration?: number;
+      };
+    }
+  | {
+      action: "call_state_update";
+      request_uid: string;
+      object: {
+        from_user_uid: string;
+        to_user_uid: string;
+        message_rtc_uid: string;
+        state: string;
       };
     };

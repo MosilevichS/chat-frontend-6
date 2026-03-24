@@ -24,19 +24,21 @@ interface CallBlockProps {
 
 const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
   const [callState, setCallState] = useState<
-    "call" | "connecting" | "connected" | "end" | "error" | "rejected"
+    "call" | "connecting" | "connected" | "end" | "error" | "rejected" | "unreceived"
   >("call");
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isSound, setIsSound] = useState(true);
   const [callDuration, setCallDuration] = useState<number>(0);
-  const [messageRtc, setMessageRtc] = useState("");
+  // const [messageRtc, setMessageRtc] = useState("");
   const [dots, setDots] = useState([
     { size: 6, opacity: 1 },
     { size: 5, opacity: 0.7 },
     { size: 4, opacity: 0.4 },
   ]);
   const [showVideo, setShowVideo] = useState(false);
-  const [isSwapped, setIsSwapped] = useState(false);
+  const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
+
+  // const [isSwapped, setIsSwapped] = useState(false);
 
   const { data: stunAndTurnServers } = useGetCallQuery();
   // Время звонка
@@ -55,40 +57,19 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
   // массив моих кандидатов
   const localIceCandidateBuffer = useRef<RTCIceCandidate[]>([]);
   const messageRtcRef = useRef<string>("");
-
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
-
-  //  проверка есть ли разрешение на доступ к камере и микрофону пользователя
-  // const checkPermissions = async () => {
-  //   try {
-  //     const cameraPermission = await navigator.permissions.query({
-  //       name: "camera",
-  //     });
-  //     const microphonePermission = await navigator.permissions.query({
-  //       name: "microphone",
-  //     });
-
-  //     if (cameraPermission.state === "denied" || microphonePermission.state === "denied") {
-  //       alert("Для звонка нужно разрешить доступ к камере и микрофону в настройках браузера");
-  //       return false;
-  //     }
-  //     return true;
-  //   } catch (error) {
-  //     console.warn("Не удалось проверить разрешения:", error);
-  //     return false;
-  //   }
-  // };
+  const toUserRef = useRef<string | null>(null);
 
   // запрашиваем у пользователя разрешение на доступ к медиаустройствам (микрофону, камере) и возвращаем медиапоток
-  const getMediaAccess = async (constraints: MediaStreamConstraints) => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      console.log("Доступ к устройствам получен");
-      return stream;
-    } catch (error) {
-      console.log("Ошибка доступа к устройствам:", error);
-    }
-  };
+  // const getMediaAccess = async (constraints: MediaStreamConstraints) => {
+  //   try {
+  //     const stream = await navigator.mediaDevices.getUserMedia(constraints);
+  //     console.log("Доступ к устройствам получен");
+  //     return stream;
+  //   } catch (error) {
+  //     console.log("Ошибка доступа к устройствам:", error);
+  //   }
+  // };
 
   // Форматирование времени в MM:SS
   const formatDuration = (seconds: number): string => {
@@ -171,7 +152,7 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
           from_user_uid: profile.uid,
           to_user_uid: data.uid,
           type_complete: "completed",
-          message_rtc_uid: messageRtc,
+          message_rtc_uid: messageRtcRef.current,
           duration: callDuration,
         },
       });
@@ -180,13 +161,14 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
       const localVideo = document.getElementById("local-video") as HTMLVideoElement;
       const remoteVideo = document.getElementById("remote-video") as HTMLVideoElement;
 
+      setShowVideo(false);
+
       if (localVideo) {
         localVideo.srcObject = null;
       }
       if (remoteVideo) {
         remoteVideo.srcObject = null;
       }
-      setShowVideo(false);
 
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach(track => track.stop());
@@ -240,10 +222,6 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
 
   // фунция для отправки моих кандидатов
   const sendBufferedLocalIceCandidates = () => {
-    console.log("ЛОГ");
-    console.log("messageRtc", messageRtc);
-    console.log("localIceCandidateBuffer.current", localIceCandidateBuffer.current);
-
     if (!messageRtcRef.current || !localIceCandidateBuffer.current.length) return;
 
     localIceCandidateBuffer.current.forEach(candidate => {
@@ -258,9 +236,6 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
         },
       });
     });
-
-    // Очищаем буфер после отправки
-    // localIceCandidateBuffer.current = [];
   };
 
   useEffect(() => {
@@ -290,21 +265,80 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
         stream.getTracks().forEach(track => pc.addTrack(track, stream));
 
         pc.ontrack = event => {
-          console.log("Получен удалённый медиапоток:", event.streams);
+          console.log("Получен удалённый медиапоток:", event.streams[0].getTracks());
+
+          const stream = event.streams[0];
+
+          stream.onremovetrack = e => {
+            if (e.track.kind === "video") {
+              setHasRemoteVideo(false);
+              console.log("Трек удален");
+            }
+          };
+
+          // Проверяем, что есть хотя бы один поток
+          if (!event.streams || event.streams.length === 0) {
+            console.warn("ontrack: нет потоков в событии");
+            return;
+          }
+
+          // Ищем существующий объединённый поток или создаём новый
+          let combinedStream = remoteStreamRef.current;
+
+          if (!combinedStream) {
+            combinedStream = new MediaStream();
+            remoteStreamRef.current = combinedStream;
+          }
+
+          // Обрабатываем все потоки из события
+          event.streams.forEach(incomingStream => {
+            incomingStream.getTracks().forEach(track => {
+              // Определяем тип трека
+              if (track.kind === "video") {
+                // Удаляем все существующие видео‑треки из объединённого потока
+                const existingVideoTracks = combinedStream
+                  .getTracks()
+                  .filter(t => t.kind === "video");
+
+                existingVideoTracks.forEach(oldTrack => {
+                  combinedStream.removeTrack(oldTrack);
+                });
+
+                // Добавляем новый видео‑трек
+                combinedStream.addTrack(track);
+
+                setHasRemoteVideo(true);
+              } else {
+                // Для аудио‑треков сохраняем логику добавления без замены
+                const existingTrack = combinedStream.getTracks().find(t => t.id === track.id);
+                if (!existingTrack) {
+                  combinedStream.addTrack(track);
+                }
+              }
+            });
+          });
+
+          // Обновляем состояние
+          // setRemoteStream(combinedStream);
+
+          remoteStreamRef.current = combinedStream;
+
+          console.log(combinedStream.getTracks());
+
+          if (combinedStream.getTracks().length >= 2) {
+            setHasRemoteVideo(true);
+          }
+
+          // Применяем текущее состояние звука ко всем аудио‑трекам
+          combinedStream.getAudioTracks().forEach(track => {
+            track.enabled = isSound;
+          });
+          // };
+
           const remoteVideo = document.getElementById("remote-video") as HTMLVideoElement | null;
 
           if (remoteVideo) {
-            remoteVideo.srcObject = event.streams[0];
-          }
-
-          // Сохраняем удалённый поток в ref
-          remoteStreamRef.current = event.streams[0];
-
-          // Применяем текущее состояние звука к удалённому потоку
-          if (remoteStreamRef.current) {
-            remoteStreamRef.current.getAudioTracks().forEach(track => {
-              track.enabled = isSound;
-            });
+            remoteVideo.srcObject = remoteStreamRef.current;
           }
         };
 
@@ -327,6 +361,8 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
               setCallState("error");
               return;
             }
+
+            toUserRef.current = data.uid;
             sendToSignalingServer({
               action: "offer_call",
               request_uid: uuidv4(),
@@ -414,18 +450,65 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
         if (ws !== null) {
           ws.onmessage = async (event: MessageEvent) => {
             try {
-              const data: SignalingMessage = JSON.parse(event.data);
+              const data = JSON.parse(event.data);
               switch (data.action) {
                 case "answer_call":
-                  // пришел ответ от того кому хотим позвонить
-                  await handleAnswerCall(peerConnectionRef.current, data);
-                  break;
-                case "offer_call":
-                  if ("message_rtc" in data.object && data.object.message_rtc) {
-                    // setMessageRtc(data.object.message_rtc.uid);
-                    messageRtcRef.current = data.object.message_rtc.uid;
-                    sendBufferedLocalIceCandidates();
+                  console.log(toUserRef.current);
+                  console.log(data);
+                  if (toUserRef.current !== data.object.from_user) {
+                    // пришел ответ от того кому хотим позвонить
+                    await handleAnswerCall(peerConnectionRef.current, data);
+                    // отправляем на сервер сигнал, что соединение установлено успешно
+                    if (toUserRef.current) {
+                      sendToSignalingServer({
+                        action: "call_state_update",
+                        request_uid: uuidv4(),
+                        object: {
+                          from_user_uid: profile.uid,
+                          to_user_uid: toUserRef.current,
+                          message_rtc_uid: messageRtcRef.current,
+                          state: "connected",
+                        },
+                      });
+                    }
                   }
+                  break;
+
+                case "offer_call":
+                  console.log("ofer-call", data);
+
+                  if (peerConnectionRef.current?.signalingState !== "stable") {
+                    console.log("мой ответ");
+                    if ("message_rtc" in data.object && data.object.message_rtc) {
+                      // setMessageRtc(data.object.message_rtc.uid);
+                      messageRtcRef.current = data.object.message_rtc.uid;
+
+                      sendBufferedLocalIceCandidates();
+                    }
+                  } else {
+                    console.log(
+                      "Ответ от другой стороны ofer-call 30 сек должен answer-call послать",
+                    );
+                    await peerConnectionRef.current?.setRemoteDescription({
+                      type: "offer",
+                      sdp: data.object.offer_sdp,
+                    });
+
+                    const answer = await peerConnectionRef.current?.createAnswer();
+                    await peerConnectionRef.current?.setLocalDescription(answer);
+
+                    sendToSignalingServer({
+                      action: "answer_call",
+                      request_uid: uuidv4(),
+                      object: {
+                        from_user_uid: data.object.from_user,
+                        to_user_uid: data.object.to_user,
+                        answer_sdp: answer?.sdp as string,
+                        message_rtc_uid: data.object.message_rtc.uid,
+                      },
+                    });
+                  }
+
                   break;
                 case "ice_candidate":
                   if (data.object.ice_candidate) {
@@ -433,6 +516,7 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
                   }
                   break;
                 case "call_completion":
+                  setShowVideo(false);
                   if (data.object?.type_complete === "rejected") {
                     console.log("Звонок отклонен");
                     setCallState("rejected");
@@ -440,6 +524,14 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
                       setIsCallModalOpen(false);
                     });
                   }
+                  if (data.object?.type_complete === "unreceived") {
+                    console.log("Не отвечает");
+                    setCallState("unreceived");
+                    executeAfterDelay(() => {
+                      setIsCallModalOpen(false);
+                    });
+                  }
+
                   if (data.object?.type_complete === "completed") {
                     console.log("Звонок завершен");
                     if (durationIntervalRef.current) {
@@ -485,6 +577,8 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
       iceCandidateBuffer.current = [];
       localIceCandidateBuffer.current = [];
       messageRtcRef.current = "";
+      toUserRef.current = null;
+      remoteStreamRef.current = null;
 
       // Очистка таймера при размонтировании компонента
       if (durationIntervalRef.current) {
@@ -514,38 +608,27 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
     return () => clearInterval(interval);
   }, []);
 
-  // if (peerConnectionRef.current) {
-  //   const senders = peerConnectionRef.current.getSenders();
-  //   const audioSenders = senders.filter(s => s.track?.kind === "audio");
+  const checkPermissions = async () => {
+    try {
+      const cameraPermission = await navigator.permissions.query({
+        name: "camera",
+      });
 
-  //   // console.log("🎤 Мое аудио:", {
-  //   //   "Есть треки": audioSenders.length > 0,
-  //   //   Количество: audioSenders.length,
-  //   //   Детали: audioSenders.map(s => ({
-  //   //     enabled: s.track?.enabled,
-  //   //     readyState: s.track?.readyState,
-  //   //     muted: s.track?.muted,
-  //   //     id: s.track?.id,
-  //   //   })),
-  //   // });
-
-  //   // const videoSenders = senders.filter(s => s.track?.kind === "video");
-
-  //   // console.log("📤 ОТПРАВКА ВИДЕО:", {
-  //   //   "Есть отправители": videoSenders.length > 0,
-  //   //   Количество: videoSenders.length,
-  //   //   Детали: videoSenders.map(s => ({
-  //   //     enabled: s.track?.enabled,
-  //   //     readyState: s.track?.readyState,
-  //   //     id: s.track?.id,
-  //   //   })),
-  //   // });
-
-  //   console.log(localStreamRef.current?.getTracks());
-  // }
+      if (cameraPermission.state === "denied") {
+        alert("Для видео звонка нужно разрешить доступ к камере в настройках браузера");
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.warn("Не удалось проверить разрешения:", error);
+      return false;
+    }
+  };
 
   // Функция для включения видео
   const enableVideo = async () => {
+    if (!checkPermissions()) return;
+
     try {
       // Получаем видеопоток
       const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -564,7 +647,7 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
   };
 
   // Функция для выключения видео
-  const disableVideo = async () => {
+  const disableVideo = () => {
     try {
       const videoTrack = localStreamRef.current?.getVideoTracks()[0];
       const peerConnection = peerConnectionRef.current;
@@ -592,9 +675,11 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
   };
 
   useEffect(() => {
-    const localVideo = document.getElementById("local-video") as HTMLVideoElement;
-    if (localVideo && localStreamRef.current) {
-      localVideo.srcObject = localStreamRef.current;
+    if (showVideo) {
+      const localVideo = document.getElementById("local-video") as HTMLVideoElement;
+      if (localVideo && localStreamRef.current) {
+        localVideo.srcObject = localStreamRef.current;
+      }
     }
 
     // const remoteVideo = document.getElementById("remote-video") as HTMLVideoElement | null;
@@ -618,9 +703,13 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
         //   playsInline
         // />
       // ) : ( */}
+      {/* Удаленное видео */}
       <video
-        className="absolute inset-0 -z-10 w-full h-full object-cover rounded-lg"
         id="remote-video"
+        className={`absolute inset-0 -z-10 w-full h-full object-cover rounded-lg
+            ${!hasRemoteVideo ? "hidden" : ""}
+              ${callState === "end" ? "hidden" : ""}
+          `}
         autoPlay
         playsInline
       />
@@ -656,11 +745,10 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
       </div>
       <div
         className={`flex flex-col items-center text-white h-[310px]
-     ${remoteStreamRef.current?.getVideoTracks().length && callState !== "end" ? "mb-auto" : ""}
-       
+     ${hasRemoteVideo && callState !== "end" ? "mb-auto" : ""}
         `}
       >
-        {callState === "end" || !remoteStreamRef.current?.getVideoTracks().length ? (
+        {!hasRemoteVideo || callState === "end" ? (
           <div className="flex justify-center items-center h-[184px] w-[184px] mb-[32px]">
             {data.avatar_url ? (
               <div className="relative">
@@ -746,6 +834,7 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
         )}
         {callState === "error" && <p>Ошибка соединения</p>}
         {callState === "rejected" && <p>Звонок отклонен</p>}
+        {callState === "unreceived" && <p>Не отвечает</p>}
       </div>
 
       {/* {showVideo && (

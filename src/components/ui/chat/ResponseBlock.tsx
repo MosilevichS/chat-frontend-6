@@ -1,7 +1,5 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-// import closeCall from "@/src/assets/icons/close-call.svg";
-// import fullScreen from "@/src/assets/icons/full-screen.svg";
 import callEnd from "@/src/assets/icons/call-end.svg";
 import video from "@/src/assets/icons/video.svg";
 import removeSound from "@/src/assets/icons/remove-sound.svg";
@@ -33,6 +31,9 @@ interface ResponseBlockProps {
   callState: string;
   cleanupConnection: () => void;
   hasRemoteVideo: boolean;
+  showVideo: boolean;
+  enableVideo: () => void;
+  disableVideo: () => void;
 }
 
 const ResponseBlock = ({
@@ -45,9 +46,10 @@ const ResponseBlock = ({
   callState,
   cleanupConnection,
   hasRemoteVideo,
+  showVideo,
+  enableVideo,
+  disableVideo,
 }: ResponseBlockProps) => {
-  const localVideoRef = useRef<HTMLVideoElement>(null);
-
   const [isFullScreen, setIsFullScreen] = useState(false);
 
   // Время начала звонка
@@ -84,10 +86,6 @@ const ResponseBlock = ({
       remoteVideo.srcObject = remoteStream;
     }
 
-    if (localVideoRef.current && localStream) {
-      localVideoRef.current.srcObject = localStream;
-    }
-
     if (callState === "end" && durationIntervalRef.current !== null) {
       clearInterval(durationIntervalRef.current);
     }
@@ -121,7 +119,12 @@ const ResponseBlock = ({
     };
   }, []);
 
-  const handleVideo = () => {};
+  useEffect(() => {
+    const localVideo = document.getElementById("localVideo") as HTMLVideoElement;
+    if (localVideo && localStream) {
+      localVideo.srcObject = localStream;
+    }
+  }, [showVideo]);
 
   return (
     <div
@@ -244,19 +247,22 @@ const ResponseBlock = ({
       </div>
 
       {/* Локальный поток */}
-      <video
-        // ref={localVideoRef}
-        className="hidden ml-auto mb-5 w-[140px] h-[200px] object-cover rounded-md"
-        autoPlay
-      />
+      {showVideo && (
+        <video
+          id="localVideo"
+          className="ml-auto mb-5 w-[140px] h-[200px] object-cover rounded-md"
+          autoPlay
+          muted
+        />
+      )}
 
       <div className="flex gap-x-4 text-white text-xs font-normal mt-5">
         <button
           className="flex flex-col items-center gap-y-1 w-[68px] h-[54px]"
-          onClick={() => handleVideo()}
+          onClick={() => (showVideo ? disableVideo() : enableVideo())}
         >
           <Image src={video} alt="Видео" width={36} height={36} />
-          <p>Видео</p>
+          <p>{showVideo ? "Аудио" : "Видео"}</p>
         </button>
         <button
           className="flex flex-col items-center gap-y-1 w-[68px] h-[54px]"

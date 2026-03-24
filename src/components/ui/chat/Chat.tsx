@@ -79,9 +79,7 @@ export default function Chat() {
 
       // Если доступ получен, открываем модальное окно звонка
       setIsCallModalOpen(true);
-    } catch (error) {
-      console.error("Доступ к устройствам отклонён:", error);
-
+    } catch {
       // Показываем информативное сообщение пользователю
       alert(
         "Для совершения звонка необходимо разрешить доступ к микрофону и камере (для видео звонка). Нажмите на значок в начале адресной строки браузера, чтобы изменить настройки разрешений.",
@@ -112,11 +110,14 @@ export default function Chat() {
     callInfo,
     callState,
     hasRemoteVideo,
+    showVideo,
     cleanupConnection,
     handleRejectCall,
     toggleSound,
     handleEndCall,
     handleAcceptCall,
+    enableVideo,
+    disableVideo,
   } = useCallLogic(isCallModalOpen);
 
   // Проверка есть ли пользователь в списке контактов
@@ -746,13 +747,16 @@ export default function Chat() {
         <ResponseBlock
           data={callInfo!}
           remoteStream={remoteStream!}
-          localStream={localStream}
+          localStream={localStream!}
           toggleSound={toggleSound}
           isSound={isSound}
           handleEndCall={handleEndCall}
           callState={callState}
           cleanupConnection={cleanupConnection}
           hasRemoteVideo={hasRemoteVideo}
+          showVideo={showVideo}
+          enableVideo={enableVideo}
+          disableVideo={disableVideo}
         />
       )}
     </>
