@@ -454,7 +454,6 @@ export const useCallLogic = (isCallModalOpen: boolean) => {
   }, []);
 
   // Показываем модальное окно для принятия вызова
-
   const handleIncomingCall = (callData: IncomingCallData) => {
     setCallInfo(callData.object);
     callInfoRef.current = callData.object;

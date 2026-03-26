@@ -37,7 +37,6 @@ const CallBlock = ({ setIsCallModalOpen, data, profile }: CallBlockProps) => {
   ]);
   const [showVideo, setShowVideo] = useState(false);
   const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
-
   // const [isSwapped, setIsSwapped] = useState(false);
 
   const { data: stunAndTurnServers } = useGetCallQuery();

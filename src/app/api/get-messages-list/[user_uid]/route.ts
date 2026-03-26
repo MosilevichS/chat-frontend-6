@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 
-export async function GET(request: Request, { params }: { params: { user_uid: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ user_uid: string }> }) {
   const cookieStore = cookies();
   const token = (await cookieStore).get("accessToken")?.value;
 
