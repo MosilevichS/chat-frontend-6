@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { type Chat } from "@/src/types/chat";
+import { type IChat } from "@/src/types/chat";
 
 import notifications from "../../../assets/icons/notifications.svg";
 import addContact from "../../../assets/icons/add-contact.svg";
@@ -10,7 +10,7 @@ import readOk from "../../../assets/icons/read-ok.svg";
 type ContextMenuProps = {
   isOpen: boolean;
   ref: React.RefObject<HTMLDivElement | null>;
-  chats: Chat[] | undefined;
+  chats: IChat[] | undefined;
   chatId: number | null;
   position: { x: number; y: number; placement: "top" | "bottom" };
   onToggleNotifications: () => void;
